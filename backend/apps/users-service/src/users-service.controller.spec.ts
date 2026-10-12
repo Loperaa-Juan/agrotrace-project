@@ -11,7 +11,9 @@ describe('UsersServiceController', () => {
       providers: [UsersServiceService],
     }).compile();
 
-    usersServiceController = app.get<UsersServiceController>(UsersServiceController);
+    usersServiceController = app.get<UsersServiceController>(
+      UsersServiceController,
+    );
   });
 
   describe('root', () => {
