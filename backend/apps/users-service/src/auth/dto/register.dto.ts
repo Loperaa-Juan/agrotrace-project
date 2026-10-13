@@ -11,6 +11,8 @@ import {
 } from 'class-validator';
 import { DocumentType, UserRole } from '../../entities/user.entity';
 
+const MUNICIPIOS_PERMITIDOS = ['Envigado'];
+
 const ROLES_DE_REGISTRO = [
   UserRole.AGRICULTOR,
   UserRole.PERSONA,
@@ -52,9 +54,10 @@ export class RegisterDTO {
   @MaxLength(255)
   address: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
+  // Por ahora agrotrace solo opera en Envigado. Las ofertas del agricultor quedan en su municipio
+  @IsIn(MUNICIPIOS_PERMITIDOS, {
+    message: 'Por ahora agrotrace solo opera en Envigado',
+  })
   municipality: string;
 
   // Admin no se puede elegir al registrarse: se asigna directamente en la BD

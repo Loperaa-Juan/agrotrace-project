@@ -13,7 +13,7 @@ describe('RegisterDTO', () => {
     phone: '3001234567',
     password: 'Segura123',
     address: 'Calle 10 # 20-30',
-    municipality: 'Medellín',
+    municipality: 'Envigado',
     role: UserRole.AGRICULTOR,
   };
 
@@ -75,10 +75,15 @@ describe('RegisterDTO', () => {
     );
   });
 
-  it('rechaza un municipio vacío', async () => {
-    expect(
-      await camposConError({ ...datosValidos, municipality: '' }),
-    ).toContain('municipality');
+  it('rechaza un municipio distinto de Envigado', async () => {
+    // Arrange: por ahora agrotrace solo opera en Envigado
+    const datos = { ...datosValidos, municipality: 'Medellín' };
+
+    // Act
+    const campos = await camposConError(datos);
+
+    // Assert
+    expect(campos).toContain('municipality');
   });
 
   it('rechaza un rol inválido', async () => {

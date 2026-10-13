@@ -45,7 +45,7 @@ describe('Tests en las rutas /users', () => {
     phone: '3001234567',
     password: 'Segura123',
     address: 'Calle 10 # 20-30',
-    municipality: 'Medellín',
+    municipality: 'Envigado',
     role: UserRole.AGRICULTOR,
   };
 
