@@ -10,6 +10,14 @@ async function bootstrap() {
     Number.parseInt(process.env.MICROSERVICE_PORT as string, 10) || 3003;
 
   const app = await NestFactory.create(CatalogServiceModule);
+
+  // CORS: orígenes del frontend separados por coma en CORS_ORIGIN (ej. http://localhost:5173).
+  // Sin la variable se acepta cualquier origen: útil en desarrollo, en producción hay que definirla
+  app.enableCors({
+    origin:
+      process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ??
+      true,
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
   // TCP: comunicación interna con los demás microservicios
