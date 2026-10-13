@@ -5,7 +5,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { of, throwError } from 'rxjs';
-import { ValidationService } from '../../../src/shared/services/validation.service';
+import { ValidationService } from '../../src/services/validation.service';
 
 describe('ValidationService', () => {
   let service: ValidationService;

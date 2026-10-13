@@ -7,14 +7,10 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  JoinColumn,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
-  type Relation,
   type ValueTransformer,
 } from 'typeorm';
-import { Product } from './product.entitie';
 
 // Postgres devuelve las columnas numeric como string; las convertimos a number
 const decimalTransformer: ValueTransformer = {
@@ -29,17 +25,10 @@ export class Offert {
   @PrimaryGeneratedColumn('uuid')
   OffertId: string;
 
-  // Producto del catálogo maestro que se está ofertando
-  @Column()
+  // Producto del catálogo maestro que se está ofertando. Vive en catalog-service,
+  // por eso no hay relación entre servicios: su existencia se valida por TCP
+  @Column({ type: 'uuid' })
   productId: string;
-
-  // Relación de muchos a uno: Un producto del catálogo puede tener muchas ofertas
-  @ManyToOne(() => Product, (product) => product.offerts, {
-    nullable: false,
-    onDelete: 'RESTRICT', // No se puede borrar un producto que tenga ofertas
-  })
-  @JoinColumn({ name: 'productId' })
-  product: Relation<Product>;
 
   // Agricultor que publica la oferta. Vive en users-service, por eso no hay relación entre servicios
   @Index()
