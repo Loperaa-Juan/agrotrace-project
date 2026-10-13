@@ -1,4 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { MoreThanOrEqual } from 'typeorm';
 import { OffertsService } from '../../src/offerts/offerts.service';
 
 describe('OffertsService', () => {
@@ -34,6 +35,7 @@ describe('OffertsService', () => {
       save: jest.fn((data) => Promise.resolve(data)),
       find: jest.fn(),
       findOne: jest.fn(),
+      update: jest.fn().mockResolvedValue({ affected: 1 }),
     };
 
     // Valida por TCP que el agricultor exista en users-service
@@ -187,6 +189,93 @@ describe('OffertsService', () => {
 
       // Assert
       expect(result.isActive).toBe(false);
+    });
+  });
+
+  // Usado por orders-service (TCP) para armar un pedido
+  describe('getActiveOffert', () => {
+    it('Debe buscar solo ofertas activas de productos activos', async () => {
+      // Arrange
+      offertRepository.findOne.mockResolvedValue(null);
+
+      // Act
+      await service.getActiveOffert('offert-1');
+
+      // Assert
+      expect(offertRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          OffertId: 'offert-1',
+          isActive: true,
+          product: { isActive: true },
+        },
+        relations: { product: true },
+      });
+    });
+
+    it('Debe devolver los datos de la oferta con la unidad de medida del producto', async () => {
+      // Arrange
+      offertRepository.findOne.mockResolvedValue({
+        ...offert,
+        product: { unitOfMeasure: 'kg' },
+      });
+
+      // Act
+      const result = await service.getActiveOffert('offert-1');
+
+      // Assert
+      expect(result).toEqual({
+        OffertId: 'offert-1',
+        farmerId: 'farmer-1',
+        pricePerUnit: 3500,
+        availableQuantity: 120,
+        unitOfMeasure: 'kg',
+      });
+    });
+  });
+
+  // Usado por orders-service (TCP) cuando el agricultor acepta un pedido
+  describe('decreaseQuantity', () => {
+    it('Debe descontar la cantidad solo si la oferta activa tiene suficiente', async () => {
+      // Arrange
+      const cantidad = 10;
+
+      // Act
+      await service.decreaseQuantity('offert-1', cantidad);
+
+      // Assert: la condición va en el UPDATE para que dos pedidos a la vez no dejen la cantidad negativa
+      expect(offertRepository.update).toHaveBeenCalledWith(
+        {
+          OffertId: 'offert-1',
+          isActive: true,
+          availableQuantity: MoreThanOrEqual(10),
+        },
+        { availableQuantity: expect.any(Function) },
+      );
+    });
+
+    it('Debe responder false si no alcanza la cantidad disponible', async () => {
+      // Arrange
+      offertRepository.update.mockResolvedValue({ affected: 0 });
+
+      // Act
+      const result = await service.decreaseQuantity('offert-1', 1000);
+
+      // Assert
+      expect(result).toBe(false);
+    });
+
+    it('Debe retirar la oferta cuando se agota', async () => {
+      // Arrange
+      const cantidad = 10;
+
+      // Act
+      await service.decreaseQuantity('offert-1', cantidad);
+
+      // Assert
+      expect(offertRepository.update).toHaveBeenCalledWith(
+        { OffertId: 'offert-1', availableQuantity: 0 },
+        { isActive: false },
+      );
     });
   });
 });

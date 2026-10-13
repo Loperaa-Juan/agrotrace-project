@@ -31,6 +31,12 @@ describe('OffertsController', () => {
       remove: jest.fn((offertId, farmerId) =>
         Promise.resolve({ OffertId: offertId, farmerId, isActive: false }),
       ),
+      getActiveOffert: jest.fn((offertId) =>
+        Promise.resolve({ OffertId: offertId }),
+      ),
+      decreaseQuantity: jest.fn((offertId, quantity) =>
+        Promise.resolve(offertId === 'offert-1' && quantity === 10),
+      ),
     };
 
     controller = new OffertsController(offertsService);
@@ -157,6 +163,34 @@ describe('OffertsController', () => {
 
       // Assert
       expect(conRolAgricultor).toEqual(rutasDelAgricultor);
+    });
+  });
+
+  // Patrón TCP que usa orders-service para armar un pedido
+  describe('getOffert', () => {
+    it('Debe responder con la oferta activa del id recibido', async () => {
+      // Arrange
+      const offertId = 'offert-1';
+
+      // Act
+      const result = await controller.getOffert(offertId);
+
+      // Assert
+      expect(result).toEqual({ OffertId: 'offert-1' });
+    });
+  });
+
+  // Patrón TCP que usa orders-service cuando el agricultor acepta un pedido
+  describe('decreaseQuantity', () => {
+    it('Debe descontar de la oferta recibida la cantidad del pedido', async () => {
+      // Arrange
+      const payload = { offertId: 'offert-1', quantity: 10 };
+
+      // Act
+      const result = await controller.decreaseQuantity(payload);
+
+      // Assert
+      expect(result).toBe(true);
     });
   });
 });
