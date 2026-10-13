@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { UsersService } from '../../src/users/users.service';
 import { DocumentType, UserRole } from '../../src/entities/user.entity';
 
@@ -24,6 +25,7 @@ describe('UsersService', () => {
       findAndCount: jest.fn(),
       findOne: jest.fn(),
       exists: jest.fn(),
+      delete: jest.fn(),
     };
 
     service = new UsersService(userRepository);
@@ -97,6 +99,26 @@ describe('UsersService', () => {
       userRepository.exists.mockResolvedValue(false);
 
       expect(await service.userExists('no-existe')).toBe(false);
+    });
+  });
+
+  describe('deleteUser', () => {
+    it('Debe eliminar el usuario por su id', async () => {
+      userRepository.delete.mockResolvedValue({ affected: 1 });
+
+      await service.deleteUser('uuid-123');
+
+      expect(userRepository.delete).toHaveBeenCalledWith({
+        userId: 'uuid-123',
+      });
+    });
+
+    it('Debe lanzar NotFoundException si el usuario no existe', async () => {
+      userRepository.delete.mockResolvedValue({ affected: 0 });
+
+      await expect(service.deleteUser('no-existe')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

@@ -1,5 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { UsersController } from '../../src/users/users.controller';
+import { JwtAuthGuard } from '../../src/auth/guards/jwt-auth.guard';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -17,6 +19,7 @@ describe('UsersController', () => {
       getUsers: jest.fn(),
       getUserById: jest.fn(),
       userExists: jest.fn(),
+      deleteUser: jest.fn(),
     };
 
     controller = new UsersController(usersService);
@@ -108,6 +111,37 @@ describe('UsersController', () => {
       usersService.userExists.mockResolvedValue(false);
 
       expect(await controller.userExists('no-existe')).toBe(false);
+    });
+  });
+
+  describe('deleteMe', () => {
+    it('Debe eliminar la cuenta del usuario autenticado', async () => {
+      const request: any = { user: { sub: 'uuid-123' } };
+
+      await controller.deleteMe(request);
+
+      expect(usersService.deleteUser).toHaveBeenCalledWith('uuid-123');
+    });
+  });
+
+  // Las rutas /users/me necesitan un usuario autenticado en request.user
+  describe('rutas protegidas', () => {
+    it('getMe debe estar protegido con JwtAuthGuard', () => {
+      const guards = Reflect.getMetadata(
+        GUARDS_METADATA,
+        UsersController.prototype.getMe,
+      );
+
+      expect(guards).toContain(JwtAuthGuard);
+    });
+
+    it('deleteMe debe estar protegido con JwtAuthGuard', () => {
+      const guards = Reflect.getMetadata(
+        GUARDS_METADATA,
+        UsersController.prototype.deleteMe,
+      );
+
+      expect(guards).toContain(JwtAuthGuard);
     });
   });
 });
