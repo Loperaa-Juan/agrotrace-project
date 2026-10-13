@@ -1,18 +1,36 @@
-import { Controller, Get, NotFoundException, Req } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UsersService } from './users.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
+  @UseGuards(JwtAuthGuard)
   async getMe(@Req() request) {
     const user = await this.usersService.getUserById(request.user.sub);
     if (!user) {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  @Delete('me')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteMe(@Req() request) {
+    await this.usersService.deleteUser(request.user.sub);
   }
 
   @MessagePattern('get_users')

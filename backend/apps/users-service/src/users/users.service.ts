@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Repository } from 'typeorm';
@@ -39,5 +39,13 @@ export class UsersService {
 
   async userExists(id: string): Promise<boolean> {
     return this.userRepository.exists({ where: { userId: id } });
+  }
+
+  // Borrado físico: los refresh tokens del usuario se eliminan en cascada
+  async deleteUser(id: string): Promise<void> {
+    const result = await this.userRepository.delete({ userId: id });
+    if (result.affected === 0) {
+      throw new NotFoundException('User not found');
+    }
   }
 }
