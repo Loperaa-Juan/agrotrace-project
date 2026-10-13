@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./apps/users-service/test/jest-e2e.json",
     "sonar": "jest --coverage && node --env-file=.env node_modules/@sonar/scan/bin/sonar-scanner.js",
     "start:users": "nest start users-service --watch",
-    "start:catalog": "nest start catalog-service --watch"
+    "start:catalog": "nest start catalog-service --watch",
+    "start:orders": "nest start orders-service --watch"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
