@@ -1,16 +1,14 @@
 import {
   IsDateString,
-  IsIn,
   IsOptional,
   IsPositive,
   IsString,
   IsUUID,
 } from 'class-validator';
 
-// Por ahora agrotrace solo opera en Envigado
-export const MUNICIPIOS_PERMITIDOS = ['Envigado'];
-
-// El farmerId no se recibe aquí: sale del token del agricultor autenticado
+// El farmerId no se recibe aquí: sale del token del agricultor autenticado.
+// El municipio tampoco: es el del agricultor (users-service solo acepta Envigado).
+// La calidad la asigna el modelo de IA, no el agricultor
 export class CreateOffertDto {
   @IsUUID('all', { message: 'El producto no es válido' })
   productId: string;
@@ -29,9 +27,4 @@ export class CreateOffertDto {
   @IsOptional()
   @IsDateString({}, { message: 'La fecha de cosecha no es válida' })
   harvestDate?: string;
-
-  @IsIn(MUNICIPIOS_PERMITIDOS, {
-    message: 'Por ahora solo se aceptan ofertas en Envigado',
-  })
-  municipality: string;
 }

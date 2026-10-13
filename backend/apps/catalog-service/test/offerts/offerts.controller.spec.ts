@@ -13,7 +13,6 @@ describe('OffertsController', () => {
     productId: '3f2b8c1e-5d4a-4e6b-9c7d-1a2b3c4d5e6f',
     pricePerUnit: 3500,
     availableQuantity: 120,
-    municipality: 'Envigado',
   };
 
   beforeEach(() => {

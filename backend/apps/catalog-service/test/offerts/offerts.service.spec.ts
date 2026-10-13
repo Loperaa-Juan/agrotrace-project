@@ -17,7 +17,6 @@ describe('OffertsService', () => {
     pricePerUnit: 3500,
     availableQuantity: 120,
     harvestDate: '2026-10-01',
-    municipality: 'Envigado',
     isActive: true,
   };
 
@@ -26,7 +25,6 @@ describe('OffertsService', () => {
     productId: 'product-1',
     pricePerUnit: 3500,
     availableQuantity: 120,
-    municipality: 'Envigado',
   };
 
   beforeEach(() => {

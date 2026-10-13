@@ -11,7 +11,6 @@ describe('CreateOffertDto', () => {
     pricePerUnit: 3500,
     availableQuantity: 120,
     harvestDate: '2026-10-01',
-    municipality: 'Envigado',
   };
 
   // Devuelve los nombres de los campos que fallaron la validación
@@ -77,16 +76,5 @@ describe('CreateOffertDto', () => {
 
     // Assert
     expect(campos).toContain('harvestDate');
-  });
-
-  it('rechaza un municipio distinto de Envigado', async () => {
-    // Arrange
-    const datos = { ...datosValidos, municipality: 'Medellín' };
-
-    // Act
-    const campos = await camposConError(datos);
-
-    // Assert
-    expect(campos).toContain('municipality');
   });
 });
