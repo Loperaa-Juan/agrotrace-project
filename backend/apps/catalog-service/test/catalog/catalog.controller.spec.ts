@@ -1,3 +1,5 @@
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { JwtAuthGuard, Role, ROLES_KEY, RolesGuard } from '@app/shared';
 import { CatalogController } from '../../src/catalog/catalog.controller';
 import {
   ProductCategory,
@@ -91,6 +93,49 @@ describe('CatalogController', () => {
         ProductId: 'product-2',
         isActive: false,
       });
+    });
+  });
+
+  describe('rutas protegidas', () => {
+    // Devuelve los métodos que exigen token (JwtAuthGuard) y el rol Admin (RolesGuard + @Roles)
+    const metodosSoloAdmin = (metodos: string[]) =>
+      metodos.filter((metodo) => {
+        const handler = CatalogController.prototype[metodo];
+        const guards = Reflect.getMetadata(GUARDS_METADATA, handler) ?? [];
+        const roles = Reflect.getMetadata(ROLES_KEY, handler) ?? [];
+        return (
+          guards.includes(JwtAuthGuard) &&
+          guards.includes(RolesGuard) &&
+          roles.includes(Role.ADMIN)
+        );
+      });
+
+    it('Crear, editar y eliminar productos debe exigir el rol Admin', () => {
+      // Arrange
+      const rutasDeAdmin = ['create', 'update', 'remove'];
+
+      // Act
+      const protegidas = metodosSoloAdmin(rutasDeAdmin);
+
+      // Assert
+      expect(protegidas).toEqual(rutasDeAdmin);
+    });
+
+    it('Consultar el catálogo debe ser público', () => {
+      // Arrange
+      const rutasPublicas = ['findAll', 'findOne'];
+
+      // Act
+      const protegidas = rutasPublicas.filter(
+        (metodo) =>
+          Reflect.getMetadata(
+            GUARDS_METADATA,
+            CatalogController.prototype[metodo],
+          ) !== undefined,
+      );
+
+      // Assert
+      expect(protegidas).toEqual([]);
     });
   });
 });

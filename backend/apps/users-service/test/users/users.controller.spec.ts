@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { UsersController } from '../../src/users/users.controller';
-import { JwtAuthGuard } from '../../src/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@app/shared';
 
 describe('UsersController', () => {
   let controller: UsersController;

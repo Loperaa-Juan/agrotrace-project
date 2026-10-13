@@ -9,7 +9,10 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Index,
+  OneToMany,
+  type Relation,
 } from 'typeorm';
+import { Offert } from './offert.entity';
 
 // Categorías de productos agrícolas del catálogo (Estas serán cambiadas cuando entrenemos el modelo de Visión Artificial
 // ya que esta dependerá de las categorías que vea el modelo durante el entrenamiento)
@@ -31,7 +34,6 @@ export enum UnitOfMeasure {
 }
 
 // Cada oferta de un agricultor (precio, cantidad, disponibilidad) debe referenciar un producto de este catálogo.
-// Las ofertas viven en offerts-service y referencian el producto por su ProductId.
 @Entity('product')
 export class Product {
   @PrimaryGeneratedColumn('uuid')
@@ -63,4 +65,8 @@ export class Product {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  // Relación de uno a muchos: Un producto del catálogo puede tener muchas ofertas
+  @OneToMany(() => Offert, (offert) => offert.product)
+  offerts: Relation<Offert[]>;
 }

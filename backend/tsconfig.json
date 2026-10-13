@@ -18,7 +18,18 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "paths": {},
-    "types": ["node", "jest"]
+    "paths": {
+      "@app/shared": [
+        "libs/shared/src"
+      ],
+      "@app/shared/*": [
+        "libs/shared/src/*"
+      ]
+    },
+    "types": [
+      "node",
+      "jest"
+    ],
+    "baseUrl": "./"
   }
 }

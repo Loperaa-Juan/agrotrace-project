@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsEnum,
+  IsIn,
   IsNotEmpty,
   IsPhoneNumber,
   IsString,
@@ -9,6 +10,12 @@ import {
   MinLength,
 } from 'class-validator';
 import { DocumentType, UserRole } from '../../entities/user.entity';
+
+const ROLES_DE_REGISTRO = [
+  UserRole.AGRICULTOR,
+  UserRole.PERSONA,
+  UserRole.NEGOCIO,
+];
 
 export class RegisterDTO {
   @IsString()
@@ -50,7 +57,8 @@ export class RegisterDTO {
   @MaxLength(100)
   municipality: string;
 
-  @IsEnum(UserRole, {
+  // Admin no se puede elegir al registrarse: se asigna directamente en la BD
+  @IsIn(ROLES_DE_REGISTRO, {
     message: 'El rol debe ser Agricultor, Persona o Negocio',
   })
   role: UserRole;

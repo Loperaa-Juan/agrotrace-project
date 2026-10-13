@@ -1,10 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import { JwtAuthGuard, RolesGuard } from '@app/shared';
 import { CatalogController } from '../../src/catalog/catalog.controller';
 import { CatalogService } from '../../src/catalog/catalog.service';
 
-// Prueba las rutas por HTTP para que se ejecuten los pipes de Nest (sin BD: el servicio es falso)
+// Prueba las rutas por HTTP para que se ejecuten los pipes de Nest (sin BD: el servicio es falso).
+// Los guards se reemplazan para que dejen pasar: el token y el rol se prueban en sus propios tests
 describe('Rutas de /catalog/:id', () => {
   let app: INestApplication;
 
@@ -23,7 +25,12 @@ describe('Rutas de /catalog/:id', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = module.createNestApplication();
     await app.init();

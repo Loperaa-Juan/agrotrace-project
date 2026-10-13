@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
 import { CatalogServiceController } from './catalog-service.controller';
 import { CatalogServiceService } from './catalog-service.service';
 import { CatalogModule } from './catalog/catalog.module';
-import { SharedModule } from '@app/shared';
+import { OffertsModule } from './offerts/offerts.module';
 import { Product } from './entities/product.entitie';
+import { Offert } from './entities/offert.entity';
 
 @Module({
   imports: [
@@ -19,12 +21,21 @@ import { Product } from './entities/product.entitie';
       username: process.env.DATABASE_USERNAME,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
-      entities: [Product],
+      entities: [Product, Offert],
       synchronize: process.env.NODE_ENV !== 'production',
       logging: process.env.NODE_ENV === 'development',
     }),
+    // Solo verifica tokens (JwtAuthGuard); los emite users-service con el mismo JWT_SECRET
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+      }),
+      global: true,
+    }),
     CatalogModule,
-    SharedModule,
+    OffertsModule,
   ],
   controllers: [CatalogServiceController],
   providers: [CatalogServiceService],

@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ValidationService } from './services/validation.service';
 
-// Lógica compartida entre microservicios. Cada servicio que la importe debe definir
-// USERS_SERVICE_HOST y USERS_SERVICE_PORT en su .env (TCP de users-service)
+// Lógica compartida entre microservicios. Cada servicio que la importe puede definir en su .env
+// USERS_SERVICE_HOST y USERS_SERVICE_PORT (TCP de users-service)
 @Module({
   imports: [
     ClientsModule.register([

@@ -119,4 +119,20 @@ describe('CatalogService', () => {
       expect(result.isActive).toBe(false);
     });
   });
+
+  describe('productExists', () => {
+    it('Debe consultar solo productos activos', async () => {
+      // Arrange
+      productRepository.existsBy.mockResolvedValue(true);
+
+      // Act
+      await service.productExists('product-1');
+
+      // Assert
+      expect(productRepository.existsBy).toHaveBeenCalledWith({
+        ProductId: 'product-1',
+        isActive: true,
+      });
+    });
+  });
 });

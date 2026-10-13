@@ -9,6 +9,7 @@ import {
   type Relation,
 } from 'typeorm';
 import { RefreshToken } from './refresh-token.entity';
+import { Role as UserRole } from '@app/shared';
 
 // Definimos algunos enums para los campos de tipo de documento y Rol
 export enum DocumentType {
@@ -17,11 +18,8 @@ export enum DocumentType {
   CE = 'CE', // Cédula de Extranjería
 }
 
-export enum UserRole {
-  AGRICULTOR = 'Agricultor',
-  PERSONA = 'Persona',
-  NEGOCIO = 'Negocio',
-}
+// Los roles se definen en @app/shared porque los demás servicios también los verifican (RolesGuard)
+export { UserRole };
 
 @Entity('user')
 @Unique(['documentType', 'documentNumber'])

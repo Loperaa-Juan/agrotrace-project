@@ -54,4 +54,12 @@ export class CatalogService {
     product.isActive = false;
     return this.productRepository.save(product);
   }
+
+  // Usado por OffertsService para validar el producto de una oferta
+  async productExists(productId: string): Promise<boolean> {
+    return this.productRepository.existsBy({
+      ProductId: productId,
+      isActive: true,
+    });
+  }
 }

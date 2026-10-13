@@ -8,5 +8,7 @@ import { Product } from '../entities/product.entitie';
   imports: [TypeOrmModule.forFeature([Product])],
   controllers: [CatalogController],
   providers: [CatalogService],
+  // OffertsModule lo usa para validar el producto de una oferta
+  exports: [CatalogService],
 })
 export class CatalogModule {}
