@@ -21,7 +21,7 @@ export enum DocumentType {
 // Los roles se definen en @app/shared porque los demás servicios también los verifican (RolesGuard)
 export { UserRole };
 
-@Entity('user')
+@Entity('users')
 @Unique(['documentType', 'documentNumber'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
