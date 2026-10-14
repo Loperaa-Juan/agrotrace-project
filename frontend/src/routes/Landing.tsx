@@ -2,9 +2,8 @@ const BOTON_SECUNDARIO =
   'px-4 h-10 inline-flex items-center rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 cursor-pointer';
 const BOTON_PRIMARIO =
   'px-4 sm:px-5 h-10 inline-flex items-center rounded-xl bg-[#15803d] hover:bg-[#166534] text-white text-sm font-semibold shadow-sm hover:shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 active:scale-95 cursor-pointer';
-const ENLACE_FOOTER =
-  'hover:text-[#15803d] focus:outline-none focus:ring-2 focus:ring-green-600 rounded px-1 transition-colors';
 
+  
 const BENEFICIOS = [
   {
     icono: 'document_scanner',
@@ -12,13 +11,6 @@ const BENEFICIOS = [
     titulo: 'Clasificación de calidad con IA',
     descripcion:
       'Escaneo objetivo de maduración, calibre y frescura para garantizar un precio justo.',
-  },
-  {
-    icono: 'verified_user',
-    colores: 'bg-emerald-100 text-emerald-800',
-    titulo: 'Pago seguro en garantía',
-    descripcion:
-      'Tu dinero queda en custodia hasta verificar la frescura de la cosecha.',
   },
   {
     icono: 'pin_drop',
@@ -57,13 +49,13 @@ function Landing() {
       </header>
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-8 py-6 sm:py-8 flex flex-col gap-8">
-        <section className="relative rounded-3xl overflow-hidden shadow-xl min-h-[540px] sm:min-h-[560px] flex flex-col justify-center p-6 sm:p-12 md:p-16 text-white">
+        <section className="relative rounded-3xl overflow-hidden shadow-xl min-h-135 sm:min-h-140 flex flex-col justify-center p-6 sm:p-12 md:p-16 text-white">
           <div
             className="absolute inset-0 z-0 bg-cover bg-center"
             style={{ backgroundImage: "url('/img/hero-envigado.webp')" }}
           ></div>
-          <div className="absolute inset-0 z-0 bg-gradient-to-r from-black/90 via-black/70 to-black/30 md:to-transparent"></div>
-          <div className="absolute inset-0 z-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+          <div className="absolute inset-0 z-0 bg-linear-to-r from-black/90 via-black/70 to-black/30 md:to-transparent"></div>
+          <div className="absolute inset-0 z-0 bg-linear-to-t from-black/80 via-transparent to-transparent"></div>
           <div className="relative z-10 max-w-2xl flex flex-col">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] text-white mb-6">
               Comercio agrícola justo y directo,{' '}
@@ -128,29 +120,9 @@ function Landing() {
       </main>
 
       <footer className="mt-auto border-t border-gray-100 bg-white py-6 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-600">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-gray-600 ">
           <span>© 2025 AgroTrace. Todos los derechos reservados.</span>
-          <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-            <a className={ENLACE_FOOTER} href="#">
-              Términos y Condiciones
-            </a>
-            <a className={ENLACE_FOOTER} href="#">
-              Política de Privacidad
-            </a>
-            <a
-              className={`inline-flex items-center gap-1.5 text-gray-700 font-medium ${ENLACE_FOOTER}`}
-              href="#"
-              aria-label="Soporte al cliente vía Chat o WhatsApp"
-            >
-              <span
-                className="material-symbols-outlined text-base text-[#15803d]"
-                aria-hidden="true"
-              >
-                chat
-              </span>
-              <span>Soporte vía Chat / WhatsApp</span>
-            </a>
-          </div>
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6"></div>
         </div>
       </footer>
     </div>
