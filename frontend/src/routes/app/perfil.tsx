@@ -1,0 +1,409 @@
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { ErrorApi, type RolUsuario } from '../auth-api';
+import {
+  obtenerCatalogo,
+  obtenerMisOfertas,
+  obtenerMisPedidos,
+  obtenerPedidosRecibidos,
+  obtenerPerfil,
+  retirarOferta,
+  type Oferta,
+  type Pedido,
+  type PerfilUsuario,
+  type Producto,
+} from '../perfil-api';
+import { routes } from '../routes';
+import { useSesion } from '../session-context';
+
+type DatosPerfil = {
+  perfil: PerfilUsuario;
+  pedidos: Pedido[];
+  ofertas: Oferta[];
+  productos: Producto[];
+};
+
+const ERROR_CARGA = 'No pudimos cargar tu perfil. Intenta de nuevo.';
+const ERROR_RETIRO = 'No pudimos retirar la oferta. Intenta de nuevo.';
+
+const ROLES: Record<RolUsuario, { etiqueta: string; icono: string }> = {
+  Agricultor: { etiqueta: 'Agricultor', icono: 'agriculture' },
+  Persona: { etiqueta: 'Comprador', icono: 'shopping_basket' },
+  Negocio: { etiqueta: 'Negocio', icono: 'storefront' },
+  Admin: { etiqueta: 'Administrador', icono: 'shield_person' },
+};
+
+const BOTON_PRIMARIO =
+  'inline-flex items-center justify-center gap-2 px-5 h-12 rounded-xl bg-[#15803d] hover:bg-[#166534] text-white text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2';
+const BOTON_SECUNDARIO =
+  'inline-flex items-center justify-center gap-2 px-5 h-12 rounded-xl bg-white hover:bg-gray-100 text-[#15803d] text-sm font-semibold border border-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2';
+
+const formatoCOP = (valor: number) => `$ ${valor.toLocaleString('es-CO')}`;
+
+/** Clave año-mes, con `desfase` meses respecto al actual. */
+function mesRelativo(desfase: number) {
+  const hoy = new Date();
+  const fecha = new Date(hoy.getFullYear(), hoy.getMonth() + desfase, 1);
+  return `${fecha.getFullYear()}-${fecha.getMonth()}`;
+}
+
+function mesDe(fechaIso: string) {
+  const fecha = new Date(fechaIso);
+  return `${fecha.getFullYear()}-${fecha.getMonth()}`;
+}
+
+/** Suma de los pedidos entregados en el mes indicado; la entrega es su última actualización. */
+function vendidoEn(pedidos: Pedido[], mes: string) {
+  return pedidos
+    .filter((pedido) => pedido.status === 'Entregado' && mesDe(pedido.updatedAt) === mes)
+    .reduce((suma, pedido) => suma + pedido.totalPrice, 0);
+}
+
+function Icono({ nombre, className = '' }: Readonly<{ nombre: string; className?: string }>) {
+  return (
+    <span aria-hidden="true" className={`material-symbols-outlined ${className}`}>
+      {nombre}
+    </span>
+  );
+}
+
+function Resumen({
+  titulo,
+  icono,
+  valor,
+  children,
+}: Readonly<{ titulo: string; icono: string; valor: ReactNode; children: ReactNode }>) {
+  return (
+    <section aria-label={titulo} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{titulo}</h2>
+        <span className="w-10 h-10 rounded-xl bg-green-100 text-[#15803d] flex items-center justify-center shrink-0">
+          <Icono nombre={icono} />
+        </span>
+      </div>
+      <p className="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight">{valor}</p>
+      <div className="mt-2 text-sm text-gray-600">{children}</div>
+    </section>
+  );
+}
+
+function ResumenAgricultor({ pedidos, ofertas }: Readonly<{ pedidos: Pedido[]; ofertas: Oferta[] }>) {
+  const vendidoMes = vendidoEn(pedidos, mesRelativo(0));
+  const vendidoMesAnterior = vendidoEn(pedidos, mesRelativo(-1));
+  const variacion = vendidoMesAnterior
+    ? Math.round(((vendidoMes - vendidoMesAnterior) / vendidoMesAnterior) * 100)
+    : null;
+  const porResponder = pedidos.filter((pedido) => pedido.status === 'Solicitado').length;
+  const activas = ofertas.filter((oferta) => oferta.isActive).length;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <Resumen icono="payments" titulo="Ventas del mes" valor={`${formatoCOP(vendidoMes)} COP`}>
+        {variacion === null ? (
+          <span>Sin ventas el mes anterior para comparar</span>
+        ) : (
+          <span className="flex items-center gap-1">
+            <Icono
+              className={`text-lg ${variacion < 0 ? 'text-red-600' : 'text-[#15803d]'}`}
+              nombre={variacion < 0 ? 'trending_down' : 'trending_up'}
+            />
+            <strong className={variacion < 0 ? 'text-red-600' : 'text-[#15803d]'}>
+              {`${variacion > 0 ? '+' : ''}${variacion}%`}
+            </strong>
+            <span>comparado con el mes anterior</span>
+          </span>
+        )}
+      </Resumen>
+      <Resumen icono="notification_important" titulo="Pedidos por responder" valor={porResponder}>
+        Por aceptar o rechazar
+      </Resumen>
+      <Resumen icono="inventory_2" titulo="Ofertas activas" valor={activas}>
+        Visibles para los compradores
+      </Resumen>
+    </div>
+  );
+}
+
+function ResumenComprador({ pedidos }: Readonly<{ pedidos: Pedido[] }>) {
+  const activos = pedidos.filter(
+    (pedido) => pedido.status === 'Solicitado' || pedido.status === 'Aceptado',
+  ).length;
+  const cerradas = pedidos.filter((pedido) => pedido.status === 'Entregado').length;
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Resumen icono="storefront" titulo="Pedidos activos" valor={activos}>
+          Solicitados o aceptados por el agricultor
+        </Resumen>
+        <Resumen icono="shopping_basket" titulo="Compras cerradas" valor={cerradas}>
+          Entregadas y confirmadas
+        </Resumen>
+      </div>
+      <section className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Cosechas frescas de Envigado</h2>
+          <p className="text-sm text-gray-600">
+            Recoges directo en la finca de cada productor, sin intermediarios.
+          </p>
+        </div>
+        <Link className={`${BOTON_PRIMARIO} shrink-0`} to={routes.explorar}>
+          <Icono className="text-xl" nombre="storefront" />
+          Ver cosechas de hoy
+        </Link>
+      </section>
+    </>
+  );
+}
+
+function Inventario({
+  ofertas,
+  productos,
+  onRetirar,
+}: Readonly<{ ofertas: Oferta[]; productos: Producto[]; onRetirar: (id: string) => void }>) {
+  const productoDe = (id: string) => productos.find((producto) => producto.ProductId === id);
+
+  return (
+    <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Inventario en finca</h2>
+          <p className="text-sm text-gray-600">Tus cosechas publicadas para los compradores</p>
+        </div>
+        <Link
+          className="inline-flex items-center gap-1 text-sm font-semibold text-[#15803d] hover:underline"
+          to={routes.publicar}
+        >
+          <Icono className="text-lg" nombre="add" />
+          Añadir otra
+        </Link>
+      </div>
+      {ofertas.length === 0 ? (
+        <p className="p-4 rounded-xl bg-gray-50 text-sm text-gray-600">Aún no has publicado cosechas.</p>
+      ) : (
+        <ul className="space-y-3">
+          {ofertas.map((oferta) => {
+            const producto = productoDe(oferta.productId);
+            const unidad = producto?.unitOfMeasure ?? '';
+            return (
+              <li
+                className={`p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                  oferta.isActive ? 'bg-gray-50' : 'bg-gray-50/50 opacity-75'
+                }`}
+                key={oferta.OffertId}
+              >
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-base font-bold text-gray-900">{producto?.name ?? 'Producto'}</h3>
+                    <span
+                      className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                        oferta.isActive ? 'bg-green-100 text-[#15803d]' : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      {oferta.isActive ? 'Activa' : 'Retirada'}
+                    </span>
+                    {oferta.aiQuality && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
+                        {`Calidad ${oferta.aiQuality}`}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600">{`${oferta.availableQuantity} ${unidad} disponibles`}</p>
+                  <p className="text-sm font-bold text-[#15803d]">
+                    {`${formatoCOP(oferta.pricePerUnit)} COP / ${unidad}`}
+                  </p>
+                </div>
+                {oferta.isActive && (
+                  <button
+                    className="h-10 px-4 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 text-sm font-semibold text-gray-800 inline-flex items-center gap-1 self-end sm:self-center cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-green-600"
+                    onClick={() => onRetirar(oferta.OffertId)}
+                    type="button"
+                  >
+                    <Icono className="text-base" nombre="pause_circle" />
+                    Retirar
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Alerta({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <p className="flex items-center gap-2 p-4 rounded-xl bg-red-50 text-sm font-medium text-red-700" role="alert">
+      {children}
+    </p>
+  );
+}
+
+export function PerfilPage() {
+  const { usuario, salir } = useSesion();
+  const [datos, setDatos] = useState<DatosPerfil | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const rolSesion = usuario?.role;
+
+  useEffect(() => {
+    if (!rolSesion) return;
+    let vigente = true;
+    const esAgricultor = rolSesion === 'Agricultor';
+    Promise.all([
+      obtenerPerfil(),
+      esAgricultor ? obtenerPedidosRecibidos() : obtenerMisPedidos(),
+      esAgricultor ? obtenerMisOfertas() : Promise.resolve([]),
+      esAgricultor ? obtenerCatalogo() : Promise.resolve([]),
+    ])
+      .then(([perfil, pedidos, ofertas, productos]) => {
+        if (vigente) setDatos({ perfil, pedidos, ofertas, productos });
+      })
+      .catch((err) => {
+        if (!vigente) return;
+        if (err instanceof ErrorApi && err.status === 401) salir();
+        else setError(ERROR_CARGA);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [rolSesion, salir]);
+
+  if (!usuario) return <Navigate replace to={routes.login} />;
+
+  const retirar = async (id: string) => {
+    setError(null);
+    try {
+      const retirada = await retirarOferta(id);
+      setDatos((previos) =>
+        previos && {
+          ...previos,
+          ofertas: previos.ofertas.map((oferta) => (oferta.OffertId === id ? retirada : oferta)),
+        },
+      );
+    } catch (err) {
+      if (err instanceof ErrorApi && err.status === 401) salir();
+      else setError(ERROR_RETIRO);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 py-3 px-4 sm:px-8">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <Link
+            className="rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+            to={routes.inicio}
+          >
+            <img alt="AgroTrace" className="h-10 sm:h-11 w-auto object-contain" src="/img/agrotrace-logo.webp" />
+          </Link>
+          <button
+            className="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg text-sm font-semibold text-gray-600 hover:text-[#15803d] hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
+            onClick={salir}
+            type="button"
+          >
+            <Icono className="text-lg" nombre="logout" />
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12 space-y-6">
+        {error && <Alerta>{error}</Alerta>}
+        {!datos && !error && (
+          <output className="block text-sm text-gray-600">Cargando tu perfil…</output>
+        )}
+        {datos && <ContenidoPerfil datos={datos} onRetirar={retirar} />}
+      </main>
+    </div>
+  );
+}
+
+function ContenidoPerfil({
+  datos,
+  onRetirar,
+}: Readonly<{ datos: DatosPerfil; onRetirar: (id: string) => void }>) {
+  const { perfil, pedidos, ofertas, productos } = datos;
+  const esAgricultor = perfil.role === 'Agricultor';
+  const rol = ROLES[perfil.role];
+
+  return (
+    <>
+      <section className="relative overflow-hidden rounded-3xl bg-white p-6 sm:p-8 shadow-sm border border-gray-100">
+        <div className="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-green-100/60 blur-3xl pointer-events-none" />
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-start gap-4 min-w-0">
+            <span className="w-16 h-16 shrink-0 rounded-full bg-[#15803d] text-white text-2xl font-bold flex items-center justify-center">
+              {perfil.name.charAt(0).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 text-[#15803d] text-xs font-semibold mb-1">
+                <Icono className="text-sm" nombre={rol.icono} />
+                <span>{rol.etiqueta}</span>
+              </span>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">{perfil.name}</h1>
+              <ul className="mt-2 space-y-0.5 text-sm text-gray-600">
+                {esAgricultor && (
+                  <li className="flex items-center gap-1.5">
+                    <Icono className="text-base text-[#15803d]" nombre="location_on" />
+                    <span>{`${perfil.address} · ${perfil.municipality}`}</span>
+                  </li>
+                )}
+                <li className="flex items-center gap-1.5">
+                  <Icono className="text-base text-[#15803d]" nombre="call" />
+                  <span>{perfil.phone}</span>
+                </li>
+                <li className="flex items-center gap-1.5 min-w-0">
+                  <Icono className="text-base text-[#15803d]" nombre="mail" />
+                  <span className="truncate">{perfil.email}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 shrink-0">
+            {esAgricultor && (
+              <Link className={BOTON_PRIMARIO} to={routes.publicar}>
+                <Icono className="text-xl" nombre="add_circle" />
+                Publicar una cosecha
+              </Link>
+            )}
+            <Link className={BOTON_SECUNDARIO} to={routes.pedidos}>
+              <Icono className="text-xl" nombre="inventory_2" />
+              Ver mis pedidos
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {esAgricultor ? (
+        <>
+          <ResumenAgricultor ofertas={ofertas} pedidos={pedidos} />
+          <Inventario ofertas={ofertas} onRetirar={onRetirar} productos={productos} />
+        </>
+      ) : (
+        <ResumenComprador pedidos={pedidos} />
+      )}
+
+      <section className="rounded-2xl bg-white p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-4">
+          <span className="w-12 h-12 rounded-full bg-green-100 text-[#15803d] flex items-center justify-center shrink-0">
+            <Icono className="text-2xl" nombre="support_agent" />
+          </span>
+          <div>
+            <h2 className="text-base font-bold text-gray-900">¿Dudas con un pedido o la entrega?</h2>
+            <p className="text-sm text-gray-600">Soporte agropecuario de Envigado por WhatsApp y llamada.</p>
+          </div>
+        </div>
+        <a
+          className={BOTON_SECUNDARIO}
+          href="https://wa.me/573000000000"
+          rel="noreferrer"
+          target="_blank"
+        >
+          <Icono className="text-xl" nombre="chat" />
+          Contactar asesor local
+        </a>
+      </section>
+    </>
+  );
+}

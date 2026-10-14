@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { PerfilPage } from './routes/app/perfil';
 import { LoginPage } from './routes/auth/login';
 import Landing from './routes/Landing';
 import { routes } from './routes/routes';
@@ -11,6 +12,7 @@ function App() {
         <Routes>
           <Route path={routes.inicio} element={<Landing />} />
           <Route path={routes.login} element={<LoginPage />} />
+          <Route path={routes.perfil} element={<PerfilPage />} />
           <Route
             path={routes.registro}
             element={<Navigate replace to={`${routes.login}?modo=registro`} />}

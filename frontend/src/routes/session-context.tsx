@@ -4,6 +4,7 @@ import type { Sesion, Usuario } from './auth-api';
 type ContextoSesion = {
   usuario: Usuario | null;
   entrar: (sesion: Sesion) => void;
+  salir: () => void;
 };
 
 const SesionContext = createContext<ContextoSesion | null>(null);
@@ -23,7 +24,14 @@ export function SesionProvider({ children }: Readonly<{ children: ReactNode }>) 
     setUsuario(sesion.user);
   }, []);
 
-  const valor = useMemo(() => ({ usuario, entrar }), [usuario, entrar]);
+  const salir = useCallback(() => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('usuario');
+    setUsuario(null);
+  }, []);
+
+  const valor = useMemo(() => ({ usuario, entrar, salir }), [usuario, entrar, salir]);
 
   return <SesionContext value={valor}>{children}</SesionContext>;
 }
