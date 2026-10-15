@@ -114,6 +114,14 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
           <Link
             className={`${OPCION_MENU} text-gray-800 hover:bg-gray-50`}
             onClick={() => setAbierto(false)}
+            to={routes.perfil}
+          >
+            <Icono className="text-lg text-[#15803d]" nombre="person" />
+            Mi perfil
+          </Link>
+          <Link
+            className={`${OPCION_MENU} text-gray-800 hover:bg-gray-50`}
+            onClick={() => setAbierto(false)}
             to={routes.pedidos}
           >
             <Icono className="text-lg text-[#15803d]" nombre="inventory_2" />
