@@ -62,11 +62,12 @@ export type PerfilAgricultor = {
   sales: { week: ResumenVentas; month: ResumenVentas };
 };
 
-/** Petición autenticada con el token de la sesión guardada. */
+/** Petición con el token de la sesión guardada, si la hay (las rutas públicas no lo exigen). */
 async function pedir<T>(url: string, method = 'GET'): Promise<T> {
+  const token = localStorage.getItem('accessToken');
   const respuesta = await fetch(url, {
     method,
-    headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   const datos = await respuesta.json();
   if (!respuesta.ok) throw new ErrorApi(respuesta.status, String(datos.message));
@@ -75,6 +76,8 @@ async function pedir<T>(url: string, method = 'GET'): Promise<T> {
 
 export const obtenerPerfil = () => pedir<PerfilUsuario>(`${USERS_URL}/users/me`);
 export const obtenerCatalogo = () => pedir<Producto[]>(`${CATALOG_URL}/catalog`);
+/** Ofertas activas de todos los agricultores, las más recientes primero. Es pública. */
+export const obtenerOfertas = () => pedir<Oferta[]>(`${CATALOG_URL}/offerts`);
 export const obtenerMisOfertas = () => pedir<Oferta[]>(`${CATALOG_URL}/offerts/me`);
 export const retirarOferta = (id: string) => pedir<Oferta>(`${CATALOG_URL}/offerts/${id}`, 'DELETE');
 export const obtenerPedidosRecibidos = () => pedir<Pedido[]>(`${ORDERS_URL}/orders/received`);
