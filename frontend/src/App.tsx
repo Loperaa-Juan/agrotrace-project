@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './routes/app/app-layout';
 import { ExplorarPage } from './routes/app/explorar';
+import { PedidosPage } from './routes/app/pedidos';
 import { PerfilPage } from './routes/app/perfil';
 import { LoginPage } from './routes/auth/login';
 import Landing from './routes/Landing';
@@ -17,6 +18,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path={routes.perfil} element={<PerfilPage />} />
             <Route path={routes.explorar} element={<ExplorarPage />} />
+            <Route path={routes.pedidos} element={<PedidosPage />} />
           </Route>
           <Route
             path={routes.registro}
