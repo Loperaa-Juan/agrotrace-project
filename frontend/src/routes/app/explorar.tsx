@@ -1,12 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 import {
   obtenerCatalogo,
   obtenerOfertas,
   type Oferta,
   type Producto,
 } from '../perfil-api';
-import { routes } from '../routes';
 
 type DatosCatalogo = {
   ofertas: Oferta[];
@@ -119,22 +117,7 @@ export function ExplorarPage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 py-3 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link
-            className="rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
-            to={routes.inicio}
-          >
-            <img
-              alt="AgroTrace"
-              className="h-10 sm:h-11 w-auto object-contain"
-              src="/img/agrotrace-logo.webp"
-            />
-          </Link>
-        </div>
-      </header>
-
+    <>
       <main className="flex-1 w-full">
         <section className="bg-green-50 px-4 sm:px-8 py-10">
           <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -182,6 +165,6 @@ export function ExplorarPage() {
           </span>
         </div>
       </footer>
-    </div>
+    </>
   );
 }

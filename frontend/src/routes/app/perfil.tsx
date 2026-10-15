@@ -279,7 +279,7 @@ function Alerta({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 export function PerfilPage() {
-  const { usuario, salir, cerrarSesion } = useSesion();
+  const { usuario, salir } = useSesion();
   const [datos, setDatos] = useState<DatosPerfil | null>(null);
   const [error, setError] = useState<string | null>(null);
   const rolSesion = usuario?.role;
@@ -340,40 +340,15 @@ export function PerfilPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-100 py-3 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link
-            className="rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
-            to={routes.inicio}
-          >
-            <img
-              alt="AgroTrace"
-              className="h-10 sm:h-11 w-auto object-contain"
-              src="/img/agrotrace-logo.webp"
-            />
-          </Link>
-          <button
-            className="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg text-sm font-semibold text-gray-600 hover:text-[#15803d] hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
-            onClick={cerrarSesion}
-            type="button"
-          >
-            <Icono className="text-lg" nombre="logout" />
-            <span>Cerrar sesión</span>
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12 space-y-6">
-        {error && <Alerta>{error}</Alerta>}
-        {!datos && !error && (
-          <output className="block text-sm text-gray-600">
-            Cargando tu perfil…
-          </output>
-        )}
-        {datos && <ContenidoPerfil datos={datos} onRetirar={retirar} />}
-      </main>
-    </div>
+    <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12 space-y-6">
+      {error && <Alerta>{error}</Alerta>}
+      {!datos && !error && (
+        <output className="block text-sm text-gray-600">
+          Cargando tu perfil…
+        </output>
+      )}
+      {datos && <ContenidoPerfil datos={datos} onRetirar={retirar} />}
+    </main>
   );
 }
 

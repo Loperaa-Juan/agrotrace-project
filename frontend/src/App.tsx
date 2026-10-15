@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AppLayout } from './routes/app/app-layout';
 import { ExplorarPage } from './routes/app/explorar';
 import { PerfilPage } from './routes/app/perfil';
 import { LoginPage } from './routes/auth/login';
@@ -13,8 +14,10 @@ function App() {
         <Routes>
           <Route path={routes.inicio} element={<Landing />} />
           <Route path={routes.login} element={<LoginPage />} />
-          <Route path={routes.perfil} element={<PerfilPage />} />
-          <Route path={routes.explorar} element={<ExplorarPage />} />
+          <Route element={<AppLayout />}>
+            <Route path={routes.perfil} element={<PerfilPage />} />
+            <Route path={routes.explorar} element={<ExplorarPage />} />
+          </Route>
           <Route
             path={routes.registro}
             element={<Navigate replace to={`${routes.login}?modo=registro`} />}
