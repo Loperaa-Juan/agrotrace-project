@@ -283,6 +283,42 @@ describe('Perfil', () => {
       );
       expect(ofertaDe('Aguacate Hass').queryByRole('button', { name: 'Retirar' })).toBeNull();
     });
+
+    it('avisa si no se pudo retirar la oferta', async () => {
+      // Arrange
+      iniciarSesion();
+      simularApi(fetchMock, {
+        ...API_AGRICULTOR,
+        'DELETE /offerts/o-1': [500, { message: 'Internal server error', statusCode: 500 }],
+      });
+      renderPerfil();
+      await screen.findByText('Aguacate Hass');
+
+      // Act
+      fireEvent.click(ofertaDe('Aguacate Hass').getByRole('button', { name: 'Retirar' }));
+
+      // Assert
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No pudimos retirar la oferta. Intenta de nuevo.',
+      );
+    });
+
+    it('si la sesión venció al retirar una oferta lleva al login', async () => {
+      // Arrange
+      iniciarSesion();
+      simularApi(fetchMock, {
+        ...API_AGRICULTOR,
+        'DELETE /offerts/o-1': [401, { message: 'Unauthorized', statusCode: 401 }],
+      });
+      renderPerfil();
+      await screen.findByText('Aguacate Hass');
+
+      // Act
+      fireEvent.click(ofertaDe('Aguacate Hass').getByRole('button', { name: 'Retirar' }));
+
+      // Assert
+      expect(await screen.findByTestId('ubicacion')).toHaveTextContent('/login');
+    });
   });
 
   describe('Comprador', () => {

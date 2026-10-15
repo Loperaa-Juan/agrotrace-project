@@ -106,4 +106,36 @@ describe('Registro en la página de login', () => {
       expect(screen.getByText('Ya existe una cuenta con este correo.')).toBeInTheDocument(),
     );
   });
+
+  it('avisa si el servidor falla al crear la cuenta', async () => {
+    // Arrange
+    fetchMock.mockReturnValue(
+      respuestaFetch(500, { message: 'Internal server error', statusCode: 500 }),
+    );
+    renderPagina('/login?modo=registro');
+    llenarRegistroValido();
+
+    // Act
+    enviarRegistro();
+
+    // Assert
+    expect(
+      await screen.findByText('Algo salió mal en el servidor. Intenta de nuevo más tarde.'),
+    ).toBeInTheDocument();
+  });
+
+  it('avisa si no hay conexión con el servidor', async () => {
+    // Arrange
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    renderPagina('/login?modo=registro');
+    llenarRegistroValido();
+
+    // Act
+    enviarRegistro();
+
+    // Assert
+    expect(
+      await screen.findByText('No pudimos conectar con el servidor. Intenta de nuevo.'),
+    ).toBeInTheDocument();
+  });
 });
