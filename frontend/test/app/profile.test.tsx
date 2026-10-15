@@ -71,8 +71,17 @@ function simularApi(fetchMock: ReturnType<typeof vi.fn>, respuestas: Respuestas)
   });
 }
 
+/** Perfil del agricultor en orders-service: sus datos y las ventas que calcula el servidor. */
+const PERFIL_AGRICULTOR = {
+  user: AGRICULTOR,
+  sales: {
+    week: { total: 35000, count: 1 },
+    month: { total: 185000, count: 2 },
+  },
+};
+
 const API_AGRICULTOR: Respuestas = {
-  'GET /users/me': [200, AGRICULTOR],
+  'GET /profile/me': [200, PERFIL_AGRICULTOR],
   'GET /offerts/me': [200, [OFERTA_ACTIVA, OFERTA_RETIRADA]],
   'GET /catalog': [200, PRODUCTOS],
   'GET /orders/received': [
@@ -160,8 +169,23 @@ describe('Perfil', () => {
       expect(screen.getByText('Agricultor')).toBeInTheDocument();
       expect(screen.getByText('3001234567')).toBeInTheDocument();
       expect(screen.getByText('juan@agrotrace.com')).toBeInTheDocument();
-      const [, opciones] = fetchMock.mock.calls.find(([url]) => url.endsWith('/users/me'))!;
+      const [, opciones] = fetchMock.mock.calls.find(([url]) => url.endsWith('/profile/me'))!;
       expect(opciones.headers).toMatchObject({ Authorization: 'Bearer access-token-123' });
+    });
+
+    it('pide su perfil a orders-service', async () => {
+      // Arrange
+      iniciarSesion();
+      simularApi(fetchMock, API_AGRICULTOR);
+
+      // Act
+      renderPerfil();
+
+      // Assert
+      await screen.findByRole('heading', { level: 1 });
+      const urls = fetchMock.mock.calls.map(([url]) => url);
+      expect(urls).toContain('http://localhost:3004/profile/me');
+      expect(urls.some((url) => url.endsWith('/users/me'))).toBe(false);
     });
 
     it('tiene enlaces para publicar una cosecha y ver sus pedidos', async () => {
@@ -183,7 +207,7 @@ describe('Perfil', () => {
       );
     });
 
-    it('resume las ventas del mes y los pedidos por responder', async () => {
+    it('resume las ventas de la semana y del mes que calcula el servidor', async () => {
       // Arrange
       iniciarSesion();
       simularApi(fetchMock, API_AGRICULTOR);
@@ -192,9 +216,23 @@ describe('Perfil', () => {
       renderPerfil();
 
       // Assert
-      await screen.findByRole('region', { name: 'Ventas del mes' });
-      expect(resumen('Ventas del mes').getByText(/150\.000/)).toBeInTheDocument();
-      expect(resumen('Ventas del mes').getByText('+50%')).toBeInTheDocument();
+      await screen.findByRole('region', { name: 'Ventas de la semana' });
+      expect(resumen('Ventas de la semana').getByText(/35\.000/)).toBeInTheDocument();
+      expect(resumen('Ventas de la semana').getByText('1 venta entregada')).toBeInTheDocument();
+      expect(resumen('Ventas del mes').getByText(/185\.000/)).toBeInTheDocument();
+      expect(resumen('Ventas del mes').getByText('2 ventas entregadas')).toBeInTheDocument();
+    });
+
+    it('cuenta los pedidos por responder', async () => {
+      // Arrange
+      iniciarSesion();
+      simularApi(fetchMock, API_AGRICULTOR);
+
+      // Act
+      renderPerfil();
+
+      // Assert
+      await screen.findByRole('region', { name: 'Pedidos por responder' });
       expect(resumen('Pedidos por responder').getByText('2')).toBeInTheDocument();
     });
 
@@ -297,7 +335,7 @@ describe('Perfil', () => {
       iniciarSesion();
       simularApi(fetchMock, {
         ...API_AGRICULTOR,
-        'GET /users/me': [401, { message: 'Unauthorized', statusCode: 401 }],
+        'GET /profile/me': [401, { message: 'Unauthorized', statusCode: 401 }],
       });
 
       // Act
