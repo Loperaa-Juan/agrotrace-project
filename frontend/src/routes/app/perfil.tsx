@@ -357,6 +357,8 @@ function ContenidoPerfil({
   onRetirar,
 }: Readonly<{ datos: DatosPerfil; onRetirar: (id: string) => void }>) {
   const { perfil, ventas, pedidos, ofertas, productos } = datos;
+  // Solo el agricultor publica cosechas y muestra la ubicación de su finca
+  const esAgricultor = perfil.role === 'Agricultor';
   const rol = ROLES[perfil.role];
 
   return (
@@ -377,7 +379,7 @@ function ContenidoPerfil({
                 {perfil.name}
               </h1>
               <ul className="mt-2 space-y-0.5 text-sm text-gray-600">
-                {ventas && (
+                {esAgricultor && (
                   <li className="flex items-center gap-1.5">
                     <Icono
                       className="text-base text-[#15803d]"
@@ -398,7 +400,7 @@ function ContenidoPerfil({
             </div>
           </div>
           <div className="flex flex-col gap-2 shrink-0">
-            {ventas && (
+            {esAgricultor && (
               <Link className={BOTON_PRIMARIO} to={routes.publicar}>
                 <Icono className="text-xl" nombre="add_circle" />
                 Publicar una cosecha
