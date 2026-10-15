@@ -111,6 +111,17 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
             <Icono className="text-lg text-[#15803d]" nombre="storefront" />
             Explorar cosechas
           </Link>
+          {/* Solo el agricultor publica cosechas */}
+          {usuario.role === 'Agricultor' && (
+            <Link
+              className={`${OPCION_MENU} bg-[#15803d] text-white font-semibold hover:bg-[#166534] focus:bg-[#166534]`}
+              onClick={() => setAbierto(false)}
+              to={routes.publicar}
+            >
+              <Icono className="text-lg" nombre="add_circle" />
+              Publicar cosecha
+            </Link>
+          )}
           <Link
             className={`${OPCION_MENU} text-gray-800 hover:bg-gray-50`}
             onClick={() => setAbierto(false)}
