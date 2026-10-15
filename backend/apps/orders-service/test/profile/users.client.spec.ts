@@ -1,7 +1,4 @@
-import {
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { of, throwError } from 'rxjs';
 import { UsersClient } from '../../src/profile/users.client';
 

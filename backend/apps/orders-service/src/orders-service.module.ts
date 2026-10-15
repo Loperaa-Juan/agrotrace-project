@@ -6,6 +6,7 @@ import { OrdersServiceController } from './orders-service.controller';
 import { OrdersServiceService } from './orders-service.service';
 import { Order } from './entities/order.entity';
 import { OrdersModule } from './orders/orders.module';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { OrdersModule } from './orders/orders.module';
       global: true,
     }),
     OrdersModule,
+    ProfileModule,
   ],
   controllers: [OrdersServiceController],
   providers: [OrdersServiceService],
