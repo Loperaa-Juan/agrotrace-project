@@ -1,10 +1,13 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { Sesion, Usuario } from './auth-api';
+import { revocarSesion, type Sesion, type Usuario } from './auth-api';
 
 type ContextoSesion = {
   usuario: Usuario | null;
   entrar: (sesion: Sesion) => void;
+  /** Borra la sesión guardada, por ejemplo cuando el token venció. */
   salir: () => void;
+  /** El usuario cierra sesión: además revoca su refresh token en el servidor. */
+  cerrarSesion: () => void;
 };
 
 const SesionContext = createContext<ContextoSesion | null>(null);
@@ -31,7 +34,17 @@ export function SesionProvider({ children }: Readonly<{ children: ReactNode }>) 
     setUsuario(null);
   }, []);
 
-  const valor = useMemo(() => ({ usuario, entrar, salir }), [usuario, entrar, salir]);
+  // Sale sin esperar al servidor: si el logout falla, la sesión local igual queda cerrada
+  const cerrarSesion = useCallback(() => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    salir();
+    if (refreshToken) revocarSesion(refreshToken).catch(() => {});
+  }, [salir]);
+
+  const valor = useMemo(
+    () => ({ usuario, entrar, salir, cerrarSesion }),
+    [usuario, entrar, salir, cerrarSesion],
+  );
 
   return <SesionContext value={valor}>{children}</SesionContext>;
 }

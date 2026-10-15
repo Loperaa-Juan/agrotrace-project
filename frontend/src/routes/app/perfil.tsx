@@ -279,7 +279,7 @@ function Alerta({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 export function PerfilPage() {
-  const { usuario, salir } = useSesion();
+  const { usuario, salir, cerrarSesion } = useSesion();
   const [datos, setDatos] = useState<DatosPerfil | null>(null);
   const [error, setError] = useState<string | null>(null);
   const rolSesion = usuario?.role;
@@ -355,7 +355,7 @@ export function PerfilPage() {
           </Link>
           <button
             className="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg text-sm font-semibold text-gray-600 hover:text-[#15803d] hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
-            onClick={salir}
+            onClick={cerrarSesion}
             type="button"
           >
             <Icono className="text-lg" nombre="logout" />

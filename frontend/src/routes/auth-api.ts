@@ -53,3 +53,12 @@ export const iniciarSesion = (email: string, password: string) =>
   enviar('/auth/login', { email, password });
 
 export const registrarUsuario = (usuario: NuevoUsuario) => enviar('/auth/register', usuario);
+
+/** Revoca el refresh token en users-service para que no pueda renovar la sesión. */
+export async function revocarSesion(refreshToken: string): Promise<void> {
+  await fetch(`${API_URL}/auth/logout`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+}
