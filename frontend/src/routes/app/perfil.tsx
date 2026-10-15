@@ -7,17 +7,24 @@ import {
   obtenerMisPedidos,
   obtenerPedidosRecibidos,
   obtenerPerfil,
+  obtenerPerfilAgricultor,
   retirarOferta,
   type Oferta,
   type Pedido,
+  type PerfilAgricultor,
   type PerfilUsuario,
   type Producto,
+  type ResumenVentas,
 } from '../perfil-api';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
 
+type Ventas = PerfilAgricultor['sales'];
+
 type DatosPerfil = {
   perfil: PerfilUsuario;
+  /** Solo el agricultor tiene ventas; las calcula orders-service. */
+  ventas: Ventas | null;
   pedidos: Pedido[];
   ofertas: Oferta[];
   productos: Producto[];
@@ -40,28 +47,18 @@ const BOTON_SECUNDARIO =
 
 const formatoCOP = (valor: number) => `$ ${valor.toLocaleString('es-CO')}`;
 
-/** Clave año-mes, con `desfase` meses respecto al actual. */
-function mesRelativo(desfase: number) {
-  const hoy = new Date();
-  const fecha = new Date(hoy.getFullYear(), hoy.getMonth() + desfase, 1);
-  return `${fecha.getFullYear()}-${fecha.getMonth()}`;
-}
+const ventasEntregadas = ({ count }: ResumenVentas) =>
+  `${count} ${count === 1 ? 'venta entregada' : 'ventas entregadas'}`;
 
-function mesDe(fechaIso: string) {
-  const fecha = new Date(fechaIso);
-  return `${fecha.getFullYear()}-${fecha.getMonth()}`;
-}
-
-/** Suma de los pedidos entregados en el mes indicado; la entrega es su última actualización. */
-function vendidoEn(pedidos: Pedido[], mes: string) {
-  return pedidos
-    .filter((pedido) => pedido.status === 'Entregado' && mesDe(pedido.updatedAt) === mes)
-    .reduce((suma, pedido) => suma + pedido.totalPrice, 0);
-}
-
-function Icono({ nombre, className = '' }: Readonly<{ nombre: string; className?: string }>) {
+function Icono({
+  nombre,
+  className = '',
+}: Readonly<{ nombre: string; className?: string }>) {
   return (
-    <span aria-hidden="true" className={`material-symbols-outlined ${className}`}>
+    <span
+      aria-hidden="true"
+      className={`material-symbols-outlined ${className}`}
+    >
       {nombre}
     </span>
   );
@@ -72,49 +69,64 @@ function Resumen({
   icono,
   valor,
   children,
-}: Readonly<{ titulo: string; icono: string; valor: ReactNode; children: ReactNode }>) {
+}: Readonly<{
+  titulo: string;
+  icono: string;
+  valor: ReactNode;
+  children: ReactNode;
+}>) {
   return (
-    <section aria-label={titulo} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+    <section
+      aria-label={titulo}
+      className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+    >
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{titulo}</h2>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          {titulo}
+        </h2>
         <span className="w-10 h-10 rounded-xl bg-green-100 text-[#15803d] flex items-center justify-center shrink-0">
           <Icono nombre={icono} />
         </span>
       </div>
-      <p className="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight">{valor}</p>
+      <p className="mt-2 text-3xl font-extrabold text-gray-900 tracking-tight">
+        {valor}
+      </p>
       <div className="mt-2 text-sm text-gray-600">{children}</div>
     </section>
   );
 }
 
-function ResumenAgricultor({ pedidos, ofertas }: Readonly<{ pedidos: Pedido[]; ofertas: Oferta[] }>) {
-  const vendidoMes = vendidoEn(pedidos, mesRelativo(0));
-  const vendidoMesAnterior = vendidoEn(pedidos, mesRelativo(-1));
-  const variacion = vendidoMesAnterior
-    ? Math.round(((vendidoMes - vendidoMesAnterior) / vendidoMesAnterior) * 100)
-    : null;
-  const porResponder = pedidos.filter((pedido) => pedido.status === 'Solicitado').length;
+function ResumenAgricultor({
+  ventas,
+  pedidos,
+  ofertas,
+}: Readonly<{ ventas: Ventas; pedidos: Pedido[]; ofertas: Oferta[] }>) {
+  const porResponder = pedidos.filter(
+    (pedido) => pedido.status === 'Solicitado',
+  ).length;
   const activas = ofertas.filter((oferta) => oferta.isActive).length;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Resumen icono="payments" titulo="Ventas del mes" valor={`${formatoCOP(vendidoMes)} COP`}>
-        {variacion === null ? (
-          <span>Sin ventas el mes anterior para comparar</span>
-        ) : (
-          <span className="flex items-center gap-1">
-            <Icono
-              className={`text-lg ${variacion < 0 ? 'text-red-600' : 'text-[#15803d]'}`}
-              nombre={variacion < 0 ? 'trending_down' : 'trending_up'}
-            />
-            <strong className={variacion < 0 ? 'text-red-600' : 'text-[#15803d]'}>
-              {`${variacion > 0 ? '+' : ''}${variacion}%`}
-            </strong>
-            <span>comparado con el mes anterior</span>
-          </span>
-        )}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Resumen
+        icono="today"
+        titulo="Ventas de la semana"
+        valor={`${formatoCOP(ventas.week.total)} COP`}
+      >
+        {ventasEntregadas(ventas.week)}
       </Resumen>
-      <Resumen icono="notification_important" titulo="Pedidos por responder" valor={porResponder}>
+      <Resumen
+        icono="payments"
+        titulo="Ventas del mes"
+        valor={`${formatoCOP(ventas.month.total)} COP`}
+      >
+        {ventasEntregadas(ventas.month)}
+      </Resumen>
+      <Resumen
+        icono="notification_important"
+        titulo="Pedidos por responder"
+        valor={porResponder}
+      >
         Por aceptar o rechazar
       </Resumen>
       <Resumen icono="inventory_2" titulo="Ofertas activas" valor={activas}>
@@ -128,7 +140,9 @@ function ResumenComprador({ pedidos }: Readonly<{ pedidos: Pedido[] }>) {
   const activos = pedidos.filter(
     (pedido) => pedido.status === 'Solicitado' || pedido.status === 'Aceptado',
   ).length;
-  const cerradas = pedidos.filter((pedido) => pedido.status === 'Entregado').length;
+  const cerradas = pedidos.filter(
+    (pedido) => pedido.status === 'Entregado',
+  ).length;
 
   return (
     <>
@@ -136,13 +150,19 @@ function ResumenComprador({ pedidos }: Readonly<{ pedidos: Pedido[] }>) {
         <Resumen icono="storefront" titulo="Pedidos activos" valor={activos}>
           Solicitados o aceptados por el agricultor
         </Resumen>
-        <Resumen icono="shopping_basket" titulo="Compras cerradas" valor={cerradas}>
+        <Resumen
+          icono="shopping_basket"
+          titulo="Compras cerradas"
+          valor={cerradas}
+        >
           Entregadas y confirmadas
         </Resumen>
       </div>
       <section className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Cosechas frescas de Envigado</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            Cosechas frescas de Envigado
+          </h2>
           <p className="text-sm text-gray-600">
             Recoges directo en la finca de cada productor, sin intermediarios.
           </p>
@@ -160,15 +180,24 @@ function Inventario({
   ofertas,
   productos,
   onRetirar,
-}: Readonly<{ ofertas: Oferta[]; productos: Producto[]; onRetirar: (id: string) => void }>) {
-  const productoDe = (id: string) => productos.find((producto) => producto.ProductId === id);
+}: Readonly<{
+  ofertas: Oferta[];
+  productos: Producto[];
+  onRetirar: (id: string) => void;
+}>) {
+  const productoDe = (id: string) =>
+    productos.find((producto) => producto.ProductId === id);
 
   return (
     <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Inventario en finca</h2>
-          <p className="text-sm text-gray-600">Tus cosechas publicadas para los compradores</p>
+          <h2 className="text-xl font-bold text-gray-900">
+            Inventario en finca
+          </h2>
+          <p className="text-sm text-gray-600">
+            Tus cosechas publicadas para los compradores
+          </p>
         </div>
         <Link
           className="inline-flex items-center gap-1 text-sm font-semibold text-[#15803d] hover:underline"
@@ -179,7 +208,9 @@ function Inventario({
         </Link>
       </div>
       {ofertas.length === 0 ? (
-        <p className="p-4 rounded-xl bg-gray-50 text-sm text-gray-600">Aún no has publicado cosechas.</p>
+        <p className="p-4 rounded-xl bg-gray-50 text-sm text-gray-600">
+          Aún no has publicado cosechas.
+        </p>
       ) : (
         <ul className="space-y-3">
           {ofertas.map((oferta) => {
@@ -194,10 +225,14 @@ function Inventario({
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-base font-bold text-gray-900">{producto?.name ?? 'Producto'}</h3>
+                    <h3 className="text-base font-bold text-gray-900">
+                      {producto?.name ?? 'Producto'}
+                    </h3>
                     <span
                       className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                        oferta.isActive ? 'bg-green-100 text-[#15803d]' : 'bg-gray-200 text-gray-700'
+                        oferta.isActive
+                          ? 'bg-green-100 text-[#15803d]'
+                          : 'bg-gray-200 text-gray-700'
                       }`}
                     >
                       {oferta.isActive ? 'Activa' : 'Retirada'}
@@ -234,7 +269,10 @@ function Inventario({
 
 function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <p className="flex items-center gap-2 p-4 rounded-xl bg-red-50 text-sm font-medium text-red-700" role="alert">
+    <p
+      className="flex items-center gap-2 p-4 rounded-xl bg-red-50 text-sm font-medium text-red-700"
+      role="alert"
+    >
       {children}
     </p>
   );
@@ -250,14 +288,25 @@ export function PerfilPage() {
     if (!rolSesion) return;
     let vigente = true;
     const esAgricultor = rolSesion === 'Agricultor';
+    // El agricultor recibe sus datos junto con sus ventas desde orders-service
+    const perfilYVentas = esAgricultor
+      ? obtenerPerfilAgricultor()
+      : obtenerPerfil().then((user) => ({ user, sales: null }));
     Promise.all([
-      obtenerPerfil(),
+      perfilYVentas,
       esAgricultor ? obtenerPedidosRecibidos() : obtenerMisPedidos(),
       esAgricultor ? obtenerMisOfertas() : Promise.resolve([]),
       esAgricultor ? obtenerCatalogo() : Promise.resolve([]),
     ])
-      .then(([perfil, pedidos, ofertas, productos]) => {
-        if (vigente) setDatos({ perfil, pedidos, ofertas, productos });
+      .then(([{ user, sales }, pedidos, ofertas, productos]) => {
+        if (vigente)
+          setDatos({
+            perfil: user,
+            ventas: sales,
+            pedidos,
+            ofertas,
+            productos,
+          });
       })
       .catch((err) => {
         if (!vigente) return;
@@ -275,11 +324,14 @@ export function PerfilPage() {
     setError(null);
     try {
       const retirada = await retirarOferta(id);
-      setDatos((previos) =>
-        previos && {
-          ...previos,
-          ofertas: previos.ofertas.map((oferta) => (oferta.OffertId === id ? retirada : oferta)),
-        },
+      setDatos(
+        (previos) =>
+          previos && {
+            ...previos,
+            ofertas: previos.ofertas.map((oferta) =>
+              oferta.OffertId === id ? retirada : oferta,
+            ),
+          },
       );
     } catch (err) {
       if (err instanceof ErrorApi && err.status === 401) salir();
@@ -295,7 +347,11 @@ export function PerfilPage() {
             className="rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
             to={routes.inicio}
           >
-            <img alt="AgroTrace" className="h-10 sm:h-11 w-auto object-contain" src="/img/agrotrace-logo.webp" />
+            <img
+              alt="AgroTrace"
+              className="h-10 sm:h-11 w-auto object-contain"
+              src="/img/agrotrace-logo.webp"
+            />
           </Link>
           <button
             className="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg text-sm font-semibold text-gray-600 hover:text-[#15803d] hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
@@ -311,7 +367,9 @@ export function PerfilPage() {
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8 sm:py-12 space-y-6">
         {error && <Alerta>{error}</Alerta>}
         {!datos && !error && (
-          <output className="block text-sm text-gray-600">Cargando tu perfil…</output>
+          <output className="block text-sm text-gray-600">
+            Cargando tu perfil…
+          </output>
         )}
         {datos && <ContenidoPerfil datos={datos} onRetirar={retirar} />}
       </main>
@@ -323,8 +381,7 @@ function ContenidoPerfil({
   datos,
   onRetirar,
 }: Readonly<{ datos: DatosPerfil; onRetirar: (id: string) => void }>) {
-  const { perfil, pedidos, ofertas, productos } = datos;
-  const esAgricultor = perfil.role === 'Agricultor';
+  const { perfil, ventas, pedidos, ofertas, productos } = datos;
   const rol = ROLES[perfil.role];
 
   return (
@@ -341,11 +398,16 @@ function ContenidoPerfil({
                 <Icono className="text-sm" nombre={rol.icono} />
                 <span>{rol.etiqueta}</span>
               </span>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">{perfil.name}</h1>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
+                {perfil.name}
+              </h1>
               <ul className="mt-2 space-y-0.5 text-sm text-gray-600">
-                {esAgricultor && (
+                {ventas && (
                   <li className="flex items-center gap-1.5">
-                    <Icono className="text-base text-[#15803d]" nombre="location_on" />
+                    <Icono
+                      className="text-base text-[#15803d]"
+                      nombre="location_on"
+                    />
                     <span>{`${perfil.address} · ${perfil.municipality}`}</span>
                   </li>
                 )}
@@ -361,7 +423,7 @@ function ContenidoPerfil({
             </div>
           </div>
           <div className="flex flex-col gap-2 shrink-0">
-            {esAgricultor && (
+            {ventas && (
               <Link className={BOTON_PRIMARIO} to={routes.publicar}>
                 <Icono className="text-xl" nombre="add_circle" />
                 Publicar una cosecha
@@ -375,10 +437,18 @@ function ContenidoPerfil({
         </div>
       </section>
 
-      {esAgricultor ? (
+      {ventas ? (
         <>
-          <ResumenAgricultor ofertas={ofertas} pedidos={pedidos} />
-          <Inventario ofertas={ofertas} onRetirar={onRetirar} productos={productos} />
+          <ResumenAgricultor
+            ofertas={ofertas}
+            pedidos={pedidos}
+            ventas={ventas}
+          />
+          <Inventario
+            ofertas={ofertas}
+            onRetirar={onRetirar}
+            productos={productos}
+          />
         </>
       ) : (
         <ResumenComprador pedidos={pedidos} />
@@ -390,8 +460,12 @@ function ContenidoPerfil({
             <Icono className="text-2xl" nombre="support_agent" />
           </span>
           <div>
-            <h2 className="text-base font-bold text-gray-900">¿Dudas con un pedido o la entrega?</h2>
-            <p className="text-sm text-gray-600">Soporte agropecuario de Envigado por WhatsApp y llamada.</p>
+            <h2 className="text-base font-bold text-gray-900">
+              ¿Dudas con un pedido o la entrega?
+            </h2>
+            <p className="text-sm text-gray-600">
+              Soporte agropecuario de Envigado por WhatsApp y llamada.
+            </p>
           </div>
         </div>
         <a

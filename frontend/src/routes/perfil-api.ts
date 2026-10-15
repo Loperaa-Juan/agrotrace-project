@@ -50,6 +50,18 @@ export type Pedido = {
   updatedAt: string;
 };
 
+/** Total vendido y número de ventas entregadas en un periodo. */
+export type ResumenVentas = {
+  total: number;
+  count: number;
+};
+
+/** Perfil del agricultor en orders-service: sus datos y lo vendido en la semana y el mes. */
+export type PerfilAgricultor = {
+  user: PerfilUsuario;
+  sales: { week: ResumenVentas; month: ResumenVentas };
+};
+
 /** Petición autenticada con el token de la sesión guardada. */
 async function pedir<T>(url: string, method = 'GET'): Promise<T> {
   const respuesta = await fetch(url, {
@@ -66,4 +78,6 @@ export const obtenerCatalogo = () => pedir<Producto[]>(`${CATALOG_URL}/catalog`)
 export const obtenerMisOfertas = () => pedir<Oferta[]>(`${CATALOG_URL}/offerts/me`);
 export const retirarOferta = (id: string) => pedir<Oferta>(`${CATALOG_URL}/offerts/${id}`, 'DELETE');
 export const obtenerPedidosRecibidos = () => pedir<Pedido[]>(`${ORDERS_URL}/orders/received`);
-export const obtenerMisPedidos = () => pedir<Pedido[]>(`${ORDERS_URL}/orders/me`);
+export const obtenerPerfilAgricultor = () =>
+  pedir<PerfilAgricultor>(`${ORDERS_URL}/profile/me`);
+export const obtenerMisPedidos =() => pedir<Pedido[]>(`${ORDERS_URL}/orders/me`);
