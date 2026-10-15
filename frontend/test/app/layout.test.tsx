@@ -58,7 +58,7 @@ describe('Menú de la aplicación', () => {
     expect(screen.queryByRole('navigation', { name: 'Menú de usuario' })).toBeNull();
   });
 
-  it('el menú solo tiene explorar cosechas y cerrar sesión', () => {
+  it('el menú tiene explorar cosechas, mis pedidos y cerrar sesión', () => {
     // Arrange
     iniciarSesion();
     renderEn('/perfil');
@@ -69,8 +69,9 @@ describe('Menú de la aplicación', () => {
     // Assert
     expect(botonUsuario()).toHaveAttribute('aria-expanded', 'true');
     expect(menu.getByRole('link', { name: 'Explorar cosechas' })).toHaveAttribute('href', '/explorar');
+    expect(menu.getByRole('link', { name: 'Mis pedidos' })).toHaveAttribute('href', '/pedidos');
     expect(menu.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
-    expect(menu.getAllByRole('link')).toHaveLength(1);
+    expect(menu.getAllByRole('link')).toHaveLength(2);
     expect(menu.getAllByRole('button')).toHaveLength(1);
   });
 
@@ -88,6 +89,20 @@ describe('Menú de la aplicación', () => {
     expect(await screen.findByRole('heading', { level: 1, name: /cosechas/i })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Menú de usuario' })).toBeNull();
     expect(screen.getByRole('banner')).toBe(cabecera);
+  });
+
+  it('mis pedidos navega a sus pedidos y cierra el menú', async () => {
+    // Arrange
+    iniciarSesion();
+    renderEn('/perfil');
+    const menu = abrirMenu();
+
+    // Act
+    fireEvent.click(menu.getByRole('link', { name: 'Mis pedidos' }));
+
+    // Assert
+    expect(await screen.findByRole('heading', { level: 1, name: 'Mis pedidos' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Menú de usuario' })).toBeNull();
   });
 
   it('cerrar sesión desde el menú lleva al login', async () => {
