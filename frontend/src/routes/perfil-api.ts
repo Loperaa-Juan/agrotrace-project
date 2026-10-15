@@ -62,12 +62,26 @@ export type PerfilAgricultor = {
   sales: { week: ResumenVentas; month: ResumenVentas };
 };
 
+/** Datos que recibe catalog-service para crear una oferta; el agricultor sale del token. */
+export type NuevaOferta = {
+  productId: string;
+  pricePerUnit: number;
+  availableQuantity: number;
+  description?: string;
+  /** Formato YYYY-MM-DD. */
+  harvestDate?: string;
+};
+
 /** Petición con el token de la sesión guardada, si la hay (las rutas públicas no lo exigen). */
-async function pedir<T>(url: string, method = 'GET'): Promise<T> {
+async function pedir<T>(url: string, method = 'GET', cuerpo?: unknown): Promise<T> {
   const token = localStorage.getItem('accessToken');
   const respuesta = await fetch(url, {
     method,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...(cuerpo !== undefined && { 'Content-Type': 'application/json' }),
+    },
+    ...(cuerpo !== undefined && { body: JSON.stringify(cuerpo) }),
   });
   const datos = await respuesta.json();
   if (!respuesta.ok) throw new ErrorApi(respuesta.status, String(datos.message));
@@ -79,7 +93,9 @@ export const obtenerCatalogo = () => pedir<Producto[]>(`${CATALOG_URL}/catalog`)
 /** Ofertas activas de todos los agricultores, las más recientes primero. Es pública. */
 export const obtenerOfertas = () => pedir<Oferta[]>(`${CATALOG_URL}/offerts`);
 export const obtenerMisOfertas = () => pedir<Oferta[]>(`${CATALOG_URL}/offerts/me`);
-export const retirarOferta = (id: string) => pedir<Oferta>(`${CATALOG_URL}/offerts/${id}`, 'DELETE');
+export const crearOferta = (oferta: NuevaOferta) =>
+  pedir<Oferta>(`${CATALOG_URL}/offerts`, 'POST', oferta);
+export const retirarOferta =(id: string) => pedir<Oferta>(`${CATALOG_URL}/offerts/${id}`, 'DELETE');
 export const obtenerPedidosRecibidos = () => pedir<Pedido[]>(`${ORDERS_URL}/orders/received`);
 export const obtenerPerfilAgricultor = () =>
   pedir<PerfilAgricultor>(`${ORDERS_URL}/profile/me`);

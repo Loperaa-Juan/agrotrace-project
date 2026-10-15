@@ -3,6 +3,7 @@ import { AppLayout } from './routes/app/app-layout';
 import { ExplorarPage } from './routes/app/explorar';
 import { PedidosPage } from './routes/app/pedidos';
 import { PerfilPage } from './routes/app/perfil';
+import { PublicarPage } from './routes/app/publicar';
 import { LoginPage } from './routes/auth/login';
 import Landing from './routes/Landing';
 import { routes } from './routes/routes';
@@ -19,6 +20,7 @@ function App() {
             <Route path={routes.perfil} element={<PerfilPage />} />
             <Route path={routes.explorar} element={<ExplorarPage />} />
             <Route path={routes.pedidos} element={<PedidosPage />} />
+            <Route path={routes.publicar} element={<PublicarPage />} />
           </Route>
           <Route
             path={routes.registro}
