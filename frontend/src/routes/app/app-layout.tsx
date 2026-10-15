@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import type { RolUsuario, Usuario } from '../auth-api';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
@@ -40,6 +40,7 @@ function Icono({
 
 function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
   const { cerrarSesion } = useSesion();
+  const navigate = useNavigate();
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
 
@@ -59,6 +60,12 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
       document.removeEventListener('mousedown', alHacerClic);
     };
   }, [abierto]);
+
+  // Desde cualquier página, incluso las públicas, cerrar sesión lleva al login
+  const salirAlLogin = () => {
+    cerrarSesion();
+    navigate(routes.login, { replace: true });
+  };
 
   return (
     <div className="relative" ref={contenedor}>
@@ -107,7 +114,7 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
           <div className="my-1 border-t border-gray-100" />
           <button
             className={`${OPCION_MENU} text-red-700 hover:bg-red-50`}
-            onClick={cerrarSesion}
+            onClick={salirAlLogin}
             type="button"
           >
             <Icono className="text-lg" nombre="logout" />
