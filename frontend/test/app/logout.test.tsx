@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { AppLayout } from '../../src/routes/app/app-layout';
 import { PerfilPage } from '../../src/routes/app/perfil';
 import { SesionProvider } from '../../src/routes/session-context';
 import { respuestaFetch, SESION } from '../auth/utils';
@@ -22,12 +23,21 @@ function renderPerfil() {
     <SesionProvider>
       <MemoryRouter initialEntries={['/perfil']}>
         <Routes>
-          <Route path="/perfil" element={<PerfilPage />} />
+          <Route element={<AppLayout />}>
+            <Route path="/perfil" element={<PerfilPage />} />
+          </Route>
           <Route path="*" element={<Ubicacion />} />
         </Routes>
       </MemoryRouter>
     </SesionProvider>,
   );
+}
+
+/** Cierra sesión desde el menú de usuario de la cabecera. */
+function cerrarSesionDesdeMenu() {
+  fireEvent.click(screen.getByRole('button', { name: /juan pérez/i }));
+  const menu = within(screen.getByRole('navigation', { name: 'Menú de usuario' }));
+  fireEvent.click(menu.getByRole('button', { name: 'Cerrar sesión' }));
 }
 
 /** El perfil se queda cargando; solo responde el logout con la respuesta indicada. */
@@ -73,7 +83,7 @@ describe('Cerrar sesión', () => {
     renderPerfil();
 
     // Act
-    fireEvent.click(screen.getByRole('button', { name: /cerrar sesión/i }));
+    cerrarSesionDesdeMenu();
 
     // Assert
     await waitFor(() => expect(llamadasLogout(fetchMock)).toHaveLength(1));
@@ -92,7 +102,7 @@ describe('Cerrar sesión', () => {
     renderPerfil();
 
     // Act
-    fireEvent.click(screen.getByRole('button', { name: /cerrar sesión/i }));
+    cerrarSesionDesdeMenu();
 
     // Assert
     expect(await screen.findByTestId('ubicacion')).toHaveTextContent('/login');
@@ -106,7 +116,7 @@ describe('Cerrar sesión', () => {
     renderPerfil();
 
     // Act
-    fireEvent.click(screen.getByRole('button', { name: /cerrar sesión/i }));
+    cerrarSesionDesdeMenu();
 
     // Assert
     expect(await screen.findByTestId('ubicacion')).toHaveTextContent('/login');
@@ -123,7 +133,7 @@ describe('Cerrar sesión', () => {
     renderPerfil();
 
     // Act
-    fireEvent.click(screen.getByRole('button', { name: /cerrar sesión/i }));
+    cerrarSesionDesdeMenu();
 
     // Assert
     expect(await screen.findByTestId('ubicacion')).toHaveTextContent('/login');
@@ -138,7 +148,7 @@ describe('Cerrar sesión', () => {
     renderPerfil();
 
     // Act
-    fireEvent.click(screen.getByRole('button', { name: /cerrar sesión/i }));
+    cerrarSesionDesdeMenu();
 
     // Assert
     expect(await screen.findByTestId('ubicacion')).toHaveTextContent('/login');
