@@ -317,6 +317,41 @@ describe('Perfil', () => {
     });
   });
 
+  describe('Publicar una cosecha', () => {
+    it('el agricultor ve el botón para publicar una cosecha', async () => {
+      // Arrange
+      iniciarSesion();
+      simularApi(fetchMock, API_AGRICULTOR);
+
+      // Act
+      renderPerfil();
+
+      // Assert
+      expect(await screen.findByRole('link', { name: 'Publicar una cosecha' })).toHaveAttribute(
+        'href',
+        '/publicar',
+      );
+    });
+
+    it.each(['Persona', 'Negocio', 'Admin'])(
+      'el rol %s no ve el botón para publicar una cosecha',
+      async (role) => {
+        // Arrange
+        const usuario = { ...PERSONA, role };
+        iniciarSesion(usuario);
+        simularApi(fetchMock, { ...API_PERSONA, 'GET /users/me': [200, usuario] });
+
+        // Act
+        renderPerfil();
+
+        // Assert
+        await screen.findByRole('heading', { level: 1, name: 'Ana Gómez' });
+        expect(screen.getByRole('link', { name: /ver mis pedidos/i })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /publicar una cosecha/i })).toBeNull();
+      },
+    );
+  });
+
   describe('Sesión y errores', () => {
     it('sin sesión lleva al login sin llamar al servidor', () => {
       // Arrange
