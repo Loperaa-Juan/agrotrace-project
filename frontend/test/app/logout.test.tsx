@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AppLayout } from '../../src/routes/app/app-layout';
+import { ExplorarPage } from '../../src/routes/app/explorar';
 import { PerfilPage } from '../../src/routes/app/perfil';
 import { SesionProvider } from '../../src/routes/session-context';
 import { respuestaFetch, SESION } from '../auth/utils';
@@ -18,13 +19,14 @@ function Ubicacion() {
   return <p data-testid="ubicacion">{useLocation().pathname}</p>;
 }
 
-function renderPerfil() {
+function renderPerfil(ruta = '/perfil') {
   render(
     <SesionProvider>
-      <MemoryRouter initialEntries={['/perfil']}>
+      <MemoryRouter initialEntries={[ruta]}>
         <Routes>
           <Route element={<AppLayout />}>
             <Route path="/perfil" element={<PerfilPage />} />
+            <Route path="/explorar" element={<ExplorarPage />} />
           </Route>
           <Route path="*" element={<Ubicacion />} />
         </Routes>
@@ -107,6 +109,21 @@ describe('Cerrar sesión', () => {
     // Assert
     expect(await screen.findByTestId('ubicacion')).toHaveTextContent('/login');
     expectSesionBorrada();
+  });
+
+  it('lleva al login aunque cierre sesión desde una página pública', async () => {
+    // Arrange
+    iniciarSesion();
+    simularLogout(fetchMock, () =>
+      respuestaFetch(200, { message: 'Logged out successfully' }),
+    );
+    renderPerfil('/explorar');
+
+    // Act
+    cerrarSesionDesdeMenu();
+
+    // Assert
+    expect(await screen.findByTestId('ubicacion')).toHaveTextContent('/login');
   });
 
   it('borra la sesión guardada sin esperar la respuesta del servidor', async () => {
