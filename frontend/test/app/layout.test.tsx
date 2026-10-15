@@ -58,7 +58,7 @@ describe('Menú de la aplicación', () => {
     expect(screen.queryByRole('navigation', { name: 'Menú de usuario' })).toBeNull();
   });
 
-  it('el menú tiene explorar cosechas, mis pedidos y cerrar sesión', () => {
+  it('el menú tiene explorar cosechas, mi perfil, mis pedidos y cerrar sesión', () => {
     // Arrange
     iniciarSesion();
     renderEn('/perfil');
@@ -69,9 +69,10 @@ describe('Menú de la aplicación', () => {
     // Assert
     expect(botonUsuario()).toHaveAttribute('aria-expanded', 'true');
     expect(menu.getByRole('link', { name: 'Explorar cosechas' })).toHaveAttribute('href', '/explorar');
+    expect(menu.getByRole('link', { name: 'Mi perfil' })).toHaveAttribute('href', '/perfil');
     expect(menu.getByRole('link', { name: 'Mis pedidos' })).toHaveAttribute('href', '/pedidos');
     expect(menu.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument();
-    expect(menu.getAllByRole('link')).toHaveLength(2);
+    expect(menu.getAllByRole('link')).toHaveLength(3);
     expect(menu.getAllByRole('button')).toHaveLength(1);
   });
 
@@ -89,6 +90,37 @@ describe('Menú de la aplicación', () => {
     expect(await screen.findByRole('heading', { level: 1, name: /cosechas/i })).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Menú de usuario' })).toBeNull();
     expect(screen.getByRole('banner')).toBe(cabecera);
+  });
+
+  it('las opciones siguen el orden del prototipo', () => {
+    // Arrange
+    iniciarSesion();
+    renderEn('/perfil');
+
+    // Act
+    const menu = abrirMenu();
+
+    // Assert
+    expect(menu.getAllByRole('link').map((enlace) => enlace.textContent?.trim())).toEqual([
+      expect.stringContaining('Explorar cosechas'),
+      expect.stringContaining('Mi perfil'),
+      expect.stringContaining('Mis pedidos'),
+    ]);
+  });
+
+  it('mi perfil navega a su perfil y cierra el menú', async () => {
+    // Arrange
+    iniciarSesion();
+    renderEn('/explorar');
+    const menu = abrirMenu();
+
+    // Act
+    fireEvent.click(menu.getByRole('link', { name: 'Mi perfil' }));
+
+    // Assert
+    expect(await screen.findByText('Cargando tu perfil…')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/perfil');
+    expect(screen.queryByRole('navigation', { name: 'Menú de usuario' })).toBeNull();
   });
 
   it('mis pedidos navega a sus pedidos y cierra el menú', async () => {
