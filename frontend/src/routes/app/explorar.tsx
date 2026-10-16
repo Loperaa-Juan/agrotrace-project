@@ -15,7 +15,7 @@ const ERROR_CARGA = 'No pudimos cargar las cosechas. Intenta de nuevo.';
 
 const formatoNumero = (valor: number) => valor.toLocaleString('es-CO');
 
-function Icono({
+export function Icono({
   nombre,
   className = '',
 }: Readonly<{ nombre: string; className?: string }>) {
@@ -40,7 +40,7 @@ function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
-function TarjetaCosecha({
+export function TarjetaCosecha({
   oferta,
   producto,
 }: Readonly<{ oferta: Oferta; producto: Producto | undefined }>) {
