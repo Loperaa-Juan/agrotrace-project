@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import App from '../../src/App';
-import { respuestaFetch, SESION } from '../auth/utils';
+import { simularApi, SESION, type Respuestas } from '../auth/utils';
 
 const PRODUCTOS = [
   { ProductId: 'p-aguacate', name: 'Aguacate Hass', unitOfMeasure: 'lb', isActive: true },
@@ -28,18 +28,6 @@ const OFERTA_FRESA = {
   availableQuantity: 15.5,
   aiQuality: null,
 };
-
-type Respuestas = Record<string, [status: number, body?: unknown]>;
-
-/** Responde cada petición según su método y ruta, por ejemplo `GET /offerts`. */
-function simularApi(fetchMock: ReturnType<typeof vi.fn>, respuestas: Respuestas) {
-  fetchMock.mockImplementation((url: string, opciones?: RequestInit) => {
-    const peticion = `${opciones?.method ?? 'GET'} ${new URL(url).pathname}`;
-    const respuesta = respuestas[peticion];
-    if (!respuesta) return Promise.reject(new Error(`Sin respuesta para ${peticion}`));
-    return respuestaFetch(respuesta[0], respuesta[1] ?? {});
-  });
-}
 
 const API_CATALOGO: Respuestas = {
   'GET /offerts': [200, [OFERTA_AGUACATE, OFERTA_FRESA]],

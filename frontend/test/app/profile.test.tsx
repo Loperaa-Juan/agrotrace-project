@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { PerfilPage } from '../../src/routes/app/perfil';
 import { SesionProvider } from '../../src/routes/session-context';
-import { respuestaFetch } from '../auth/utils';
+import { simularApi, type Respuestas } from '../auth/utils';
 
 const AGRICULTOR = {
   userId: 'c270fc1a',
@@ -57,18 +57,6 @@ function pedido(id: string, status: string, totalPrice: number, fecha: string) {
     createdAt: fecha,
     updatedAt: fecha,
   };
-}
-
-type Respuestas = Record<string, [status: number, body?: unknown]>;
-
-/** Responde cada petición según su método y ruta, por ejemplo `GET /users/me`. */
-function simularApi(fetchMock: ReturnType<typeof vi.fn>, respuestas: Respuestas) {
-  fetchMock.mockImplementation((url: string, opciones?: RequestInit) => {
-    const peticion = `${opciones?.method ?? 'GET'} ${new URL(url).pathname}`;
-    const respuesta = respuestas[peticion];
-    if (!respuesta) return Promise.reject(new Error(`Sin respuesta para ${peticion}`));
-    return respuestaFetch(respuesta[0], respuesta[1] ?? {});
-  });
 }
 
 /** Perfil del agricultor en orders-service: sus datos y las ventas que calcula el servidor. */

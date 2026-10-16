@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { LoginPage } from '../../src/routes/auth/login';
@@ -28,6 +29,18 @@ export function respuestaFetch(status: number, body: unknown) {
       headers: { 'Content-Type': 'application/json' },
     }),
   );
+}
+
+export type Respuestas = Record<string, [status: number, body?: unknown]>;
+
+/** Responde cada petición según su método y ruta, por ejemplo `GET /offerts`. */
+export function simularApi(fetchMock: ReturnType<typeof vi.fn>, respuestas: Respuestas) {
+  fetchMock.mockImplementation((url: string, opciones?: RequestInit) => {
+    const peticion = `${opciones?.method ?? 'GET'} ${new URL(url).pathname}`;
+    const respuesta = respuestas[peticion];
+    if (!respuesta) return Promise.reject(new Error(`Sin respuesta para ${peticion}`));
+    return respuestaFetch(respuesta[0], respuesta[1] ?? {});
+  });
 }
 
 export const SESION = {

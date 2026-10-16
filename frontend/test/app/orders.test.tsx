@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import App from '../../src/App';
-import { respuestaFetch } from '../auth/utils';
+import { simularApi, type Respuestas } from '../auth/utils';
 
 const COMPRADOR = {
   userId: 'a1b2c3d4',
@@ -65,18 +65,6 @@ const PEDIDO_FRESA = pedido('0a1b2c3d-1111-4222-8333-944445555666', 'o-fresa', '
 });
 const PEDIDO_ENTREGADO = pedido('99887766-1111-4222-8333-944445555666', 'o-aguacate', 'Entregado');
 const PEDIDO_CANCELADO = pedido('11223344-1111-4222-8333-944445555666', 'o-aguacate', 'Cancelado');
-
-type Respuestas = Record<string, [status: number, body?: unknown]>;
-
-/** Responde cada petición según su método y ruta, por ejemplo `GET /orders/me`. */
-function simularApi(fetchMock: ReturnType<typeof vi.fn>, respuestas: Respuestas) {
-  fetchMock.mockImplementation((url: string, opciones?: RequestInit) => {
-    const peticion = `${opciones?.method ?? 'GET'} ${new URL(url).pathname}`;
-    const respuesta = respuestas[peticion];
-    if (!respuesta) return Promise.reject(new Error(`Sin respuesta para ${peticion}`));
-    return respuestaFetch(respuesta[0], respuesta[1] ?? {});
-  });
-}
 
 const API_COMPRADOR: Respuestas = {
   'GET /orders/me': [200, [PEDIDO_AGUACATE, PEDIDO_FRESA, PEDIDO_ENTREGADO, PEDIDO_CANCELADO]],
