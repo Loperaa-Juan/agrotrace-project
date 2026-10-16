@@ -4,8 +4,8 @@ import {
   obtenerOfertas,
   type Oferta,
   type Producto,
-} from '../perfil-api';
-import { Icono, TarjetaCosecha } from './explorar';
+} from '../profile-api';
+import { Icono, TarjetaCosecha } from './explore';
 
 /** Solo A y B: el grado C no se publica, así que no hay nada que filtrar. */
 const CALIDADES = [

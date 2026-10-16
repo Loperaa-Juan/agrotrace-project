@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { AppLayout } from '../../src/routes/app/app-layout';
-import { ExplorarPage } from '../../src/routes/app/explorar';
-import { PerfilPage } from '../../src/routes/app/perfil';
+import { ExplorarPage } from '../../src/routes/app/explore';
+import { PerfilPage } from '../../src/routes/app/profile';
 import { SesionProvider } from '../../src/routes/session-context';
 import { respuestaFetch, SESION } from '../auth/utils';
 

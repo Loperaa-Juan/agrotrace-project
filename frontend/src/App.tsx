@@ -1,10 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './routes/app/app-layout';
-import { ExplorarPage } from './routes/app/explorar';
+import { ExplorarPage } from './routes/app/explore';
 import FilterPage from './routes/app/filter-page';
-import { PedidosPage } from './routes/app/pedidos';
-import { PerfilPage } from './routes/app/perfil';
-import { PublicarPage } from './routes/app/publicar';
+import { PedidosPage } from './routes/app/orders';
+import { PerfilPage } from './routes/app/profile';
+import { PublicarPage } from './routes/app/publish';
 import { LoginPage } from './routes/auth/login';
 import Landing from './routes/Landing';
 import { routes } from './routes/routes';

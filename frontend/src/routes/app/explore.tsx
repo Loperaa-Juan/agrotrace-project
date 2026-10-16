@@ -4,7 +4,7 @@ import {
   obtenerOfertas,
   type Oferta,
   type Producto,
-} from '../perfil-api';
+} from '../profile-api';
 
 type DatosCatalogo = {
   ofertas: Oferta[];
