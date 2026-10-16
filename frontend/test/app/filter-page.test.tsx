@@ -214,17 +214,30 @@ describe('Tests en FilterPage', () => {
       expect(screen.getByRole('heading', { name: 'Fresa' })).toBeInTheDocument();
     });
 
+    it('El deslizador de precio máximo debe empezar en $ 30.000 COP', () => {
+      // Arrange: renderizamos la página
+      render(<FilterPage />);
+
+      // Act: definimos el deslizador
+      const precio = screen.getByRole('slider', { name: /Precio máximo/ });
+
+      // Assert
+      expect(precio).toHaveValue('30000');
+      expect(screen.getByText('Hasta $ 30.000 COP')).toBeInTheDocument();
+    });
+
     // Prueba del filtro "Precio máximo" (Debe filtrar por precio máximo, si el usuario ingresa 1000, debe mostrar todas las cosechas con precio menor o igual a 1000)
     it('Al filtrar por precio máximo 1000, solo se deben mostrar las cosechas con precio menor o igual a 1000', async () => {
       // Arrange: renderizamos la página
       await renderConCosechas();
 
-      // Act: el usuario ingresa el precio máximo
-      fireEvent.change(screen.getByRole('spinbutton', { name: 'Precio máximo' }), {
+      // Act: el usuario mueve el deslizador del precio máximo
+      fireEvent.change(screen.getByRole('slider', { name: /Precio máximo/ }), {
         target: { value: '1000' },
       });
 
       // Assert
+      expect(screen.getByText('Hasta $ 1.000 COP')).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Aguacate Hass' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Fresa' })).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'Mango' })).toBeNull();
