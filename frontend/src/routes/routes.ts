@@ -6,6 +6,7 @@ export const routes = {
   registro: '/register',
   perfil: '/perfil',
   explorar: '/explorar',
+  filtros: '/filtros',
   publicar: '/publicar',
   pedidos: '/pedidos',
 };
