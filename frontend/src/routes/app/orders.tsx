@@ -11,7 +11,7 @@ import {
   type Oferta,
   type Pedido,
   type Producto,
-} from '../perfil-api';
+} from '../profile-api';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
 
