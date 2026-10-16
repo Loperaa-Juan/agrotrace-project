@@ -23,15 +23,13 @@ const CALIDADES = [
   },
 ];
 
-const ETIQUETA_FILTRO = 'flex items-center gap-2 text-sm font-bold text-gray-900';
-const CAMPO_FILTRO =
-  'w-full h-11 px-3 rounded-xl bg-white border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#15803d]';
+const PRECIO_MAXIMO = 30000;
 
 function FilterPage() {
   const [nombre, setNombre] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [grados, setGrados] = useState(['A', 'B']);
-  const [precioMaximo, setPrecioMaximo] = useState('');
+  const [precioMaximo, setPrecioMaximo] = useState(PRECIO_MAXIMO);
   const [ofertas, setOfertas] = useState<Oferta[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
 
@@ -53,7 +51,7 @@ function FilterPage() {
     (oferta) =>
       nombreDe(oferta.productId).toLowerCase().includes(busqueda.toLowerCase()) &&
       grados.some((grado) => grado === oferta.aiQuality) &&
-      (precioMaximo === '' || oferta.pricePerUnit <= Number(precioMaximo)),
+      oferta.pricePerUnit <= precioMaximo,
   );
 
   const alternarGrado = (grado: string) =>
@@ -162,20 +160,29 @@ function FilterPage() {
               </p>
             </fieldset>
 
-            <div className="space-y-2">
-              <label className={ETIQUETA_FILTRO} htmlFor="filtro-precio-maximo">
-                Precio máximo
-              </label>
+            <div className="space-y-3 bg-gray-50 p-4 rounded-xl">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Icono className="text-[#15803d]" nombre="payments" />
+                  <label className="font-bold text-gray-900" htmlFor="filtro-precio-maximo">
+                    2. Precio máximo
+                  </label>
+                </div>
+                <span className="font-bold text-[#15803d]">
+                  {`Hasta $ ${precioMaximo.toLocaleString('es-CO')} COP`}
+                </span>
+              </div>
               <input
                 id="filtro-precio-maximo"
-                type="number"
-                min="0"
-                placeholder="Sin límite"
-                className={CAMPO_FILTRO}
+                type="range"
+                min="500"
+                max={PRECIO_MAXIMO}
+                step="500"
+                className="w-full h-2 accent-[#15803d] cursor-pointer"
                 value={precioMaximo}
-                onChange={(evento) => setPrecioMaximo(evento.target.value)}
+                onChange={(evento) => setPrecioMaximo(Number(evento.target.value))}
               />
-              <p className="text-xs text-gray-600">Por unidad de venta de cada oferta, en COP.</p>
+              <p className="text-sm text-gray-600">Por unidad de venta de cada oferta.</p>
             </div>
           </aside>
 
