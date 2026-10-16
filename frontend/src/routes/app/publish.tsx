@@ -1,7 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ErrorApi } from '../auth-api';
-import { crearOferta, obtenerCatalogo, type NuevaOferta, type Producto } from '../perfil-api';
+import {
+  crearOferta,
+  obtenerCatalogo,
+  type NuevaOferta,
+  type Producto,
+} from '../profile-api';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
 
@@ -40,7 +45,8 @@ const ERROR_CARGA = 'No pudimos cargar el catálogo. Intente de nuevo.';
 const ERROR_PUBLICAR = 'No pudimos publicar su cosecha. Intente de nuevo.';
 const ERROR_PRODUCTO = 'Elija un producto del catálogo para continuar.';
 const ERROR_CANTIDAD = 'La cantidad debe ser un número entero mayor que cero.';
-const ERROR_PRECIO = 'El precio debe ser un valor en pesos mayor que cero, sin decimales.';
+const ERROR_PRECIO =
+  'El precio debe ser un valor en pesos mayor que cero, sin decimales.';
 
 const BOTON_PRIMARIO =
   'inline-flex items-center justify-center gap-2 px-5 h-12 rounded-xl bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2';
@@ -61,7 +67,10 @@ const esEnteroPositivo = (valor: string) => {
 /** Fecha local de hoy en formato YYYY-MM-DD, el mínimo para la fecha de cosecha. */
 const hoy = () => new Date().toLocaleDateString('en-CA');
 
-function validar(formulario: Formulario, producto: Producto | undefined): Errores {
+function validar(
+  formulario: Formulario,
+  producto: Producto | undefined,
+): Errores {
   return {
     producto: producto ? null : ERROR_PRODUCTO,
     cantidad: esEnteroPositivo(formulario.cantidad) ? null : ERROR_CANTIDAD,
@@ -82,10 +91,13 @@ function aOferta(formulario: Formulario): NuevaOferta {
 }
 
 function mensajeErrorPublicar(err: unknown) {
-  return err instanceof ErrorApi ? `No pudimos publicar su cosecha: ${err.message}` : ERROR_PUBLICAR;
+  return err instanceof ErrorApi
+    ? `No pudimos publicar su cosecha: ${err.message}`
+    : ERROR_PUBLICAR;
 }
 
-const esSesionVencida = (err: unknown) => err instanceof ErrorApi && err.status === 401;
+const esSesionVencida = (err: unknown) =>
+  err instanceof ErrorApi && err.status === 401;
 
 /** Productos activos del catálogo: solo esos se pueden publicar. */
 function useCatalogoActivo(habilitado: boolean, salir: () => void) {
@@ -97,7 +109,8 @@ function useCatalogoActivo(habilitado: boolean, salir: () => void) {
     let vigente = true;
     obtenerCatalogo()
       .then((catalogo) => {
-        if (vigente) setProductos(catalogo.filter((producto) => producto.isActive));
+        if (vigente)
+          setProductos(catalogo.filter((producto) => producto.isActive));
       })
       .catch((err) => {
         if (!vigente) return;
@@ -137,7 +150,10 @@ function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
-function ErrorCampo({ id, children }: Readonly<{ id: string; children: ReactNode }>) {
+function ErrorCampo({
+  id,
+  children,
+}: Readonly<{ id: string; children: ReactNode }>) {
   return (
     <p className="flex items-center gap-1 text-sm text-red-700" id={id}>
       <Icono className="text-base" nombre="error" />
@@ -192,7 +208,10 @@ function CampoNumero({
 
 function Progreso({ paso }: Readonly<{ paso: Paso }>) {
   return (
-    <ol aria-label="Progreso de la publicación" className="flex items-center gap-3">
+    <ol
+      aria-label="Progreso de la publicación"
+      className="flex items-center gap-3"
+    >
       {PASOS.map((item) => {
         const activo = item.numero === paso;
         const completado = item.numero < paso;
@@ -204,10 +223,16 @@ function Progreso({ paso }: Readonly<{ paso: Paso }>) {
           >
             <span
               className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
-                activo || completado ? 'bg-[#15803d] text-white' : 'bg-gray-200 text-gray-600'
+                activo || completado
+                  ? 'bg-[#15803d] text-white'
+                  : 'bg-gray-200 text-gray-600'
               }`}
             >
-              {completado ? <Icono className="text-xl" nombre="check" /> : item.numero}
+              {completado ? (
+                <Icono className="text-xl" nombre="check" />
+              ) : (
+                item.numero
+              )}
             </span>
             <span
               className={`text-sm ${activo ? 'font-bold text-[#15803d]' : 'text-gray-600'}`}
@@ -234,10 +259,14 @@ function PasoDatos({
 }>) {
   /** Los errores de los campos aparecen después del primer intento de avanzar. */
   const [intento, setIntento] = useState(false);
-  const producto = productos.find((item) => item.ProductId === formulario.productoId);
+  const producto = productos.find(
+    (item) => item.ProductId === formulario.productoId,
+  );
   const unidad = producto?.unitOfMeasure ?? 'unidad';
   const errores = validar(formulario, producto);
-  const visibles: Errores = intento ? errores : { producto: null, cantidad: null, precio: null };
+  const visibles: Errores = intento
+    ? errores
+    : { producto: null, cantidad: null, precio: null };
   const montosValidos = !errores.cantidad && !errores.precio;
 
   const avanzar = () => {
@@ -254,7 +283,9 @@ function PasoDatos({
         avanzar();
       }}
     >
-      <h2 className="text-xl font-bold text-gray-900">Paso 1: Qué vende y a qué precio</h2>
+      <h2 className="text-xl font-bold text-gray-900">
+        Paso 1: Qué vende y a qué precio
+      </h2>
 
       <div className="space-y-2">
         <label className={ETIQUETA} htmlFor="producto">
@@ -274,7 +305,9 @@ function PasoDatos({
             </option>
           ))}
         </select>
-        {visibles.producto && <ErrorCampo id="producto-error">{visibles.producto}</ErrorCampo>}
+        {visibles.producto && (
+          <ErrorCampo id="producto-error">{visibles.producto}</ErrorCampo>
+        )}
       </div>
 
       <CampoNumero
@@ -343,7 +376,9 @@ function PasoFecha({
 
   return (
     <section className="bg-white rounded-2xl border border-gray-100 p-6 sm:p-8 shadow-sm space-y-6">
-      <h2 className="text-xl font-bold text-gray-900">Paso 2: Cuándo se recoge</h2>
+      <h2 className="text-xl font-bold text-gray-900">
+        Paso 2: Cuándo se recoge
+      </h2>
 
       <p className="p-4 rounded-xl bg-gray-50 text-gray-700">
         {`${cantidad} ${unidad} de ${producto?.name} a ${precio} COP / ${unidad}`}
@@ -389,7 +424,9 @@ function Publicada() {
       <span className="w-16 h-16 mx-auto rounded-full bg-green-100 text-[#15803d] flex items-center justify-center">
         <Icono className="text-4xl" nombre="task_alt" />
       </span>
-      <h2 className="text-2xl font-extrabold text-gray-900">¡Su cosecha quedó publicada!</h2>
+      <h2 className="text-2xl font-extrabold text-gray-900">
+        ¡Su cosecha quedó publicada!
+      </h2>
       <p className="text-gray-600">
         Los compradores ya pueden verla en el catálogo de cosechas de AgroTrace.
       </p>
@@ -405,7 +442,10 @@ function Publicada() {
 export function PublicarPage() {
   const { usuario, salir } = useSesion();
   const esAgricultor = usuario?.role === 'Agricultor';
-  const { productos, error: errorCarga } = useCatalogoActivo(esAgricultor, salir);
+  const { productos, error: errorCarga } = useCatalogoActivo(
+    esAgricultor,
+    salir,
+  );
   const [paso, setPaso] = useState<Paso>(1);
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
   const [publicando, setPublicando] = useState(false);
@@ -436,7 +476,11 @@ export function PublicarPage() {
     if (publicada) return <Publicada />;
     if (errorCarga) return <Alerta>{errorCarga}</Alerta>;
     if (!productos) {
-      return <output className="block text-sm text-gray-600">Cargando el catálogo…</output>;
+      return (
+        <output className="block text-sm text-gray-600">
+          Cargando el catálogo…
+        </output>
+      );
     }
     if (paso === 1) {
       return (
@@ -455,7 +499,9 @@ export function PublicarPage() {
         formulario={formulario}
         onPublicar={publicar}
         onVolver={() => setPaso(1)}
-        producto={productos.find((item) => item.ProductId === formulario.productoId)}
+        producto={productos.find(
+          (item) => item.ProductId === formulario.productoId,
+        )}
         publicando={publicando}
       />
     );
@@ -468,8 +514,8 @@ export function PublicarPage() {
           Publicar nueva cosecha
         </h1>
         <p className="text-gray-600">
-          Son dos pasos y puede ir con calma: primero nos cuenta qué vende y a qué precio, y
-          después cuándo se recoge.
+          Son dos pasos y puede ir con calma: primero nos cuenta qué vende y a
+          qué precio, y después cuándo se recoge.
         </p>
       </div>
       {!publicada && <Progreso paso={paso} />}
