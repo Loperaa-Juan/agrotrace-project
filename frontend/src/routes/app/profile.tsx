@@ -15,7 +15,7 @@ import {
   type PerfilUsuario,
   type Producto,
   type ResumenVentas,
-} from '../perfil-api';
+} from '../profile-api';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
 

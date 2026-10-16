@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { PerfilPage } from '../../src/routes/app/perfil';
+import { PerfilPage } from '../../src/routes/app/profile';
 import { SesionProvider } from '../../src/routes/session-context';
 import { simularApi, type Respuestas } from '../auth/utils';
 
