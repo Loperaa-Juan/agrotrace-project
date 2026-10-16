@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validarRegistro } from '../../src/routes/registro';
+import { validarRegistro } from '../../src/routes/register';
 
 describe('validarRegistro', () => {
   it('rechaza un tipo de documento que no aplica para el perfil', () => {

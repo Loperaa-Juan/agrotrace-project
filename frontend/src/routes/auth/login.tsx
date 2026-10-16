@@ -18,7 +18,7 @@ import {
   validarRegistro,
   type DatosRegistro,
   type ErroresRegistro,
-} from '../registro';
+} from '../register';
 import { inicioDe, routes } from '../routes';
 import { useSesion } from '../session-context';
 
