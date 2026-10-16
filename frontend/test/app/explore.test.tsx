@@ -113,6 +113,19 @@ describe('Explorar cosechas', () => {
     expect(cosechaDe('Fresa').queryByText(/calidad/i)).toBeNull();
   });
 
+  it('muestra un botón para ver el detalle y pedir en cada cosecha', async () => {
+    // Arrange
+    simularApi(fetchMock, API_CATALOGO);
+
+    // Act
+    renderExplorar();
+
+    // Assert
+    await screen.findByRole('heading', { name: 'Aguacate Hass' });
+    expect(cosechaDe('Aguacate Hass').getByRole('button', { name: /ver detalle y pedir/i })).toBeInTheDocument();
+    expect(cosechaDe('Fresa').getByRole('button', { name: /ver detalle y pedir/i })).toBeInTheDocument();
+  });
+
   it('también funciona con la sesión iniciada', async () => {
     // Arrange
     localStorage.setItem('accessToken', SESION.accessToken);
