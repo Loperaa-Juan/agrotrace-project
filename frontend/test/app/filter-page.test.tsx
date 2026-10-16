@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import FilterPage from '../../src/routes/app/filter-page';
 import { simularApi, type Respuestas } from '../auth/utils';
 
@@ -175,32 +175,43 @@ describe('Tests en FilterPage', () => {
 
   describe('Tests sobre como deben funcionar los filtros ', () => {
     
-    it('El filtro de calidad solo debe ofrecer las calidades A y B', () => {
+    it('El filtro de calidad solo debe ofrecer las calidades A y B, marcadas por defecto', () => {
       // Arrange: renderizamos la página
       render(<FilterPage />);
 
       // Act: definimos el filtro de calidad
-      const calidad = screen.getByRole('combobox', { name: 'Calidad' });
+      const calidad = within(screen.getByRole('group', { name: /Calidad por IA/ }));
 
       // Assert
-      expect(calidad).toContainElement(screen.getByRole('option', { name: 'A' }));
-      expect(calidad).toContainElement(screen.getByRole('option', { name: 'B' }));
-      expect(screen.queryByRole('option', { name: 'C' })).toBeNull();
+      expect(calidad.getByRole('checkbox', { name: /Grado A · Calidad buena/ })).toBeChecked();
+      expect(calidad.getByRole('checkbox', { name: /Grado B · Calidad regular/ })).toBeChecked();
+      expect(calidad.getAllByRole('checkbox')).toHaveLength(2);
     });
 
-    it('Al filtrar por calidad A, solo se deben mostrar las cosechas de calidad A', async () => {
+    it('Al desmarcar la calidad B, solo se deben mostrar las cosechas de calidad A', async () => {
       // Arrange: renderizamos la página
       await renderConCosechas();
 
-      // Act: el usuario elige la calidad A
-      fireEvent.change(screen.getByRole('combobox', { name: 'Calidad' }), {
-        target: { value: 'A' },
-      });
+      // Act: el usuario desmarca la calidad B
+      fireEvent.click(screen.getByRole('checkbox', { name: /Grado B/ }));
 
       // Assert
+      expect(screen.getByRole('checkbox', { name: /Grado B/ })).not.toBeChecked();
       expect(screen.getByRole('heading', { name: 'Aguacate Hass' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Mango' })).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'Fresa' })).toBeNull();
+    });
+
+    it('Al volver a marcar la calidad B, se deben mostrar de nuevo sus cosechas', async () => {
+      // Arrange: renderizamos la página y desmarcamos la calidad B
+      await renderConCosechas();
+      fireEvent.click(screen.getByRole('checkbox', { name: /Grado B/ }));
+
+      // Act: el usuario vuelve a marcar la calidad B
+      fireEvent.click(screen.getByRole('checkbox', { name: /Grado B/ }));
+
+      // Assert
+      expect(screen.getByRole('heading', { name: 'Fresa' })).toBeInTheDocument();
     });
 
     // Prueba del filtro "Precio máximo" (Debe filtrar por precio máximo, si el usuario ingresa 1000, debe mostrar todas las cosechas con precio menor o igual a 1000)
