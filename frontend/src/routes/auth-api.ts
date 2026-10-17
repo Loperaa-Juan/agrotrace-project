@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_USERS_API_URL ?? 'http://localhost:3000';
+import { USERS_API_URL as API_URL } from '../config/env';
 
 export type RolUsuario = 'Agricultor' | 'Persona' | 'Negocio' | 'Admin';
 export type TipoDocumento = 'CC' | 'CE' | 'NIT';

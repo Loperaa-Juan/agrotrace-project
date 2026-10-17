@@ -6,8 +6,9 @@ import { ExplorarPage } from '../../src/routes/app/explore';
 import { PerfilPage } from '../../src/routes/app/profile';
 import { SesionProvider } from '../../src/routes/session-context';
 import { respuestaFetch, SESION } from '../auth/utils';
+import { USERS_API_URL } from '../../src/config/env';
 
-const LOGOUT_URL = 'http://localhost:3000/auth/logout';
+const LOGOUT_URL = `${USERS_API_URL}/auth/logout`;
 
 function iniciarSesion() {
   localStorage.setItem('accessToken', SESION.accessToken);

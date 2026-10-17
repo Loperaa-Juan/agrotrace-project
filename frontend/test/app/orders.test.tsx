@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import App from '../../src/App';
 import { simularApi, type Respuestas } from '../auth/utils';
+import { CATALOG_API_URL, ORDERS_API_URL } from '../../src/config/env';
 
 const COMPRADOR = {
   userId: 'a1b2c3d4',
@@ -132,7 +133,7 @@ describe('Mis pedidos', () => {
 
       // Assert
       await screen.findByText('Pedido #E5F6A7B8');
-      const [, opciones] = fetchMock.mock.calls.find(([url]) => url === 'http://localhost:3004/orders/me')!;
+      const [, opciones] = fetchMock.mock.calls.find(([url]) => url === `${ORDERS_API_URL}/orders/me`)!;
       expect(opciones.headers).toMatchObject({ Authorization: 'Bearer access-token-123' });
     });
 
@@ -286,8 +287,8 @@ describe('Mis pedidos', () => {
       await screen.findByText('Pedido #E5F6A7B8');
       expect(pedidoDe('E5F6A7B8').getByRole('heading', { name: '10 lb · Aguacate Hass' })).toBeInTheDocument();
       const urls = fetchMock.mock.calls.map(([url]) => url);
-      expect(urls).toContain('http://localhost:3004/orders/received');
-      expect(urls).toContain('http://localhost:3002/offerts/me');
+      expect(urls).toContain(`${ORDERS_API_URL}/orders/received`);
+      expect(urls).toContain(`${CATALOG_API_URL}/offerts/me`);
       expect(urls.some((url) => url.endsWith('/orders/me'))).toBe(false);
     });
   });

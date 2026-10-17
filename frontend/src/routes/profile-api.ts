@@ -1,8 +1,5 @@
 import { ErrorApi, type RolUsuario, type TipoDocumento } from './auth-api';
-
-const USERS_URL = import.meta.env.VITE_USERS_API_URL ?? 'http://localhost:3000';
-const CATALOG_URL = import.meta.env.VITE_CATALOG_API_URL ?? 'http://localhost:3002';
-const ORDERS_URL = import.meta.env.VITE_ORDERS_API_URL ?? 'http://localhost:3004';
+import { CATALOG_API_URL as CATALOG_URL, ORDERS_API_URL as ORDERS_URL, USERS_API_URL as USERS_URL } from '../config/env';
 
 export type PerfilUsuario = {
   userId: string;

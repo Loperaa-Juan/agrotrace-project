@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import App from '../../src/App';
 import { simularApi, SESION, type Respuestas } from '../auth/utils';
+import { CATALOG_API_URL } from '../../src/config/env';
 
 const PRODUCTOS = [
   { ProductId: 'p-aguacate', name: 'Aguacate Hass', unitOfMeasure: 'lb', isActive: true },
@@ -81,8 +82,8 @@ describe('Explorar cosechas', () => {
     // Assert
     await screen.findByRole('heading', { name: 'Aguacate Hass' });
     const urls = fetchMock.mock.calls.map(([url]) => url);
-    expect(urls).toContain('http://localhost:3002/offerts');
-    expect(urls).toContain('http://localhost:3002/catalog');
+    expect(urls).toContain(`${CATALOG_API_URL}/offerts`);
+    expect(urls).toContain(`${CATALOG_API_URL}/catalog`);
   });
 
   it('muestra el precio y la cantidad disponible de cada cosecha', async () => {

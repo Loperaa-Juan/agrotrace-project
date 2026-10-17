@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { PerfilPage } from '../../src/routes/app/profile';
 import { SesionProvider } from '../../src/routes/session-context';
 import { simularApi, type Respuestas } from '../auth/utils';
+import { ORDERS_API_URL } from '../../src/config/env';
 
 const AGRICULTOR = {
   userId: 'c270fc1a',
@@ -172,7 +173,7 @@ describe('Perfil', () => {
       // Assert
       await screen.findByRole('heading', { level: 1 });
       const urls = fetchMock.mock.calls.map(([url]) => url);
-      expect(urls).toContain('http://localhost:3004/profile/me');
+      expect(urls).toContain(`${ORDERS_API_URL}/profile/me`);
       expect(urls.some((url) => url.endsWith('/users/me'))).toBe(false);
     });
 
