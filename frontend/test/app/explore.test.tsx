@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import App from '../../src/App';
 import { simularApi, SESION, type Respuestas } from '../auth/utils';
 import { CATALOG_API_URL } from '../../src/config/env';
@@ -114,7 +114,7 @@ describe('Explorar cosechas', () => {
     expect(cosechaDe('Fresa').queryByText(/calidad/i)).toBeNull();
   });
 
-  it('muestra un botón para ver el detalle y pedir en cada cosecha', async () => {
+  it('cada cosecha enlaza a su detalle para pedir', async () => {
     // Arrange
     simularApi(fetchMock, API_CATALOGO);
 
@@ -123,8 +123,73 @@ describe('Explorar cosechas', () => {
 
     // Assert
     await screen.findByRole('heading', { name: 'Aguacate Hass' });
-    expect(cosechaDe('Aguacate Hass').getByRole('button', { name: /ver detalle y pedir/i })).toBeInTheDocument();
-    expect(cosechaDe('Fresa').getByRole('button', { name: /ver detalle y pedir/i })).toBeInTheDocument();
+    expect(cosechaDe('Aguacate Hass').getByRole('link', { name: /ver detalle y pedir/i })).toHaveAttribute(
+      'href',
+      '/explorar/o-1',
+    );
+    expect(cosechaDe('Fresa').getByRole('link', { name: /ver detalle y pedir/i })).toHaveAttribute(
+      'href',
+      '/explorar/o-2',
+    );
+  });
+
+  it('al dar click en "Ver detalle y pedir" abre el detalle de la cosecha', async () => {
+    // Arrange
+    simularApi(fetchMock, API_CATALOGO);
+    renderExplorar();
+    await screen.findByRole('heading', { name: 'Aguacate Hass' });
+
+    // Act
+    fireEvent.click(cosechaDe('Aguacate Hass').getByRole('link', { name: /ver detalle y pedir/i }));
+
+    // Assert
+    expect(await screen.findByRole('heading', { level: 1, name: 'Aguacate Hass' })).toBeInTheDocument();
+    expect(screen.getByText('$ 3.500 COP')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ordenar ahora' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/explorar/o-1');
+  });
+
+  it('el detalle muestra un mensaje si la cosecha no existe', async () => {
+    // Arrange
+    simularApi(fetchMock, API_CATALOGO);
+
+    // Act
+    window.history.pushState({}, '', '/explorar/no-existe');
+    render(<App />);
+
+    // Assert
+    expect(await screen.findByText('Esta cosecha ya no está disponible.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /volver a las cosechas/i })).toHaveAttribute('href', '/explorar');
+  });
+
+  it('el detalle muestra un error si no se puede cargar la cosecha', async () => {
+    // Arrange
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+
+    // Act
+    window.history.pushState({}, '', '/explorar/o-1');
+    render(<App />);
+
+    // Assert
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos cargar la cosecha. Intenta de nuevo.',
+    );
+  });
+
+  it('el detalle sabe quién compra según la sesión iniciada', async () => {
+    // Arrange: el agricultor dueño de la oferta abre su propia cosecha
+    localStorage.setItem('accessToken', SESION.accessToken);
+    localStorage.setItem('refreshToken', SESION.refreshToken);
+    localStorage.setItem('usuario', JSON.stringify({ ...SESION.user, userId: 'c270fc1a', role: 'Agricultor' }));
+    simularApi(fetchMock, API_CATALOGO);
+
+    // Act
+    window.history.pushState({}, '', '/explorar/o-1');
+    render(<App />);
+
+    // Assert
+    expect(await screen.findByText('No puedes comprar tus propios productos')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ordenar ahora' })).toBeDisabled();
   });
 
   it('también funciona con la sesión iniciada', async () => {

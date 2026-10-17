@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './routes/app/app-layout';
 import { ExplorarPage } from './routes/app/explore';
 import FilterPage from './routes/app/filter-page';
+import { DetalleProductoPage } from './routes/app/product-detail';
 import { PedidosPage } from './routes/app/orders';
 import { PerfilPage } from './routes/app/profile';
 import { PublicarPage } from './routes/app/publish';
@@ -20,6 +21,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path={routes.perfil} element={<PerfilPage />} />
             <Route path={routes.explorar} element={<ExplorarPage />} />
+            <Route path={routes.detalle} element={<DetalleProductoPage />} />
             <Route path={routes.filtros} element={<FilterPage />} />
             <Route path={routes.pedidos} element={<PedidosPage />} />
             <Route path={routes.publicar} element={<PublicarPage />} />

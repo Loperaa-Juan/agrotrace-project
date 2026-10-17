@@ -1,10 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import {
   obtenerCatalogo,
   obtenerOfertas,
   type Oferta,
   type Producto,
 } from '../profile-api';
+import { detalleDe } from '../routes';
 
 type DatosCatalogo = {
   ofertas: Oferta[];
@@ -68,13 +70,13 @@ export function TarjetaCosecha({
           {`${formatoNumero(oferta.availableQuantity)} ${unidad} disponibles`}
         </p>
       </div>
-      <button
-        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#166534] text-white font-bold hover:bg-[#14532d] transition-colors"
-        type="button"
+      <Link
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#166534] text-white font-bold hover:bg-[#14532d] transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+        to={detalleDe(oferta.OffertId)}
       >
         Ver detalle y pedir
         <Icono className="text-base" nombre="arrow_forward" />
-      </button>
+      </Link>
     </li>
   );
 }

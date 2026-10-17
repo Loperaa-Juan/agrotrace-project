@@ -1,7 +1,17 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import type { Usuario } from '../auth-api';
-import type { Oferta, Producto } from '../profile-api';
+import {
+  obtenerCatalogo,
+  obtenerOfertas,
+  type Oferta,
+  type Producto,
+} from '../profile-api';
+import { routes } from '../routes';
+import { useSesion } from '../session-context';
 import { Icono } from './explore';
+
+const ERROR_CARGA = 'No pudimos cargar la cosecha. Intenta de nuevo.';
 
 /** Cantidad máxima por pedido para quien no compra como negocio. */
 const LIMITE_PERSONA = 50;
@@ -216,6 +226,95 @@ function ProductDetail({
         </div>
       </section>
     </main>
+  );
+}
+
+type DatosDetalle = {
+  oferta: Oferta | undefined;
+  producto: Producto | undefined;
+};
+
+function Aviso({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-10 space-y-4">
+      {children}
+    </main>
+  );
+}
+
+/** Página de la ruta `/explorar/:offertId`: busca la oferta y su producto y muestra el detalle. */
+export function DetalleProductoPage() {
+  const { offertId } = useParams();
+  const { usuario } = useSesion();
+  const [datos, setDatos] = useState<DatosDetalle | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let vigente = true;
+    // catalog-service no expone una oferta por id, así que se busca entre las publicadas
+    Promise.all([obtenerOfertas(), obtenerCatalogo()])
+      .then(([ofertas, productos]) => {
+        if (!vigente) return;
+        const oferta = ofertas.find((item) => item.OffertId === offertId);
+        const producto = productos.find(
+          (item) => item.ProductId === oferta?.productId,
+        );
+        setDatos({ oferta, producto });
+      })
+      .catch(() => {
+        if (vigente) setError(true);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [offertId]);
+
+  if (error) {
+    return (
+      <Aviso>
+        <p
+          className="flex items-center gap-2 p-4 rounded-xl bg-red-50 text-sm font-medium text-red-700"
+          role="alert"
+        >
+          {ERROR_CARGA}
+        </p>
+      </Aviso>
+    );
+  }
+
+  if (!datos) {
+    return (
+      <Aviso>
+        <output className="block text-sm text-gray-600">
+          Cargando la cosecha…
+        </output>
+      </Aviso>
+    );
+  }
+
+  if (!datos.oferta) {
+    return (
+      <Aviso>
+        <p className="p-4 rounded-xl bg-white text-sm text-gray-600 border border-gray-100">
+          Esta cosecha ya no está disponible.
+        </p>
+        <Link
+          className="inline-flex items-center gap-2 text-sm font-bold text-[#15803d] hover:underline"
+          to={routes.explorar}
+        >
+          <Icono className="text-base" nombre="arrow_back" />
+          Volver a las cosechas
+        </Link>
+      </Aviso>
+    );
+  }
+
+  return (
+    <ProductDetail
+      oferta={datos.oferta}
+      producto={datos.producto}
+      usuario={usuario}
+    />
   );
 }
 

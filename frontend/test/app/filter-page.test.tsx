@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import FilterPage from '../../src/routes/app/filter-page';
 import { simularApi, type Respuestas } from '../auth/utils';
 
@@ -44,7 +45,7 @@ const API_CATALOGO: Respuestas = {
 
 /** Renderiza la página y espera a que carguen las cosechas. */
 async function renderConCosechas() {
-  render(<FilterPage />);
+  render(<FilterPage />, { wrapper: MemoryRouter });
   await screen.findByRole('heading', { name: 'Aguacate Hass' });
 }
 
@@ -64,7 +65,7 @@ describe('Tests en FilterPage', () => {
   // Se debe renderizar el componente FilterPage correctamente
   it('debe renderizar el componente correctamente', () => {
     // Arrange: renderizamos la página
-    const { container } = render(<FilterPage />);
+    const { container } = render(<FilterPage />, { wrapper: MemoryRouter });
 
     // Assert
     expect(container).not.toBeEmptyDOMElement();
@@ -72,7 +73,7 @@ describe('Tests en FilterPage', () => {
 
   it('Se debe mostrar un Mensaje de "Encuentra tu cosecha" en la vista', () => {
     // Arrange: renderizamos la página
-    render(<FilterPage />);
+    render(<FilterPage />, { wrapper: MemoryRouter });
 
     // Assert
     expect(screen.getByText('Encuentra tu cosecha')).toBeInTheDocument();
@@ -80,7 +81,7 @@ describe('Tests en FilterPage', () => {
 
   it('Se le debe mostrar al usuario un botón para aplicar los filtros (Buscar)', () => {
     // Arrange: renderizamos la página
-    render(<FilterPage />);
+    render(<FilterPage />, { wrapper: MemoryRouter });
 
     // Act: definimos el botón
     const boton = screen.getByRole('button', { name: 'Enviar' });
@@ -90,7 +91,7 @@ describe('Tests en FilterPage', () => {
 
   it('Se debe mostrar un placeholder con el input "Filtra por nombre"', () => {
     // Arrange: renderizamos la página
-    const { container } = render(<FilterPage />);
+    const { container } = render(<FilterPage />, { wrapper: MemoryRouter });
 
     // Act: definimos el placeholder a evaluar
     const input = container.querySelector('#input-filtro');
@@ -105,7 +106,7 @@ describe('Tests en FilterPage', () => {
   // Al no haber nada en el placeholder, el botón de "Buscar" debe estar deshabilitado
   it('El botón de buscar debe estar deshabilitado si el input está vacío', () => {
     // Arrange: renderizamos la página
-    render(<FilterPage />);
+    render(<FilterPage />, { wrapper: MemoryRouter });
 
     // Assert
     expect(screen.getByRole('button', { name: 'Enviar' })).toBeDisabled();
@@ -113,7 +114,7 @@ describe('Tests en FilterPage', () => {
 
   it('El botón de buscar se debe habilitar al escribir en el input', () => {
     // Arrange: renderizamos la página
-    render(<FilterPage />);
+    render(<FilterPage />, { wrapper: MemoryRouter });
 
     // Act: el usuario escribe un nombre
     fireEvent.change(screen.getByPlaceholderText('Filtra por nombre de producto'), {
@@ -159,7 +160,7 @@ describe('Tests en FilterPage', () => {
       ...API_CATALOGO,
       'GET /offerts': [200, [OFERTA_FRESA, OFERTA_SIN_PRODUCTO]],
     });
-    render(<FilterPage />);
+    render(<FilterPage />, { wrapper: MemoryRouter });
     await screen.findByRole('heading', { name: 'Fresa' });
 
     // Act: el usuario busca por nombre
@@ -177,7 +178,7 @@ describe('Tests en FilterPage', () => {
     
     it('El filtro de calidad solo debe ofrecer las calidades A y B, marcadas por defecto', () => {
       // Arrange: renderizamos la página
-      render(<FilterPage />);
+      render(<FilterPage />, { wrapper: MemoryRouter });
 
       // Act: definimos el filtro de calidad
       const calidad = within(screen.getByRole('group', { name: /Calidad por IA/ }));
@@ -246,7 +247,7 @@ describe('Tests en FilterPage', () => {
 
     it('El deslizador de precio máximo debe empezar en $ 30.000 COP', () => {
       // Arrange: renderizamos la página
-      render(<FilterPage />);
+      render(<FilterPage />, { wrapper: MemoryRouter });
 
       // Act: definimos el deslizador
       const precio = screen.getByRole('slider', { name: /Precio máximo/ });
