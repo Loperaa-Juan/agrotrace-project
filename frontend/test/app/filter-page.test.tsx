@@ -214,6 +214,36 @@ describe('Tests en FilterPage', () => {
       expect(screen.getByRole('heading', { name: 'Fresa' })).toBeInTheDocument();
     });
 
+    it('Con ambas calidades marcadas, se deben mostrar las cosechas que la IA aún no ha clasificado', async () => {
+      // Arrange: la oferta de Mango todavía no tiene calidad
+      simularApi(fetchMock, {
+        ...API_CATALOGO,
+        'GET /offerts': [200, [OFERTA_AGUACATE, { ...OFERTA_MANGO, aiQuality: null }]],
+      });
+
+      // Act: renderizamos la página
+      await renderConCosechas();
+
+      // Assert
+      expect(screen.getByRole('heading', { name: 'Mango' })).toBeInTheDocument();
+    });
+
+    it('Al desmarcar una calidad, no se deben mostrar las cosechas sin clasificar', async () => {
+      // Arrange: la oferta de Mango todavía no tiene calidad
+      simularApi(fetchMock, {
+        ...API_CATALOGO,
+        'GET /offerts': [200, [OFERTA_AGUACATE, { ...OFERTA_MANGO, aiQuality: null }]],
+      });
+      await renderConCosechas();
+
+      // Act: el usuario desmarca la calidad B
+      fireEvent.click(screen.getByRole('checkbox', { name: /Grado B/ }));
+
+      // Assert
+      expect(screen.getByRole('heading', { name: 'Aguacate Hass' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Mango' })).toBeNull();
+    });
+
     it('El deslizador de precio máximo debe empezar en $ 30.000 COP', () => {
       // Arrange: renderizamos la página
       render(<FilterPage />);

@@ -12,13 +12,15 @@ const CALIDADES = [
   {
     grado: 'A',
     titulo: 'Calidad buena',
-    descripcion: 'Calibre uniforme y sin golpes. Para restaurantes y mesas exigentes.',
+    descripcion:
+      'Calibre uniforme y sin golpes. Para restaurantes y mesas exigentes.',
     marcada: 'bg-[#15803d] text-white',
   },
   {
     grado: 'B',
     titulo: 'Calidad regular',
-    descripcion: 'Leves asimetrías o roces en la piel. Para el consumo diario en casa.',
+    descripcion:
+      'Leves asimetrías o roces en la piel. Para el consumo diario en casa.',
     marcada: 'bg-orange-300 text-orange-950',
   },
 ];
@@ -49,8 +51,12 @@ function FilterPage() {
 
   const ofertasFiltradas = ofertas.filter(
     (oferta) =>
-      nombreDe(oferta.productId).toLowerCase().includes(busqueda.toLowerCase()) &&
-      grados.some((grado) => grado === oferta.aiQuality) &&
+      nombreDe(oferta.productId)
+        .toLowerCase()
+        .includes(busqueda.toLowerCase()) &&
+      // Con todas las calidades marcadas no se filtra, así se ven también las cosechas sin clasificar
+      (grados.length === CALIDADES.length ||
+        (oferta.aiQuality !== null && grados.includes(oferta.aiQuality))) &&
       oferta.pricePerUnit <= precioMaximo,
   );
 
@@ -74,7 +80,8 @@ function FilterPage() {
               Encuentra tu cosecha
             </h1>
             <p className="text-gray-600">
-              Busca por producto y ajusta el precio y la calidad evaluada por la IA.
+              Busca por producto y ajusta el precio y la calidad evaluada por la
+              IA.
             </p>
           </div>
           <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl shadow-sm self-start md:self-auto">
@@ -147,16 +154,23 @@ function FilterPage() {
                       </span>
                       <Icono
                         className="text-xl"
-                        nombre={marcada ? 'check_box' : 'check_box_outline_blank'}
+                        nombre={
+                          marcada ? 'check_box' : 'check_box_outline_blank'
+                        }
                       />
                     </span>
-                    <span className="text-sm opacity-90">{calidad.descripcion}</span>
+                    <span className="text-sm opacity-90">
+                      {calidad.descripcion}
+                    </span>
                   </label>
                 );
               })}
               <p className="flex items-start gap-2 p-3 rounded-xl border border-dashed border-gray-300 text-xs text-gray-600">
                 <Icono className="text-base shrink-0" nombre="info" />
-                <span>El grado C no se publica en AgroTrace: nunca aparece en la búsqueda.</span>
+                <span>
+                  El grado C no se publica en AgroTrace: nunca aparece en la
+                  búsqueda.
+                </span>
               </p>
             </fieldset>
 
@@ -164,7 +178,10 @@ function FilterPage() {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Icono className="text-[#15803d]" nombre="payments" />
-                  <label className="font-bold text-gray-900" htmlFor="filtro-precio-maximo">
+                  <label
+                    className="font-bold text-gray-900"
+                    htmlFor="filtro-precio-maximo"
+                  >
                     2. Precio máximo
                   </label>
                 </div>
@@ -180,9 +197,13 @@ function FilterPage() {
                 step="500"
                 className="w-full h-2 accent-[#15803d] cursor-pointer"
                 value={precioMaximo}
-                onChange={(evento) => setPrecioMaximo(Number(evento.target.value))}
+                onChange={(evento) =>
+                  setPrecioMaximo(Number(evento.target.value))
+                }
               />
-              <p className="text-sm text-gray-600">Por unidad de venta de cada oferta.</p>
+              <p className="text-sm text-gray-600">
+                Por unidad de venta de cada oferta.
+              </p>
             </div>
           </aside>
 
