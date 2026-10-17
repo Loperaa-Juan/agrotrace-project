@@ -68,6 +68,13 @@ export function TarjetaCosecha({
           {`${formatoNumero(oferta.availableQuantity)} ${unidad} disponibles`}
         </p>
       </div>
+      <button
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[#166534] text-white font-bold hover:bg-[#14532d] transition-colors"
+        type="button"
+      >
+        Ver detalle y pedir
+        <Icono className="text-base" nombre="arrow_forward" />
+      </button>
     </li>
   );
 }
@@ -135,7 +142,10 @@ export function ExplorarPage() {
               </p>
             </div>
             <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl shadow-sm">
-              <Icono className="text-xl text-[#15803d]" nombre="verified_user" />
+              <Icono
+                className="text-xl text-[#15803d]"
+                nombre="verified_user"
+              />
               <div>
                 <p className="text-sm font-bold text-gray-900">
                   100% Trazabilidad
