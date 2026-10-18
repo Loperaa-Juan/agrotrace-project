@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import ProductDetail from '../../src/routes/app/product-detail';
 
 const oferta = {
@@ -180,6 +180,26 @@ describe('Tests en el componente ProductDetail', () => {
 
     // Assert
     expect(ordenar).toBeDisabled();
+  });
+
+  it('Al dar click en "Ordenar ahora" se debe abrir un diálogo de confirmación', () => {
+    // Arrange
+    render(
+      <ProductDetail oferta={oferta} producto={producto} usuario={PERSONA} />,
+    );
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Ordenar ahora' }));
+
+    // Assert: el diálogo pregunta por el producto y tiene aceptar y cancelar
+    const dialogo = screen.getByRole('dialog');
+    expect(dialogo).toHaveTextContent('¿Estás seguro de ordenar Aguacate Hass?');
+    expect(
+      within(dialogo).getByRole('button', { name: 'Aceptar' }),
+    ).toBeInTheDocument();
+    expect(
+      within(dialogo).getByRole('button', { name: 'Cancelar' }),
+    ).toBeInTheDocument();
   });
 
   it('Si la publicación es del agricultor logueado, no puede comprar sus propios productos', () => {
