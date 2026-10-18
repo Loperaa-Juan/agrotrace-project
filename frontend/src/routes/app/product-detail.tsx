@@ -1,7 +1,8 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { Usuario } from '../auth-api';
 import {
+  crearPedido,
   obtenerCatalogo,
   obtenerOfertas,
   type Oferta,
@@ -53,10 +54,13 @@ function ProductDetail({
   oferta,
   producto,
   usuario = null,
+  alConfirmar,
 }: Readonly<{
   oferta: Oferta;
   producto: Producto | undefined;
   usuario?: Usuario | null;
+  /** Se llama con la cantidad elegida al aceptar el diálogo de confirmación. */
+  alConfirmar?: (cantidad: number) => void;
 }>) {
   const idCantidad = useId();
   const idConfirmacion = useId();
@@ -252,7 +256,10 @@ function ProductDetail({
               </button>
               <button
                 type="button"
-                onClick={() => setConfirmando(false)}
+                onClick={() => {
+                  setConfirmando(false);
+                  alConfirmar?.(cantidad);
+                }}
                 className="flex-1 h-12 rounded-xl bg-[#15803d] text-white font-bold transition-all hover:bg-[#166534]"
               >
                 Aceptar
@@ -281,6 +288,7 @@ function Aviso({ children }: Readonly<{ children: ReactNode }>) {
 /** Página de la ruta `/explorar/:offertId`: busca la oferta y su producto y muestra el detalle. */
 export function DetalleProductoPage() {
   const { offertId } = useParams();
+  const navigate = useNavigate();
   const { usuario } = useSesion();
   const [datos, setDatos] = useState<DatosDetalle | null>(null);
   const [error, setError] = useState(false);
@@ -345,8 +353,16 @@ export function DetalleProductoPage() {
     );
   }
 
+  const { OffertId } = datos.oferta;
+  const ordenar = (cantidad: number) => {
+    crearPedido(OffertId, cantidad)
+      .then((pedido) => navigate(`${routes.pedidos}/${pedido.OrderId}`))
+      .catch(() => setError(true));
+  };
+
   return (
     <ProductDetail
+      alConfirmar={ordenar}
       oferta={datos.oferta}
       producto={datos.producto}
       usuario={usuario}

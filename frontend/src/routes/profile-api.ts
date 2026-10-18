@@ -99,3 +99,6 @@ export const obtenerPedidosRecibidos = () => pedir<Pedido[]>(`${ORDERS_URL}/orde
 export const obtenerPerfilAgricultor = () =>
   pedir<PerfilAgricultor>(`${ORDERS_URL}/profile/me`);
 export const obtenerMisPedidos =() => pedir<Pedido[]>(`${ORDERS_URL}/orders/me`);
+/** El comprador sale del token; el agricultor y el precio los toma orders-service de la oferta. */
+export const crearPedido = (offertId: string, quantity: number) =>
+  pedir<Pedido>(`${ORDERS_URL}/orders`, 'POST', { offertId, quantity });
