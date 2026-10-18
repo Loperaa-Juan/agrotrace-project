@@ -43,6 +43,8 @@ export type Pedido = {
   unitPrice: number;
   totalPrice: number;
   status: EstadoPedido;
+  /** Código de 6 dígitos que el comprador entrega al agricultor para confirmar la entrega. */
+  deliveryCode?: string;
   createdAt: string;
   updatedAt: string;
 };

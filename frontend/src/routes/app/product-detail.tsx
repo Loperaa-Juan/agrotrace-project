@@ -59,9 +59,11 @@ function ProductDetail({
   usuario?: Usuario | null;
 }>) {
   const idCantidad = useId();
+  const idConfirmacion = useId();
   const unidad = producto?.unitOfMeasure ?? '';
   const [cantidad, setCantidad] = useState(1);
   const [superaLimite, setSuperaLimite] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const esNegocio = usuario?.role === 'Negocio';
 
   const aumentar = () => {
@@ -213,6 +215,7 @@ function ProductDetail({
             <button
               type="button"
               disabled={sinCantidad || esPropia}
+              onClick={() => setConfirmando(true)}
               className="w-full h-14 rounded-xl bg-[#15803d] text-white text-lg font-bold shadow-md flex items-center justify-center gap-2 transition-all hover:bg-[#166534] hover:shadow-lg active:scale-[0.99] disabled:bg-gray-200 disabled:text-gray-500 disabled:shadow-none disabled:cursor-not-allowed disabled:active:scale-100"
             >
               <Icono className="text-2xl" nombre="shopping_basket" />
@@ -225,6 +228,39 @@ function ProductDetail({
           </aside>
         </div>
       </section>
+
+      {confirmando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <dialog
+            open
+            aria-labelledby={idConfirmacion}
+            className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl space-y-6"
+          >
+            <p
+              id={idConfirmacion}
+              className="text-lg font-bold text-gray-900 text-center"
+            >
+              {`¿Estás seguro de ordenar ${producto?.name ?? 'este producto'}?`}
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmando(false)}
+                className="flex-1 h-12 rounded-xl bg-gray-100 text-gray-900 font-bold transition-all hover:bg-gray-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmando(false)}
+                className="flex-1 h-12 rounded-xl bg-[#15803d] text-white font-bold transition-all hover:bg-[#166534]"
+              >
+                Aceptar
+              </button>
+            </div>
+          </dialog>
+        </div>
+      )}
     </main>
   );
 }
