@@ -11,14 +11,24 @@ import {
 } from 'class-validator';
 import { DocumentType, UserRole } from '../../entities/user.entity';
 
+/**
+ * Lista de municipios permitidos temporalmente para el registro en AgroTrace.
+ */
 const MUNICIPIOS_PERMITIDOS = ['Envigado'];
 
+/**
+ * Roles permitidos que un usuario puede seleccionar al registrarse de forma autónoma.
+ */
 const ROLES_DE_REGISTRO = [
   UserRole.AGRICULTOR,
   UserRole.PERSONA,
   UserRole.NEGOCIO,
 ];
 
+/**
+ * DTO que define, encapsula y valida los datos obligatorios y opcionales 
+ * requeridos al momento del registro de un nuevo usuario en la plataforma.
+ */
 export class RegisterDTO {
   @IsString()
   @IsNotEmpty()

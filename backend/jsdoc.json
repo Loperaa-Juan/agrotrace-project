@@ -1,0 +1,11 @@
+{
+  "source": {
+    "include": ["apps", "libs"],
+    "includePattern": ".+\\.ts(doc)?$",
+    "exclude": ["node_modules", "dist", "docs"]
+  },
+  "plugins": [],
+  "opts": {
+    "destination": "./docs"
+  }
+}
