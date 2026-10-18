@@ -32,6 +32,12 @@ export type Oferta = {
   isActive: boolean;
 };
 
+/** Lo que el comprador ve del agricultor de su pedido. */
+export type AgricultorPedido = Pick<
+  PerfilUsuario,
+  'userId' | 'name' | 'phone' | 'municipality'
+>;
+
 export type EstadoPedido = 'Solicitado' | 'Aceptado' | 'Rechazado' | 'Entregado' | 'Cancelado';
 
 export type Pedido = {
@@ -45,6 +51,8 @@ export type Pedido = {
   status: EstadoPedido;
   /** Código de 6 dígitos que el comprador entrega al agricultor para confirmar la entrega. */
   deliveryCode?: string;
+  /** Datos del agricultor guardados al crear el pedido; solo llegan en `GET /orders/me`. */
+  farmer?: AgricultorPedido | null;
   createdAt: string;
   updatedAt: string;
 };

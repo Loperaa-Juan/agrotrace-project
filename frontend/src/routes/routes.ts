@@ -10,6 +10,7 @@ export const routes = {
   filtros: '/filtros',
   publicar: '/publicar',
   pedidos: '/pedidos',
+  detallePedido: '/pedidos/:orderId',
 };
 
 /** Ruta del detalle de una oferta, donde se hace el pedido. */

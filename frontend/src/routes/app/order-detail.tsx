@@ -1,11 +1,19 @@
-import type { ReactNode } from 'react';
-import type {
-  EstadoPedido,
-  Pedido,
-  PerfilUsuario,
-  Producto,
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link, Navigate, useParams } from 'react-router-dom';
+import { ErrorApi } from '../auth-api';
+import {
+  obtenerCatalogo,
+  obtenerMisPedidos,
+  obtenerOfertas,
+  type AgricultorPedido,
+  type EstadoPedido,
+  type Pedido,
+  type Producto,
 } from '../profile-api';
 import { routes } from '../routes';
+import { useSesion } from '../session-context';
+
+const ERROR_CARGA = 'No pudimos cargar el pedido. Intenta de nuevo.';
 
 const formatoNumero = (valor: number) => valor.toLocaleString('es-CO');
 
@@ -47,13 +55,15 @@ const AVISOS: Record<
     icono: 'error',
     tono: 'bg-red-50 text-red-800',
     titulo: 'El agricultor no aceptó tu pedido',
-    mensaje: 'No se realizó ningún cobro. Puedes buscar otras cosechas en el catálogo.',
+    mensaje:
+      'No se realizó ningún cobro. Puedes buscar otras cosechas en el catálogo.',
   },
   Entregado: {
     icono: 'task_alt',
     tono: 'bg-blue-50 text-blue-900',
     titulo: '¡Entrega confirmada!',
-    mensaje: 'El agricultor confirmó la entrega con tu código. El pedido quedó cerrado.',
+    mensaje:
+      'El agricultor confirmó la entrega con tu código. El pedido quedó cerrado.',
   },
   Cancelado: {
     icono: 'cancel',
@@ -63,7 +73,8 @@ const AVISOS: Record<
   },
 };
 
-const TARJETA = 'bg-white rounded-2xl border border-gray-100 p-5 md:p-6 shadow-sm';
+const TARJETA =
+  'bg-white rounded-2xl border border-gray-100 p-5 md:p-6 shadow-sm';
 
 const TITULO_TARJETA =
   'text-xs font-bold text-gray-900 uppercase tracking-wider';
@@ -114,6 +125,9 @@ function PasoLinea({
   );
 }
 
+/** Una casilla por dígito: el código de entrega siempre tiene 6. */
+const CASILLAS_CODIGO = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6'];
+
 function CodigoEntrega({ codigo }: Readonly<{ codigo: string | undefined }>) {
   return (
     <div className="relative overflow-hidden rounded-2xl p-6 md:p-8 bg-linear-to-br from-[#15803d] via-[#0a4d23] to-[#043316] text-white shadow-xl">
@@ -136,22 +150,24 @@ function CodigoEntrega({ codigo }: Readonly<{ codigo: string | undefined }>) {
           aria-label="Código de entrega"
           className="flex items-center justify-center lg:justify-start gap-2 sm:gap-3"
         >
-          {(codigo ?? '').split('').map((digito, posicion) => (
+          {CASILLAS_CODIGO.map((casilla, posicion) => (
             <span
               className="w-11 h-14 sm:w-14 sm:h-18 rounded-xl bg-white text-gray-900 text-3xl sm:text-4xl font-mono font-extrabold flex items-center justify-center shadow-lg select-all"
-              key={posicion}
+              key={casilla}
             >
-              {digito}
+              {codigo?.[posicion]}
             </span>
           ))}
         </div>
         <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-100 text-amber-900 text-left text-sm max-w-2xl">
           <Icono className="text-xl text-amber-700 shrink-0" nombre="warning" />
-          <p>
-            <strong className="block">No lo compartas antes de tiempo.</strong>
-            No lo dictes por llamada ni mensajes: entrégalo en persona cuando
-            hayas revisado el peso y la frescura.
-          </p>
+          <div>
+            <p className="font-bold">No lo compartas antes de tiempo.</p>
+            <p>
+              No lo dictes por llamada ni mensajes: entrégalo en persona cuando
+              hayas revisado el peso y la frescura.
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -163,7 +179,7 @@ function OrderDetail({
   pedido,
   producto,
 }: Readonly<{
-  agricultor: PerfilUsuario;
+  agricultor: AgricultorPedido | null | undefined;
   pedido: Pedido;
   producto: Producto | undefined;
 }>) {
@@ -264,7 +280,10 @@ function OrderDetail({
             </h3>
             <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 text-xs font-medium text-gray-900">
-                <Icono className="text-sm text-amber-700" nombre="inventory_2" />
+                <Icono
+                  className="text-sm text-amber-700"
+                  nombre="inventory_2"
+                />
                 {`${formatoNumero(pedido.quantity)} ${producto?.unitOfMeasure ?? ''}`}
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-100 text-xs font-medium text-gray-900">
@@ -299,34 +318,146 @@ function OrderDetail({
             <span className={`${TITULO_TARJETA} block`}>
               Agricultor responsable
             </span>
-            <div className="flex items-center gap-4">
-              <span className="w-16 h-16 rounded-full bg-green-100 text-[#15803d] ring-2 ring-green-200 flex items-center justify-center shrink-0">
-                <Icono className="text-3xl" nombre="agriculture" />
-              </span>
-              <div className="space-y-0.5 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-lg font-bold text-gray-900">
-                    {agricultor.name}
-                  </p>
-                  <Icono className="text-lg text-[#15803d]" nombre="verified" />
-                </div>
-                <p className="flex items-center gap-1 text-sm text-gray-600">
-                  <Icono className="text-base" nombre="location_on" />
-                  {agricultor.municipality}
-                </p>
-              </div>
-            </div>
-            <a
-              className="w-full h-11.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
-              href={`tel:${agricultor.phone}`}
-            >
-              <Icono className="text-lg" nombre="call" />
-              <p>{agricultor.phone}</p>
-            </a>
+            {agricultor ? (
+              <TarjetaAgricultor agricultor={agricultor} />
+            ) : (
+              <p className="text-sm text-gray-600">
+                No tenemos los datos de contacto del agricultor de este pedido.
+              </p>
+            )}
           </section>
         </div>
       </div>
     </main>
+  );
+}
+
+function TarjetaAgricultor({
+  agricultor,
+}: Readonly<{ agricultor: AgricultorPedido }>) {
+  return (
+    <>
+      <div className="flex items-center gap-4">
+        <span className="w-16 h-16 rounded-full bg-green-100 text-[#15803d] ring-2 ring-green-200 flex items-center justify-center shrink-0">
+          <Icono className="text-3xl" nombre="agriculture" />
+        </span>
+        <div className="space-y-0.5 min-w-0">
+          <div className="flex items-center gap-1.5">
+            <p className="text-lg font-bold text-gray-900">{agricultor.name}</p>
+            <Icono className="text-lg text-[#15803d]" nombre="verified" />
+          </div>
+          <p className="flex items-center gap-1 text-sm text-gray-600">
+            <Icono className="text-base" nombre="location_on" />
+            {agricultor.municipality}
+          </p>
+        </div>
+      </div>
+      <a
+        className="w-full h-11.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+        href={`tel:${agricultor.phone}`}
+      >
+        <Icono className="text-lg" nombre="call" />
+        <p>{agricultor.phone}</p>
+      </a>
+    </>
+  );
+}
+
+type DatosDetalle = {
+  pedido: Pedido | undefined;
+  producto: Producto | undefined;
+};
+
+function Aviso({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-10 space-y-4">
+      {children}
+    </main>
+  );
+}
+
+/** Página de la ruta `/pedidos/:orderId`: busca el pedido del comprador y su producto. */
+export function DetallePedidoPage() {
+  const { orderId } = useParams();
+  const { usuario, salir } = useSesion();
+  const [datos, setDatos] = useState<DatosDetalle | null>(null);
+  const [error, setError] = useState(false);
+  const conSesion = Boolean(usuario);
+
+  useEffect(() => {
+    if (!conSesion) return;
+    let vigente = true;
+    // El pedido solo guarda su oferta: el producto se busca a través de ella
+    Promise.all([obtenerMisPedidos(), obtenerOfertas(), obtenerCatalogo()])
+      .then(([pedidos, ofertas, productos]) => {
+        if (!vigente) return;
+        const pedido = pedidos.find((item) => item.OrderId === orderId);
+        const oferta = ofertas.find(
+          (item) => item.OffertId === pedido?.offertId,
+        );
+        const producto = productos.find(
+          (item) => item.ProductId === oferta?.productId,
+        );
+        setDatos({ pedido, producto });
+      })
+      .catch((err) => {
+        if (!vigente) return;
+        if (err instanceof ErrorApi && err.status === 401) salir();
+        else setError(true);
+      });
+    return () => {
+      vigente = false;
+    };
+  }, [conSesion, orderId, salir]);
+
+  if (!usuario) return <Navigate replace to={routes.login} />;
+
+  if (error) {
+    return (
+      <Aviso>
+        <p
+          className="flex items-center gap-2 p-4 rounded-xl bg-red-50 text-sm font-medium text-red-700"
+          role="alert"
+        >
+          {ERROR_CARGA}
+        </p>
+      </Aviso>
+    );
+  }
+
+  if (!datos) {
+    return (
+      <Aviso>
+        <output className="block text-sm text-gray-600">
+          Cargando el pedido…
+        </output>
+      </Aviso>
+    );
+  }
+
+  if (!datos.pedido) {
+    return (
+      <Aviso>
+        <p className="p-4 rounded-xl bg-white text-sm text-gray-600 border border-gray-100">
+          No encontramos este pedido entre los tuyos.
+        </p>
+        <Link
+          className="inline-flex items-center gap-2 text-sm font-bold text-[#15803d] hover:underline"
+          to={routes.pedidos}
+        >
+          <Icono className="text-base" nombre="arrow_back" />
+          Volver a mis pedidos
+        </Link>
+      </Aviso>
+    );
+  }
+
+  return (
+    <OrderDetail
+      agricultor={datos.pedido.farmer}
+      pedido={datos.pedido}
+      producto={datos.producto}
+    />
   );
 }
 
