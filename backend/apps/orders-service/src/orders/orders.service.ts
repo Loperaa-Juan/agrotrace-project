@@ -11,6 +11,7 @@ import { Role } from '@app/shared';
 import { Order, OrderStatus } from '../entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CatalogClient } from './catalog.client';
+import { UsersClient } from '../profile/users.client';
 
 // Solo los negocios pueden pedir más de esta cantidad de libras en un pedido
 const LIMITE_LIBRAS = 50;
@@ -37,9 +38,11 @@ export class OrdersService {
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
     private readonly catalogClient: CatalogClient,
+    private readonly usersClient: UsersClient,
   ) {}
 
-  // El comprador sale del token; el agricultor y el precio se toman de la oferta
+  // El comprador sale del token; el agricultor y el precio se toman de la oferta.
+  // Los datos del agricultor se consultan solo si el pedido es válido
   async create(
     buyerId: string,
     buyerRole: Role,
@@ -63,11 +66,19 @@ export class OrdersService {
       );
     }
 
+    const farmer = await this.usersClient.getUser(offert.farmerId);
+
     return this.orderRepository.save(
       this.orderRepository.create({
         buyerId,
         offertId: dto.offertId,
         farmerId: offert.farmerId,
+        farmer: {
+          userId: farmer.userId,
+          name: farmer.name,
+          phone: farmer.phone,
+          municipality: farmer.municipality,
+        },
         quantity: dto.quantity,
         unitPrice: offert.pricePerUnit,
         totalPrice: Math.round(dto.quantity * offert.pricePerUnit * 100) / 100,

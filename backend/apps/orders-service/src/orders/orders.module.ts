@@ -4,6 +4,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
 import { CatalogClient } from './catalog.client';
+import { UsersClient } from '../profile/users.client';
 import { Order } from '../entities/order.entity';
 
 @Module({
@@ -21,9 +22,20 @@ import { Order } from '../entities/order.entity';
             3003,
         },
       },
+      // TCP de users-service, de donde se toman los datos del agricultor
+      {
+        name: 'USERS_SERVICE',
+        transport: Transport.TCP,
+        options: {
+          host: process.env.USERS_SERVICE_HOST || 'localhost',
+          port:
+            Number.parseInt(process.env.USERS_SERVICE_PORT as string, 10) ||
+            3001,
+        },
+      },
     ]),
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, CatalogClient],
+  providers: [OrdersService, CatalogClient, UsersClient],
 })
 export class OrdersModule {}

@@ -22,6 +22,14 @@ export enum OrderStatus {
   CANCELADO = 'Cancelado', // El comprador lo canceló antes de que fuera aceptado
 }
 
+// Datos públicos del agricultor que se copian al pedido al crearlo
+export interface OrderFarmer {
+  userId: string;
+  name: string;
+  phone: string;
+  municipality: string;
+}
+
 // Postgres devuelve las columnas numeric como string; las convertimos a number
 const decimalTransformer: ValueTransformer = {
   to: (value: number) => value,
@@ -48,6 +56,11 @@ export class Order {
   @Index()
   @Column({ type: 'uuid' })
   farmerId: string;
+
+  // Datos del agricultor al momento del pedido, para mostrarlos al comprador sin preguntar a users-service.
+  // Es null en los pedidos creados antes de guardar estos datos
+  @Column({ type: 'jsonb', nullable: true })
+  farmer: OrderFarmer | null;
 
   // Cantidad pedida, en la unidad de medida del producto (lb, kg, g, unidad)
   @Column({
