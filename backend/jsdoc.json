@@ -1,11 +1,14 @@
 {
   "source": {
     "include": ["apps", "libs"],
-    "includePattern": ".+\\.ts(doc)?$",
+    "includePattern": ".+\\.ts$",
+    "excludePattern": "(\\.spec\\.ts$|[\\\\/]test[\\\\/])",
     "exclude": ["node_modules", "dist", "docs"]
   },
-  "plugins": [],
+  "plugins": ["./jsdoc-typescript.plugin.js"],
   "opts": {
-    "destination": "./docs"
+    "destination": "./docs",
+    "recurse": true,
+    "readme": "./README.md"
   }
 }
