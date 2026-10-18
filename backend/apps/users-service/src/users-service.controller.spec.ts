@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersServiceController } from './users-service.controller';
 import { UsersServiceService } from './users-service.service';
-
+/**
+ * Controlador de pruebas unitarias que verifica de forma automatica que el controlador 
+ * de usuarios responda correctamente
+ */
 describe('UsersServiceController', () => {
   let usersServiceController: UsersServiceController;
 

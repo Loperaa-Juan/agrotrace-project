@@ -4,7 +4,10 @@ import { UsersServiceModule } from './users-service.module';
 import { HttpToRpcExceptionFilter } from './filters/http-to-rpc-exception.filter';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger, ValidationPipe } from '@nestjs/common';
-
+/**
+ * Archivo de entrada en el cual se configuran elementos globales y ubica el puerto
+ * especifico para recibir peticiones 
+ */
 async function bootstrap() {
   const httpPort = Number.parseInt(process.env.HTTP_PORT as string, 10) || 3000;
   const tcpPort =

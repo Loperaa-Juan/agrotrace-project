@@ -8,7 +8,9 @@ import { AuthModule } from './auth/auth.module';
 import { User } from './entities/user.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { UsersModule } from './users/users.module';
-
+/**
+ * Modulo principal de configuracion y ensamblaje del microservicio de usuarios 
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({

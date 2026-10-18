@@ -21,6 +21,13 @@ export enum DocumentType {
 // Los roles se definen en @app/shared porque los demás servicios también los verifican (RolesGuard)
 export { UserRole };
 
+/**
+ * Entidad que representa la tabla de usuarios en la base de datos de AgroTrace.
+ * Almacena información de perfil, credenciales, tipo de documento (CC, NIT, CE) 
+ * y el rol correspondiente para gestionar el acceso basado en privilegios de la plataforma.
+ * @class User
+ */
+
 @Entity('users')
 @Unique(['documentType', 'documentNumber'])
 export class User {
