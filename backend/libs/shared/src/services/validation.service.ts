@@ -8,13 +8,26 @@ import {
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 
+/**
+ * Servicio compartido para validar datos contra otros microservicios por TCP.
+ */
 @Injectable()
 export class ValidationService {
+  /**
+   * @param {ClientProxy} usersClient Cliente TCP de users-service (token `USERS_SERVICE`).
+   */
   constructor(
     @Inject('USERS_SERVICE') private readonly usersClient: ClientProxy,
   ) {}
 
-  // Verifica en users-service que el usuario exista antes de operar con él
+  /**
+   * Verifica en users-service (patrón `user_exists`) que el usuario exista antes de operar con él.
+   * @param {string} userId UUID del usuario a validar.
+   * @returns {Promise<void>} Se resuelve si el usuario existe.
+   * @throws {BadRequestException} Si no se envía `userId`.
+   * @throws {ServiceUnavailableException} Si users-service no responde.
+   * @throws {NotFoundException} Si el usuario no existe.
+   */
   async validateUserExists(userId: string): Promise<void> {
     if (!userId) {
       throw new BadRequestException('userId is required');
