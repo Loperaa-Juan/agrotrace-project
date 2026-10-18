@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { Role } from '@app/shared';
 import { OrdersService } from '../../src/orders/orders.service';
 import { OrderStatus } from '../../src/entities/order.entity';
@@ -7,6 +12,7 @@ describe('OrdersService', () => {
   let service: OrdersService;
   let orderRepository: any;
   let catalogClient: any;
+  let usersClient: any;
 
   // Oferta tal como la devuelve catalog-service (incluye la unidad de medida del producto)
   const offert = {
@@ -15,6 +21,27 @@ describe('OrdersService', () => {
     pricePerUnit: 3500,
     availableQuantity: 500,
     unitOfMeasure: 'lb',
+  };
+
+  // Agricultor dueño de la oferta tal como lo devuelve users-service
+  const farmerUser = {
+    userId: 'farmer-1',
+    name: 'Don Pedro',
+    email: 'pedro@finca.com',
+    documentType: 'CC',
+    documentNumber: '123456789',
+    phone: '3001234567',
+    address: 'Vereda La Esperanza',
+    municipality: 'Rionegro',
+    role: 'Agricultor',
+  };
+
+  // Datos del agricultor que se guardan en el pedido (sin datos privados)
+  const farmer = {
+    userId: 'farmer-1',
+    name: 'Don Pedro',
+    phone: '3001234567',
+    municipality: 'Rionegro',
   };
 
   // Pedido de prueba que simula lo que hay en la BD
@@ -44,7 +71,12 @@ describe('OrdersService', () => {
       decreaseOffertQuantity: jest.fn().mockResolvedValue(undefined),
     };
 
-    service = new OrdersService(orderRepository, catalogClient);
+    // Consulta por TCP el agricultor en users-service
+    usersClient = {
+      getUser: jest.fn().mockResolvedValue(farmerUser),
+    };
+
+    service = new OrdersService(orderRepository, catalogClient, usersClient);
   });
 
   describe('create', () => {
@@ -112,6 +144,161 @@ describe('OrdersService', () => {
 
       // Assert
       await expect(action).rejects.toThrow(ForbiddenException);
+    });
+    it('Debe consultar en users-service al agricultor dueño de la oferta', async () => {
+      // Arrange
+      const dto = { offertId: 'offert-1', quantity: 10 };
+
+      // Act
+      await service.create('buyer-1', Role.PERSONA, dto);
+
+      // Assert
+      expect(usersClient.getUser).toHaveBeenCalledWith('farmer-1');
+    });
+
+    it('Debe guardar en el pedido el nombre, teléfono y municipio del agricultor', async () => {
+      // Arrange
+      const dto = { offertId: 'offert-1', quantity: 10 };
+
+      // Act
+      await service.create('buyer-1', Role.PERSONA, dto);
+
+      // Assert
+      expect(orderRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ farmer }),
+      );
+    });
+
+    it('Debe devolver el pedido creado con los datos del agricultor', async () => {
+      // Arrange
+      const dto = { offertId: 'offert-1', quantity: 10 };
+
+      // Act
+      const result = await service.create('buyer-1', Role.PERSONA, dto);
+
+      // Assert
+      expect(result.farmer).toEqual(farmer);
+    });
+
+    it('No debe guardar en el pedido los datos privados del agricultor', async () => {
+      // Arrange
+      const dto = { offertId: 'offert-1', quantity: 10 };
+
+      // Act
+      const result = await service.create('buyer-1', Role.PERSONA, dto);
+
+      // Assert
+      expect(result.farmer).not.toHaveProperty('email');
+      expect(result.farmer).not.toHaveProperty('documentNumber');
+      expect(result.farmer).not.toHaveProperty('address');
+    });
+
+    it('Debe guardar el agricultor de la oferta pedida, no uno fijo', async () => {
+      // Arrange: la oferta es de otro agricultor
+      catalogClient.getOffert.mockResolvedValue({
+        ...offert,
+        farmerId: 'farmer-2',
+      });
+      usersClient.getUser.mockResolvedValue({
+        ...farmerUser,
+        userId: 'farmer-2',
+        name: 'Doña Rosa',
+        phone: '3109876543',
+        municipality: 'Marinilla',
+      });
+      const dto = { offertId: 'offert-1', quantity: 10 };
+
+      // Act
+      const result = await service.create('buyer-1', Role.PERSONA, dto);
+
+      // Assert
+      expect(usersClient.getUser).toHaveBeenCalledWith('farmer-2');
+      expect(result.farmer).toEqual({
+        userId: 'farmer-2',
+        name: 'Doña Rosa',
+        phone: '3109876543',
+        municipality: 'Marinilla',
+      });
+    });
+
+    it('No debe crear el pedido si el agricultor no existe', async () => {
+      // Arrange
+      usersClient.getUser.mockRejectedValue(
+        new NotFoundException('User not found'),
+      );
+      const dto = { offertId: 'offert-1', quantity: 10 };
+
+      // Act
+      const action = service.create('buyer-1', Role.PERSONA, dto);
+
+      // Assert
+      await expect(action).rejects.toThrow(NotFoundException);
+      expect(orderRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('No debe crear el pedido si users-service no responde', async () => {
+      // Arrange
+      usersClient.getUser.mockRejectedValue(
+        new ServiceUnavailableException('Users service is unavailable'),
+      );
+      const dto = { offertId: 'offert-1', quantity: 10 };
+
+      // Act
+      const action = service.create('buyer-1', Role.PERSONA, dto);
+
+      // Assert
+      await expect(action).rejects.toThrow(ServiceUnavailableException);
+      expect(orderRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('No debe consultar al agricultor si el pedido no es válido', async () => {
+      // Arrange: la oferta tiene 500 disponibles
+      const dto = { offertId: 'offert-1', quantity: 501 };
+
+      // Act
+      const action = service.create('buyer-1', Role.NEGOCIO, dto);
+
+      // Assert
+      await expect(action).rejects.toThrow(BadRequestException);
+      expect(usersClient.getUser).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findByBuyer', () => {
+    it('Debe devolver los pedidos del comprador con los datos del agricultor', async () => {
+      // Arrange
+      orderRepository.find.mockResolvedValue([{ ...order, farmer }]);
+
+      // Act
+      const result = await service.findByBuyer('buyer-1');
+
+      // Assert
+      expect(result[0].farmer).toEqual(farmer);
+    });
+
+    it('Debe buscar solo los pedidos del comprador, del más reciente al más antiguo', async () => {
+      // Arrange
+      orderRepository.find.mockResolvedValue([]);
+
+      // Act
+      await service.findByBuyer('buyer-1');
+
+      // Assert
+      expect(orderRepository.find).toHaveBeenCalledWith({
+        where: { buyerId: 'buyer-1' },
+        order: { createdAt: 'DESC' },
+      });
+    });
+
+    it('No debe consultar users-service al listar los pedidos', async () => {
+      // Arrange: los datos del agricultor ya quedaron guardados al crear el pedido
+      orderRepository.find.mockResolvedValue([{ ...order, farmer }]);
+
+      // Act
+      await service.findByBuyer('buyer-1');
+
+      // Assert
+      expect(usersClient.getUser).not.toHaveBeenCalled();
     });
   });
 
