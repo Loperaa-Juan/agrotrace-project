@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import ProductDetail from '../../src/routes/app/product-detail';
+import App from '../../src/App';
+import { simularApi } from '../auth/utils';
 
 const oferta = {
   OffertId: 'o-1',
@@ -215,5 +217,80 @@ describe('Tests en el componente ProductDetail', () => {
     expect(
       screen.getByRole('button', { name: 'Ordenar ahora' }),
     ).toBeDisabled();
+  });
+});
+
+describe('Crear pedido desde ProductDetail', () => {
+  const fetchMock = vi.fn();
+
+  const OFERTA_ID = '3f1c2b4a-5d6e-4f70-8a91-b2c3d4e5f607';
+  const PEDIDO_CREADO = {
+    OrderId: 'e5f6a7b8-1111-4222-8333-944445555666',
+    buyerId: PERSONA.userId,
+    offertId: OFERTA_ID,
+    farmerId: oferta.farmerId,
+    quantity: 1,
+    unitPrice: 1000,
+    totalPrice: 1000,
+    status: 'Solicitado',
+    deliveryCode: '482913',
+    createdAt: '2026-10-12T15:00:00.000Z',
+    updatedAt: '2026-10-12T15:00:00.000Z',
+  };
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    window.history.pushState({}, '', '/');
+  });
+
+  it('Al dar click en "Aceptar" se debe crear el pedido y redirigir al detalle de ese pedido', async () => {
+    // Arrange: un comprador logueado abre el detalle de la oferta
+    localStorage.setItem('accessToken', 'access-token-123');
+    localStorage.setItem('refreshToken', 'refresh-token-456');
+    localStorage.setItem('usuario', JSON.stringify(PERSONA));
+    simularApi(fetchMock, {
+      'GET /offerts': [200, [{ ...oferta, OffertId: OFERTA_ID }]],
+      'GET /catalog': [200, [producto]],
+      'POST /orders': [201, PEDIDO_CREADO],
+      'GET /orders/me': [200, [PEDIDO_CREADO]],
+    });
+    window.history.pushState({}, '', `/explorar/${OFERTA_ID}`);
+    render(<App />);
+
+    // Act: ordena y confirma en el diálogo
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Ordenar ahora' }),
+    );
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Aceptar',
+      }),
+    );
+
+    // Assert: se envía la oferta y la cantidad elegida
+    await waitFor(() => {
+      const peticion = fetchMock.mock.calls.find(
+        ([url, opciones]) =>
+          new URL(url).pathname === '/orders' && opciones?.method === 'POST',
+      );
+      expect(peticion).toBeDefined();
+      expect(JSON.parse(peticion![1].body)).toEqual({
+        offertId: OFERTA_ID,
+        quantity: 1,
+      });
+    });
+
+    // Assert: llega al detalle del pedido creado
+    await waitFor(() =>
+      expect(window.location.pathname).toBe(
+        `/pedidos/${PEDIDO_CREADO.OrderId}`,
+      ),
+    );
   });
 });
