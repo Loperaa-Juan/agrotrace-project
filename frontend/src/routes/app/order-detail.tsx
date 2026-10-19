@@ -266,6 +266,13 @@ const AVISOS_AGRICULTOR: Partial<Record<EstadoPedido, AvisoEstado>> = {
     mensaje:
       'Al entregarlo, pídele al comprador su código de verificación e ingrésalo abajo para confirmar la entrega.',
   },
+  Rechazado: {
+    icono: 'block',
+    tono: 'bg-red-50 text-red-800',
+    titulo: 'Rechazaste este pedido',
+    mensaje:
+      'Al comprador se le avisó que no aceptaste su pedido. No se le hizo ningún cobro.',
+  },
 };
 
 const BOTON_ACCION =
