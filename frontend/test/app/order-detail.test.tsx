@@ -564,6 +564,67 @@ describe('Página de detalle del pedido', () => {
       screen.queryByLabelText('Código de verificación'),
     ).not.toBeInTheDocument();
   });
+
+  it('Si el agricultor rechazó el pedido, el comprador debe ver que su pedido no fue aceptado', async () => {
+    // Arrange
+    iniciarSesion();
+    simularApi(fetchMock, {
+      'GET /orders/me': [200, [{ ...PEDIDO, status: 'Rechazado' }]],
+      'GET /offerts': [200, [OFERTA]],
+      'GET /catalog': [200, [producto]],
+    });
+
+    // Act
+    abrirPedido();
+
+    // Assert
+    expect(
+      await screen.findByText('El agricultor no aceptó tu pedido'),
+    ).toBeInTheDocument();
+  });
+
+  it('Si el agricultor abre un pedido que rechazó, no debe ver el aviso pensado para el comprador', async () => {
+    // Arrange y Act
+    abrirComoAgricultor('Rechazado');
+
+    // Assert
+    expect(
+      await screen.findByText('Rechazaste este pedido'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('El agricultor no aceptó tu pedido'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('Al rechazar el pedido, el agricultor no debe ver el aviso pensado para el comprador', async () => {
+    // Arrange
+    const ruta = `/orders/${PEDIDO.OrderId}/status`;
+    abrirComoAgricultor('Solicitado', {
+      [`PATCH ${ruta}`]: [
+        200,
+        { ...PEDIDO, status: 'Rechazado', deliveryCode: undefined },
+      ],
+    });
+
+    // Act
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Rechazar pedido' }),
+    );
+
+    // Assert: se pide a orders-service pasar el pedido a Rechazado
+    await waitFor(() => expect(peticionA('PATCH', ruta)).toBeDefined());
+    expect(JSON.parse(peticionA('PATCH', ruta)![1].body)).toEqual({
+      status: 'Rechazado',
+    });
+
+    // Assert: el agricultor ve su propio aviso, no el del comprador
+    expect(
+      await screen.findByText('Rechazaste este pedido'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('El agricultor no aceptó tu pedido'),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('OrderDetail sin datos del agricultor', () => {
