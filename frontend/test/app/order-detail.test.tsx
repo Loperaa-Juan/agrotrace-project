@@ -306,10 +306,13 @@ describe('Página de detalle del pedido', () => {
   });
 
   /** El agricultor consulta sus pedidos en /orders/received: sin código de entrega y con el comprador. */
-  function abrirComoAgricultor() {
+  function abrirComoAgricultor(
+    status = 'Solicitado',
+    respuestasExtra: Parameters<typeof simularApi>[1] = {},
+  ) {
     const recibido = {
       ...PEDIDO,
-      status: 'Solicitado',
+      status,
       deliveryCode: undefined,
       buyer: {
         userId: COMPRADOR.userId,
@@ -329,9 +332,18 @@ describe('Página de detalle del pedido', () => {
       'GET /orders/received': [200, [recibido]],
       'GET /offerts/me': [200, [OFERTA]],
       'GET /catalog': [200, [producto]],
+      ...respuestasExtra,
     });
     abrirPedido();
+    return recibido;
   }
+
+  /** Busca la petición que se hizo con ese método a esa ruta. */
+  const peticionA = (metodo: string, ruta: string) =>
+    fetchMock.mock.calls.find(
+      ([url, opciones]) =>
+        new URL(url).pathname === ruta && opciones?.method === metodo,
+    );
 
   it('El agricultor debe ver el detalle de un pedido que recibió', async () => {
     // Arrange y Act
@@ -426,6 +438,130 @@ describe('Página de detalle del pedido', () => {
     );
     expect(
       screen.queryByRole('button', { name: 'Cancelar pedido' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('Al aceptar el pedido, se le debe habilitar al agricultor el campo para ingresar el código de verificación', async () => {
+    // Arrange
+    const ruta = `/orders/${PEDIDO.OrderId}/status`;
+    abrirComoAgricultor('Solicitado', {
+      [`PATCH ${ruta}`]: [
+        200,
+        { ...PEDIDO, status: 'Aceptado', deliveryCode: undefined },
+      ],
+    });
+
+    // Act
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Aceptar pedido' }),
+    );
+
+    // Assert: se pide a orders-service pasar el pedido a Aceptado
+    await waitFor(() => expect(peticionA('PATCH', ruta)).toBeDefined());
+    expect(JSON.parse(peticionA('PATCH', ruta)![1].body)).toEqual({
+      status: 'Aceptado',
+    });
+
+    // Assert: el pedido queda Aceptado y se habilita el campo del código
+    expect(
+      await screen.findByLabelText('Código de verificación'),
+    ).toBeEnabled();
+    expect(screen.getByLabelText('Estado del pedido')).toHaveTextContent(
+      'Aceptado',
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Aceptar pedido' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('Si el agricultor ingresa el código de verificación correcto, el pedido debe quedar Entregado', async () => {
+    // Arrange: el pedido ya fue aceptado
+    const ruta = `/orders/${PEDIDO.OrderId}/deliver`;
+    abrirComoAgricultor('Aceptado', {
+      [`PATCH ${ruta}`]: [
+        200,
+        { ...PEDIDO, status: 'Entregado', deliveryCode: undefined },
+      ],
+    });
+
+    // Act
+    fireEvent.change(await screen.findByLabelText('Código de verificación'), {
+      target: { value: '482913' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar entrega' }));
+
+    // Assert: se envía el código a orders-service
+    await waitFor(() => expect(peticionA('PATCH', ruta)).toBeDefined());
+    expect(JSON.parse(peticionA('PATCH', ruta)![1].body)).toEqual({
+      deliveryCode: '482913',
+    });
+
+    // Assert: el pedido queda Entregado y ya no se pide el código
+    await waitFor(() =>
+      expect(screen.getByLabelText('Estado del pedido')).toHaveTextContent(
+        'Entregado',
+      ),
+    );
+    expect(
+      screen.queryByLabelText('Código de verificación'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('Si el agricultor ingresa un código de verificación incorrecto, se debe mostrar un error', async () => {
+    // Arrange
+    abrirComoAgricultor('Aceptado', {
+      [`PATCH /orders/${PEDIDO.OrderId}/deliver`]: [
+        400,
+        { message: 'Invalid delivery code' },
+      ],
+    });
+
+    // Act
+    fireEvent.change(await screen.findByLabelText('Código de verificación'), {
+      target: { value: '000000' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar entrega' }));
+
+    // Assert: el pedido sigue Aceptado
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'El código de verificación no es correcto',
+    );
+    expect(screen.getByLabelText('Estado del pedido')).toHaveTextContent(
+      'Aceptado',
+    );
+  });
+
+  it('El agricultor no debe ver el código de entrega del comprador', async () => {
+    // Arrange y Act
+    abrirComoAgricultor('Aceptado');
+
+    // Assert: el código se lo dicta el comprador al recibir el pedido
+    expect(
+      await screen.findByLabelText('Código de verificación'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Código de entrega'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('Cuando el pedido fue aceptado, el comprador debe ver el código para dárselo al agricultor en la entrega', async () => {
+    // Arrange
+    iniciarSesion();
+    simularApi(fetchMock, {
+      'GET /orders/me': [200, [PEDIDO]],
+      'GET /offerts': [200, [OFERTA]],
+      'GET /catalog': [200, [producto]],
+    });
+
+    // Act
+    abrirPedido();
+
+    // Assert
+    expect(await screen.findByLabelText('Código de entrega')).toHaveTextContent(
+      '482913',
+    );
+    expect(
+      screen.queryByLabelText('Código de verificación'),
     ).not.toBeInTheDocument();
   });
 });
