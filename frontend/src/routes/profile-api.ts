@@ -32,8 +32,8 @@ export type Oferta = {
   isActive: boolean;
 };
 
-/** Lo que el comprador ve del agricultor de su pedido. */
-export type AgricultorPedido = Pick<
+/** Lo que cada parte del pedido ve de la otra: el comprador del agricultor y viceversa. */
+export type ContactoPedido = Pick<
   PerfilUsuario,
   'userId' | 'name' | 'phone' | 'municipality'
 >;
@@ -52,7 +52,9 @@ export type Pedido = {
   /** Código de 6 dígitos que el comprador entrega al agricultor para confirmar la entrega. */
   deliveryCode?: string;
   /** Datos del agricultor guardados al crear el pedido; solo llegan en `GET /orders/me`. */
-  farmer?: AgricultorPedido | null;
+  farmer?: ContactoPedido | null;
+  /** Datos del comprador guardados al crear el pedido; solo llegan en `GET /orders/received`. */
+  buyer?: ContactoPedido | null;
   createdAt: string;
   updatedAt: string;
 };

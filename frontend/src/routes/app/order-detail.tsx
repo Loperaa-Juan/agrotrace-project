@@ -8,7 +8,7 @@ import {
   obtenerMisPedidos,
   obtenerOfertas,
   obtenerPedidosRecibidos,
-  type AgricultorPedido,
+  type ContactoPedido,
   type EstadoPedido,
   type Pedido,
   type Producto,
@@ -177,23 +177,56 @@ function CodigoEntrega({ codigo }: Readonly<{ codigo: string | undefined }>) {
   );
 }
 
+/** Aviso del agricultor mientras el pedido espera su respuesta. */
+const AVISO_AGRICULTOR_SOLICITADO = {
+  icono: 'pending_actions',
+  tono: 'bg-amber-50 text-amber-900',
+  titulo: 'Puedes aceptar o rechazar este pedido',
+  mensaje:
+    'Revisa si tienes la cantidad disponible. Al aceptarlo se descuenta de tu oferta.',
+};
+
+const BOTON_ACCION =
+  'shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors';
+
 function OrderDetail({
   agricultor,
+  comprador,
   pedido,
   producto,
   alCancelar,
-  puedeCancelar = true,
+  esAgricultor = false,
 }: Readonly<{
-  agricultor: AgricultorPedido | null | undefined;
+  agricultor: ContactoPedido | null | undefined;
+  comprador?: ContactoPedido | null;
   pedido: Pedido;
   producto: Producto | undefined;
   alCancelar?: () => void;
-  /** Cancelar le corresponde al comprador; el agricultor no ve el botón. */
-  puedeCancelar?: boolean;
+  /** El agricultor responde el pedido y ve al comprador; el comprador puede cancelarlo. */
+  esAgricultor?: boolean;
 }>) {
   const solicitado = pedido.status === 'Solicitado';
   const insignia = INSIGNIAS[pedido.status];
-  const aviso = AVISOS[pedido.status];
+  const aviso =
+    esAgricultor && solicitado
+      ? AVISO_AGRICULTOR_SOLICITADO
+      : AVISOS[pedido.status];
+  // Cada parte ve los datos de contacto de la otra
+  const contacto = esAgricultor
+    ? {
+        etiqueta: 'Comprador',
+        titulo: 'Comprador que lo solicitó',
+        datos: comprador,
+        icono: 'person',
+        parte: 'comprador',
+      }
+    : {
+        etiqueta: 'Agricultor',
+        titulo: 'Agricultor responsable',
+        datos: agricultor,
+        icono: 'agriculture',
+        parte: 'agricultor',
+      };
 
   return (
     <main className="w-full min-h-screen bg-gray-50">
@@ -235,15 +268,33 @@ function OrderDetail({
               <p className="text-sm max-w-3xl">{aviso.mensaje}</p>
             </div>
           </div>
-          {solicitado && puedeCancelar && (
+          {solicitado && !esAgricultor && (
             <button
-              className="shrink-0 self-start md:self-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-red-200 text-red-700 text-sm font-bold shadow-sm hover:bg-red-50 transition-colors"
+              className={`${BOTON_ACCION} self-start md:self-auto bg-white border border-red-200 text-red-700 hover:bg-red-50`}
               onClick={alCancelar}
               type="button"
             >
               <Icono className="text-lg" nombre="close" />
               Cancelar pedido
             </button>
+          )}
+          {solicitado && esAgricultor && (
+            <div className="flex flex-wrap gap-3 self-start md:self-auto">
+              <button
+                className={`${BOTON_ACCION} bg-white border border-red-200 text-red-700 hover:bg-red-50`}
+                type="button"
+              >
+                <Icono className="text-lg" nombre="block" />
+                Rechazar pedido
+              </button>
+              <button
+                className={`${BOTON_ACCION} bg-[#15803d] text-white hover:bg-[#166534]`}
+                type="button"
+              >
+                <Icono className="text-lg" nombre="check" />
+                Aceptar pedido
+              </button>
+            </div>
           )}
         </div>
 
@@ -321,17 +372,19 @@ function OrderDetail({
           </div>
 
           <section
-            aria-label="Agricultor"
+            aria-label={contacto.etiqueta}
             className={`${TARJETA} lg:col-span-5 space-y-4`}
           >
-            <span className={`${TITULO_TARJETA} block`}>
-              Agricultor responsable
-            </span>
-            {agricultor ? (
-              <TarjetaAgricultor agricultor={agricultor} />
+            <span className={`${TITULO_TARJETA} block`}>{contacto.titulo}</span>
+            {contacto.datos ? (
+              <TarjetaContacto
+                contacto={contacto.datos}
+                icono={contacto.icono}
+                verificado={!esAgricultor}
+              />
             ) : (
               <p className="text-sm text-gray-600">
-                No tenemos los datos de contacto del agricultor de este pedido.
+                {`No tenemos los datos de contacto del ${contacto.parte} de este pedido.`}
               </p>
             )}
           </section>
@@ -341,32 +394,36 @@ function OrderDetail({
   );
 }
 
-function TarjetaAgricultor({
-  agricultor,
-}: Readonly<{ agricultor: AgricultorPedido }>) {
+function TarjetaContacto({
+  contacto,
+  icono,
+  verificado,
+}: Readonly<{ contacto: ContactoPedido; icono: string; verificado: boolean }>) {
   return (
     <>
       <div className="flex items-center gap-4">
         <span className="w-16 h-16 rounded-full bg-green-100 text-[#15803d] ring-2 ring-green-200 flex items-center justify-center shrink-0">
-          <Icono className="text-3xl" nombre="agriculture" />
+          <Icono className="text-3xl" nombre={icono} />
         </span>
         <div className="space-y-0.5 min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="text-lg font-bold text-gray-900">{agricultor.name}</p>
-            <Icono className="text-lg text-[#15803d]" nombre="verified" />
+            <p className="text-lg font-bold text-gray-900">{contacto.name}</p>
+            {verificado && (
+              <Icono className="text-lg text-[#15803d]" nombre="verified" />
+            )}
           </div>
           <p className="flex items-center gap-1 text-sm text-gray-600">
             <Icono className="text-base" nombre="location_on" />
-            {agricultor.municipality}
+            {contacto.municipality}
           </p>
         </div>
       </div>
       <a
         className="w-full h-11.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-medium flex items-center justify-center gap-2 transition-colors"
-        href={`tel:${agricultor.phone}`}
+        href={`tel:${contacto.phone}`}
       >
         <Icono className="text-lg" nombre="call" />
-        <p>{agricultor.phone}</p>
+        <p>{contacto.phone}</p>
       </a>
     </>
   );
@@ -487,9 +544,10 @@ export function DetallePedidoPage() {
     <OrderDetail
       agricultor={pedido.farmer}
       alCancelar={cancelar}
+      comprador={pedido.buyer}
+      esAgricultor={esAgricultor}
       pedido={pedido}
       producto={producto}
-      puedeCancelar={!esAgricultor}
     />
   );
 }
