@@ -4,8 +4,10 @@ import { ErrorApi } from '../auth-api';
 import {
   cancelarPedido,
   obtenerCatalogo,
+  obtenerMisOfertas,
   obtenerMisPedidos,
   obtenerOfertas,
+  obtenerPedidosRecibidos,
   type AgricultorPedido,
   type EstadoPedido,
   type Pedido,
@@ -180,11 +182,14 @@ function OrderDetail({
   pedido,
   producto,
   alCancelar,
+  puedeCancelar = true,
 }: Readonly<{
   agricultor: AgricultorPedido | null | undefined;
   pedido: Pedido;
   producto: Producto | undefined;
   alCancelar?: () => void;
+  /** Cancelar le corresponde al comprador; el agricultor no ve el botón. */
+  puedeCancelar?: boolean;
 }>) {
   const solicitado = pedido.status === 'Solicitado';
   const insignia = INSIGNIAS[pedido.status];
@@ -230,7 +235,7 @@ function OrderDetail({
               <p className="text-sm max-w-3xl">{aviso.mensaje}</p>
             </div>
           </div>
-          {solicitado && (
+          {solicitado && puedeCancelar && (
             <button
               className="shrink-0 self-start md:self-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-red-200 text-red-700 text-sm font-bold shadow-sm hover:bg-red-50 transition-colors"
               onClick={alCancelar}
@@ -387,12 +392,18 @@ export function DetallePedidoPage() {
   const [datos, setDatos] = useState<DatosDetalle | null>(null);
   const [error, setError] = useState(false);
   const conSesion = Boolean(usuario);
+  const esAgricultor = usuario?.role === 'Agricultor';
 
   useEffect(() => {
     if (!conSesion) return;
     let vigente = true;
+    // El agricultor ve los pedidos que recibió y todas sus ofertas, aunque estén retiradas.
     // El pedido solo guarda su oferta: el producto se busca a través de ella
-    Promise.all([obtenerMisPedidos(), obtenerOfertas(), obtenerCatalogo()])
+    Promise.all([
+      esAgricultor ? obtenerPedidosRecibidos() : obtenerMisPedidos(),
+      esAgricultor ? obtenerMisOfertas() : obtenerOfertas(),
+      obtenerCatalogo(),
+    ])
       .then(([pedidos, ofertas, productos]) => {
         if (!vigente) return;
         const pedido = pedidos.find((item) => item.OrderId === orderId);
@@ -412,7 +423,7 @@ export function DetallePedidoPage() {
     return () => {
       vigente = false;
     };
-  }, [conSesion, orderId, salir]);
+  }, [conSesion, esAgricultor, orderId, salir]);
 
   if (!usuario) return <Navigate replace to={routes.login} />;
 
@@ -478,6 +489,7 @@ export function DetallePedidoPage() {
       alCancelar={cancelar}
       pedido={pedido}
       producto={producto}
+      puedeCancelar={!esAgricultor}
     />
   );
 }

@@ -305,6 +305,48 @@ describe('Página de detalle del pedido', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  /** El agricultor consulta sus pedidos en /orders/received: sin código de entrega y con el comprador. */
+  function abrirComoAgricultor() {
+    const recibido = {
+      ...PEDIDO,
+      status: 'Solicitado',
+      deliveryCode: undefined,
+      buyer: {
+        userId: COMPRADOR.userId,
+        name: COMPRADOR.name,
+        phone: '3109876543',
+        municipality: 'Envigado',
+      },
+    };
+    localStorage.setItem('accessToken', 'access-token-123');
+    localStorage.setItem('refreshToken', 'refresh-token-456');
+    localStorage.setItem(
+      'usuario',
+      JSON.stringify({ ...agricultor, role: 'Agricultor' }),
+    );
+    simularApi(fetchMock, {
+      'GET /orders/me': [403, { message: 'Forbidden' }],
+      'GET /orders/received': [200, [recibido]],
+      'GET /offerts/me': [200, [OFERTA]],
+      'GET /catalog': [200, [producto]],
+    });
+    abrirPedido();
+  }
+
+  it('El agricultor debe ver el detalle de un pedido que recibió', async () => {
+    // Arrange y Act
+    abrirComoAgricultor();
+
+    // Assert: ve el pedido, pero cancelarlo le corresponde al comprador
+    expect(
+      await screen.findByRole('heading', { name: 'Pedido #E5F6A7B8' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('10 lb · Aguacate Hass')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Cancelar pedido' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('Al dar click en "Cancelar pedido" se debe cancelar el pedido', async () => {
     // Arrange: el pedido todavía está Solicitado
     const solicitado = { ...PEDIDO, status: 'Solicitado' };
