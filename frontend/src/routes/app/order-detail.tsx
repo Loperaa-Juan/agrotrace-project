@@ -638,7 +638,10 @@ export function DetallePedidoPage() {
             ...nuevo,
             farmer: nuevo.farmer ?? pedido.farmer,
             buyer: nuevo.buyer ?? pedido.buyer,
-            deliveryCode: nuevo.deliveryCode ?? pedido.deliveryCode,
+            // El código solo es del comprador: el agricultor no lo guarda aunque llegue
+            deliveryCode: esAgricultor
+              ? undefined
+              : (nuevo.deliveryCode ?? pedido.deliveryCode),
           },
           producto,
         }),
