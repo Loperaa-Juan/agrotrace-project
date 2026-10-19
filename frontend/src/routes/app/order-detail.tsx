@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ErrorApi } from '../auth-api';
 import {
+  cancelarPedido,
   obtenerCatalogo,
   obtenerMisPedidos,
   obtenerOfertas,
@@ -178,10 +179,12 @@ function OrderDetail({
   agricultor,
   pedido,
   producto,
+  alCancelar,
 }: Readonly<{
   agricultor: AgricultorPedido | null | undefined;
   pedido: Pedido;
   producto: Producto | undefined;
+  alCancelar?: () => void;
 }>) {
   const solicitado = pedido.status === 'Solicitado';
   const insignia = INSIGNIAS[pedido.status];
@@ -230,6 +233,7 @@ function OrderDetail({
           {solicitado && (
             <button
               className="shrink-0 self-start md:self-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white border border-red-200 text-red-700 text-sm font-bold shadow-sm hover:bg-red-50 transition-colors"
+              onClick={alCancelar}
               type="button"
             >
               <Icono className="text-lg" nombre="close" />
@@ -452,11 +456,28 @@ export function DetallePedidoPage() {
     );
   }
 
+  const { pedido, producto } = datos;
+  const cancelar = () => {
+    cancelarPedido(pedido.OrderId)
+      // Se conservan los datos del agricultor si la respuesta no los trae
+      .then((cancelado) =>
+        setDatos({
+          pedido: { ...cancelado, farmer: cancelado.farmer ?? pedido.farmer },
+          producto,
+        }),
+      )
+      .catch((err) => {
+        if (err instanceof ErrorApi && err.status === 401) salir();
+        else setError(true);
+      });
+  };
+
   return (
     <OrderDetail
-      agricultor={datos.pedido.farmer}
-      pedido={datos.pedido}
-      producto={datos.producto}
+      agricultor={pedido.farmer}
+      alCancelar={cancelar}
+      pedido={pedido}
+      producto={producto}
     />
   );
 }

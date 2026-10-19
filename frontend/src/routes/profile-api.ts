@@ -110,3 +110,8 @@ export const obtenerMisPedidos =() => pedir<Pedido[]>(`${ORDERS_URL}/orders/me`)
 /** El comprador sale del token; el agricultor y el precio los toma orders-service de la oferta. */
 export const crearPedido = (offertId: string, quantity: number) =>
   pedir<Pedido>(`${ORDERS_URL}/orders`, 'POST', { offertId, quantity });
+/** Solo el comprador puede cancelar, y solo mientras el pedido está Solicitado. */
+export const cancelarPedido = (orderId: string) =>
+  pedir<Pedido>(`${ORDERS_URL}/orders/${orderId}/status`, 'PATCH', {
+    status: 'Cancelado',
+  });
