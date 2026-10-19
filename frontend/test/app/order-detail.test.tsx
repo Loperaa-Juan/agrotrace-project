@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import OrderDetail from '../../src/routes/app/order-detail';
 import App from '../../src/App';
 import { simularApi } from '../auth/utils';
@@ -299,6 +305,47 @@ describe('Página de detalle del pedido', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('Al dar click en "Cancelar pedido" se debe cancelar el pedido', async () => {
+    // Arrange: el pedido todavía está Solicitado
+    const solicitado = { ...PEDIDO, status: 'Solicitado' };
+    iniciarSesion();
+    simularApi(fetchMock, {
+      'GET /orders/me': [200, [solicitado]],
+      'GET /offerts': [200, [OFERTA]],
+      'GET /catalog': [200, [producto]],
+      [`PATCH /orders/${PEDIDO.OrderId}/status`]: [
+        200,
+        { ...solicitado, status: 'Cancelado' },
+      ],
+    });
+    abrirPedido();
+
+    // Act
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Cancelar pedido' }),
+    );
+
+    // Assert: se pide a orders-service pasar el pedido a Cancelado
+    await waitFor(() => {
+      const peticion = fetchMock.mock.calls.find(
+        ([url, opciones]) =>
+          new URL(url).pathname === `/orders/${PEDIDO.OrderId}/status` &&
+          opciones?.method === 'PATCH',
+      );
+      expect(peticion).toBeDefined();
+      expect(JSON.parse(peticion![1].body)).toEqual({ status: 'Cancelado' });
+    });
+
+    // Assert: el detalle muestra el nuevo estado y ya no se puede cancelar
+    await waitFor(() =>
+      expect(screen.getByLabelText('Estado del pedido')).toHaveTextContent(
+        'Cancelado',
+      ),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Cancelar pedido' }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('OrderDetail sin datos del agricultor', () => {
