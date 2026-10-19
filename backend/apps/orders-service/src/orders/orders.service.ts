@@ -8,10 +8,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomInt } from 'node:crypto';
 import { Role } from '@app/shared';
-import { Order, OrderStatus } from '../entities/order.entity';
+import { Order, OrderContact, OrderStatus } from '../entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CatalogClient } from './catalog.client';
-import { UsersClient } from '../profile/users.client';
+import { UserSummary, UsersClient } from '../profile/users.client';
 
 // Solo los negocios pueden pedir más de esta cantidad de libras en un pedido
 const LIMITE_LIBRAS = 50;
@@ -45,7 +45,7 @@ export class OrdersService {
   ) {}
 
   // El comprador sale del token; el agricultor y el precio se toman de la oferta.
-  // Los datos del agricultor se consultan solo si el pedido es válido
+  // Los datos del agricultor y del comprador se consultan solo si el pedido es válido
   async create(
     buyerId: string,
     buyerRole: Role,
@@ -69,19 +69,18 @@ export class OrdersService {
       );
     }
 
-    const farmer = await this.usersClient.getUser(offert.farmerId);
+    const [farmer, buyer] = await Promise.all([
+      this.usersClient.getUser(offert.farmerId),
+      this.usersClient.getUser(buyerId),
+    ]);
 
     return this.orderRepository.save(
       this.orderRepository.create({
         buyerId,
+        buyer: this.toContact(buyer),
         offertId: dto.offertId,
         farmerId: offert.farmerId,
-        farmer: {
-          userId: farmer.userId,
-          name: farmer.name,
-          phone: farmer.phone,
-          municipality: farmer.municipality,
-        },
+        farmer: this.toContact(farmer),
         quantity: dto.quantity,
         unitPrice: offert.pricePerUnit,
         totalPrice: Math.round(dto.quantity * offert.pricePerUnit * 100) / 100,
@@ -183,6 +182,16 @@ export class OrdersService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { deliveryCode, ...farmerOrder } = order;
     return farmerOrder;
+  }
+
+  // Solo los datos públicos del usuario: sin correo, documento ni dirección
+  private toContact(user: UserSummary): OrderContact {
+    return {
+      userId: user.userId,
+      name: user.name,
+      phone: user.phone,
+      municipality: user.municipality,
+    };
   }
 
   // Código aleatorio de 6 dígitos (puede empezar en 0, por eso se guarda como texto)

@@ -22,8 +22,8 @@ export enum OrderStatus {
   CANCELADO = 'Cancelado', // El comprador lo canceló antes de que fuera aceptado
 }
 
-// Datos públicos del agricultor que se copian al pedido al crearlo
-export interface OrderFarmer {
+// Datos públicos de cada parte (agricultor o comprador) que se copian al pedido al crearlo
+export interface OrderContact {
   userId: string;
   name: string;
   phone: string;
@@ -47,6 +47,11 @@ export class Order {
   @Column({ type: 'uuid' })
   buyerId: string;
 
+  // Datos del comprador al momento del pedido, para que el agricultor pueda coordinar la entrega
+  // sin preguntar a users-service. Es null en los pedidos creados antes de guardar estos datos
+  @Column({ type: 'jsonb', nullable: true })
+  buyer: OrderContact | null;
+
   // Oferta que se está pidiendo. Vive en catalog-service, por eso no hay relación entre servicios
   @Index()
   @Column({ type: 'uuid' })
@@ -60,7 +65,7 @@ export class Order {
   // Datos del agricultor al momento del pedido, para mostrarlos al comprador sin preguntar a users-service.
   // Es null en los pedidos creados antes de guardar estos datos
   @Column({ type: 'jsonb', nullable: true })
-  farmer: OrderFarmer | null;
+  farmer: OrderContact | null;
 
   // Cantidad pedida, en la unidad de medida del producto (lb, kg, g, unidad)
   @Column({
