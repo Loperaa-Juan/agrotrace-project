@@ -293,4 +293,102 @@ describe('Crear pedido desde ProductDetail', () => {
       ),
     );
   });
+
+  it('Si no se puede crear el pedido, se debe mostrar un mensaje de error', async () => {
+    // Arrange
+    localStorage.setItem('accessToken', 'access-token-123');
+    localStorage.setItem('refreshToken', 'refresh-token-456');
+    localStorage.setItem('usuario', JSON.stringify(PERSONA));
+    simularApi(fetchMock, {
+      'GET /offerts': [200, [{ ...oferta, OffertId: OFERTA_ID }]],
+      'GET /catalog': [200, [producto]],
+      'POST /orders': [500, { message: 'Error interno' }],
+    });
+    window.history.pushState({}, '', `/explorar/${OFERTA_ID}`);
+    render(<App />);
+
+    // Act
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Ordenar ahora' }),
+    );
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Aceptar',
+      }),
+    );
+
+    // Assert: se queda en el detalle de la oferta con el error
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(window.location.pathname).toBe(`/explorar/${OFERTA_ID}`);
+  });
+
+  it('Si la oferta no existe, se debe avisar que ya no está disponible', async () => {
+    // Arrange
+    simularApi(fetchMock, {
+      'GET /offerts': [200, []],
+      'GET /catalog': [200, [producto]],
+    });
+
+    // Act
+    window.history.pushState({}, '', `/explorar/${OFERTA_ID}`);
+    render(<App />);
+
+    // Assert
+    expect(
+      await screen.findByText('Esta cosecha ya no está disponible.'),
+    ).toBeInTheDocument();
+  });
+});
+
+describe('Diálogo de confirmación de ProductDetail', () => {
+  it('Al dar click en "Cancelar" se debe cerrar el diálogo sin ordenar', () => {
+    // Arrange
+    const alConfirmar = vi.fn();
+    render(
+      <ProductDetail
+        alConfirmar={alConfirmar}
+        oferta={oferta}
+        producto={producto}
+        usuario={PERSONA}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Ordenar ahora' }));
+
+    // Act
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Cancelar',
+      }),
+    );
+
+    // Assert
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(alConfirmar).not.toHaveBeenCalled();
+  });
+
+  it('Al dar click en "Aceptar" se debe confirmar con la cantidad elegida', () => {
+    // Arrange
+    const alConfirmar = vi.fn();
+    render(
+      <ProductDetail
+        alConfirmar={alConfirmar}
+        oferta={oferta}
+        producto={producto}
+        usuario={PERSONA}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Increase-btn' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ordenar ahora' }));
+
+    // Act
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Aceptar',
+      }),
+    );
+
+    // Assert
+    expect(alConfirmar).toHaveBeenCalledWith(2);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });
