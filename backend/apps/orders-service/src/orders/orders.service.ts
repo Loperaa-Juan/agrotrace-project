@@ -32,6 +32,9 @@ const QUIEN_CAMBIA_EL_ESTADO: Partial<
   [OrderStatus.CANCELADO]: 'comprador',
 };
 
+// Pedido tal como lo ve el agricultor: sin el código de entrega
+export type FarmerOrder = Omit<Order, 'deliveryCode'>;
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -96,13 +99,12 @@ export class OrdersService {
   }
 
   // El agricultor no ve el código de entrega: se lo dicta el comprador al recibir el pedido
-  async findByFarmer(farmerId: string): Promise<Omit<Order, 'deliveryCode'>[]> {
+  async findByFarmer(farmerId: string): Promise<FarmerOrder[]> {
     const orders = await this.orderRepository.find({
       where: { farmerId },
       order: { createdAt: 'DESC' },
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    return orders.map(({ deliveryCode, ...order }) => order);
+    return orders.map((order) => this.withoutDeliveryCode(order));
   }
 
   // El pedido pasa a Entregado solo si ya fue aceptado y el agricultor ingresa el código que le da el comprador
@@ -110,7 +112,7 @@ export class OrdersService {
     orderId: string,
     farmerId: string,
     deliveryCode: string,
-  ): Promise<Order> {
+  ): Promise<FarmerOrder> {
     const order = await this.findOrder(orderId);
     if (order.farmerId !== farmerId) {
       throw new ForbiddenException('You can only deliver your own orders');
@@ -123,16 +125,17 @@ export class OrdersService {
     }
 
     order.status = OrderStatus.ENTREGADO;
-    return this.orderRepository.save(order);
+    return this.withoutDeliveryCode(await this.orderRepository.save(order));
   }
 
   // Aceptar o rechazar le corresponde al agricultor; cancelar, al comprador.
-  // Solo se puede hacer mientras el pedido está Solicitado
+  // Solo se puede hacer mientras el pedido está Solicitado. Si quien cambia es el agricultor,
+  // la respuesta no incluye el código de entrega
   async changeStatus(
     orderId: string,
     userId: string,
     status: OrderStatus,
-  ): Promise<Order> {
+  ): Promise<Order | FarmerOrder> {
     const order = await this.findOrder(orderId);
 
     const responsable = QUIEN_CAMBIA_EL_ESTADO[status];
@@ -159,7 +162,10 @@ export class OrdersService {
     }
 
     order.status = status;
-    return this.orderRepository.save(order);
+    const saved = await this.orderRepository.save(order);
+    return responsable === 'agricultor'
+      ? this.withoutDeliveryCode(saved)
+      : saved;
   }
 
   private async findOrder(orderId: string): Promise<Order> {
@@ -170,6 +176,13 @@ export class OrdersService {
       throw new NotFoundException('Order not found');
     }
     return order;
+  }
+
+  // Copia del pedido sin el código: el pedido guardado lo conserva
+  private withoutDeliveryCode(order: Order): FarmerOrder {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { deliveryCode, ...farmerOrder } = order;
+    return farmerOrder;
   }
 
   // Código aleatorio de 6 dígitos (puede empezar en 0, por eso se guarda como texto)

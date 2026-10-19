@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard, Role, Roles, RolesGuard } from '@app/shared';
-import { OrdersService } from './orders.service';
+import { FarmerOrder, OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Order } from '../entities/order.entity';
@@ -42,7 +42,7 @@ export class OrdersController {
   @Get('received')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)
-  async findReceived(@Req() request): Promise<Omit<Order, 'deliveryCode'>[]> {
+  async findReceived(@Req() request): Promise<FarmerOrder[]> {
     return await this.ordersService.findByFarmer(request.user.sub);
   }
 
@@ -54,7 +54,7 @@ export class OrdersController {
     @Req() request,
     @Param('id', ParseUUIDPipe) orderId: string,
     @Body('deliveryCode') deliveryCode: string,
-  ): Promise<Order> {
+  ): Promise<FarmerOrder> {
     return await this.ordersService.deliver(
       orderId,
       request.user.sub,
@@ -71,7 +71,7 @@ export class OrdersController {
     @Req() request,
     @Param('id', ParseUUIDPipe) orderId: string,
     @Body() dto: UpdateOrderStatusDto,
-  ): Promise<Order> {
+  ): Promise<Order | FarmerOrder> {
     return await this.ordersService.changeStatus(
       orderId,
       request.user.sub,
