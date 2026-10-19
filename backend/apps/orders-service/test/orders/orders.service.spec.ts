@@ -362,6 +362,33 @@ describe('OrdersService', () => {
       // Assert
       await expect(action).rejects.toThrow(BadRequestException);
     });
+
+    it('No debe devolverle al agricultor el código de entrega', async () => {
+      // Arrange
+      orderRepository.findOne.mockResolvedValue({ ...aceptado });
+
+      // Act
+      const result = await service.deliver('order-1', 'farmer-1', '482913');
+
+      // Assert
+      expect(result).not.toHaveProperty('deliveryCode');
+    });
+
+    it('Debe conservar el código de entrega en la BD al entregar', async () => {
+      // Arrange
+      orderRepository.findOne.mockResolvedValue({ ...aceptado });
+
+      // Act
+      await service.deliver('order-1', 'farmer-1', '482913');
+
+      // Assert
+      expect(orderRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: OrderStatus.ENTREGADO,
+          deliveryCode: '482913',
+        }),
+      );
+    });
   });
 
   describe('changeStatus', () => {
@@ -407,6 +434,68 @@ describe('OrdersService', () => {
 
       // Assert
       expect(result.status).toBe(OrderStatus.CANCELADO);
+    });
+
+    it('No debe devolverle al agricultor el código de entrega al aceptar', async () => {
+      // Arrange
+      orderRepository.findOne.mockResolvedValue({ ...order });
+
+      // Act
+      const result = await service.changeStatus(
+        'order-1',
+        'farmer-1',
+        OrderStatus.ACEPTADO,
+      );
+
+      // Assert
+      expect(result).not.toHaveProperty('deliveryCode');
+    });
+
+    it('No debe devolverle al agricultor el código de entrega al rechazar', async () => {
+      // Arrange
+      orderRepository.findOne.mockResolvedValue({ ...order });
+
+      // Act
+      const result = await service.changeStatus(
+        'order-1',
+        'farmer-1',
+        OrderStatus.RECHAZADO,
+      );
+
+      // Assert
+      expect(result).toMatchObject({ status: OrderStatus.RECHAZADO });
+      expect(result).not.toHaveProperty('deliveryCode');
+    });
+
+    it('Debe devolverle al comprador el código de entrega al cancelar', async () => {
+      // Arrange: el código es del comprador, él sí puede verlo
+      orderRepository.findOne.mockResolvedValue({ ...order });
+
+      // Act
+      const result = await service.changeStatus(
+        'order-1',
+        'buyer-1',
+        OrderStatus.CANCELADO,
+      );
+
+      // Assert
+      expect(result).toMatchObject({ deliveryCode: '482913' });
+    });
+
+    it('Debe conservar el código de entrega en la BD cuando el agricultor cambia el estado', async () => {
+      // Arrange
+      orderRepository.findOne.mockResolvedValue({ ...order });
+
+      // Act
+      await service.changeStatus('order-1', 'farmer-1', OrderStatus.ACEPTADO);
+
+      // Assert
+      expect(orderRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: OrderStatus.ACEPTADO,
+          deliveryCode: '482913',
+        }),
+      );
     });
 
     it('Debe lanzar ForbiddenException si el comprador intenta aceptar su propio pedido', async () => {
