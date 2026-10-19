@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import OrderDetail from '../../src/routes/app/order-detail';
+import App from '../../src/App';
+import { simularApi } from '../auth/utils';
 
 function pedido(status: string, extra: Record<string, unknown> = {}) {
   return {
@@ -147,7 +149,174 @@ describe('Tests en Order detail', () => {
     renderDetalle('Solicitado');
 
     // Assert
-    expect(screen.queryByLabelText('Código de entrega')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Código de entrega'),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('482913')).not.toBeInTheDocument();
+  });
+});
+
+describe('Página de detalle del pedido', () => {
+  const fetchMock = vi.fn();
+
+  const COMPRADOR = {
+    userId: 'a1b2c3d4',
+    name: 'Ana Gómez',
+    email: 'ana@agrotrace.com',
+    role: 'Persona',
+  };
+
+  // GET /orders/me trae los datos del agricultor guardados en el pedido
+  const PEDIDO = {
+    ...pedido('Aceptado'),
+    farmer: {
+      userId: agricultor.userId,
+      name: agricultor.name,
+      phone: agricultor.phone,
+      municipality: agricultor.municipality,
+    },
+  };
+
+  const OFERTA = {
+    OffertId: 'o-aguacate',
+    productId: 'p-aguacate',
+    farmerId: 'c270fc1a',
+    description: 'Cosecha de esta semana',
+    pricePerUnit: 3500,
+    availableQuantity: 120,
+    harvestDate: '2026-10-10',
+    aiQuality: 'A',
+    isActive: true,
+  };
+
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    window.history.pushState({}, '', '/');
+  });
+
+  function iniciarSesion() {
+    localStorage.setItem('accessToken', 'access-token-123');
+    localStorage.setItem('refreshToken', 'refresh-token-456');
+    localStorage.setItem('usuario', JSON.stringify(COMPRADOR));
+  }
+
+  function abrirPedido() {
+    window.history.pushState({}, '', `/pedidos/${PEDIDO.OrderId}`);
+    render(<App />);
+  }
+
+  it('En /pedidos/:id se debe mostrar el detalle del pedido con su producto y su agricultor', async () => {
+    // Arrange: un comprador logueado abre uno de sus pedidos
+    iniciarSesion();
+    simularApi(fetchMock, {
+      'GET /orders/me': [200, [PEDIDO]],
+      'GET /offerts': [200, [OFERTA]],
+      'GET /catalog': [200, [producto]],
+    });
+
+    // Act
+    abrirPedido();
+
+    // Assert
+    expect(
+      await screen.findByRole('heading', { name: 'Pedido #E5F6A7B8' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('10 lb · Aguacate Hass')).toBeInTheDocument();
+    const seccion = screen.getByRole('region', { name: 'Agricultor' });
+    expect(seccion).toHaveTextContent('Juan Pérez');
+    expect(seccion).toHaveTextContent('3001234567');
+    expect(seccion).toHaveTextContent('Rionegro');
+  });
+
+  it('Si el pedido no es del comprador, se debe avisar que no se encontró', async () => {
+    // Arrange
+    iniciarSesion();
+    simularApi(fetchMock, {
+      'GET /orders/me': [200, []],
+      'GET /offerts': [200, [OFERTA]],
+      'GET /catalog': [200, [producto]],
+    });
+
+    // Act
+    abrirPedido();
+
+    // Assert
+    expect(
+      await screen.findByText('No encontramos este pedido entre los tuyos.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /volver a mis pedidos/i }),
+    ).toHaveAttribute('href', '/pedidos');
+  });
+
+  it('Si la API falla, se debe mostrar un mensaje de error', async () => {
+    // Arrange
+    iniciarSesion();
+    simularApi(fetchMock, {
+      'GET /orders/me': [500, { message: 'Error interno' }],
+      'GET /offerts': [200, [OFERTA]],
+      'GET /catalog': [200, [producto]],
+    });
+
+    // Act
+    abrirPedido();
+
+    // Assert
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos cargar el pedido. Intenta de nuevo.',
+    );
+  });
+
+  it('Si la sesión venció, se debe cerrar la sesión y volver al login', async () => {
+    // Arrange
+    iniciarSesion();
+    simularApi(fetchMock, {
+      'GET /orders/me': [401, { message: 'Unauthorized' }],
+      'GET /offerts': [200, [OFERTA]],
+      'GET /catalog': [200, [producto]],
+    });
+
+    // Act
+    abrirPedido();
+
+    // Assert
+    await waitFor(() => expect(window.location.pathname).toBe('/login'));
+    expect(localStorage.getItem('accessToken')).toBeNull();
+  });
+
+  it('Sin sesión iniciada, se debe redirigir al login', async () => {
+    // Act
+    abrirPedido();
+
+    // Assert
+    await waitFor(() => expect(window.location.pathname).toBe('/login'));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+});
+
+describe('OrderDetail sin datos del agricultor', () => {
+  it('Si el pedido no trae los datos del agricultor, se debe avisar en su sección', () => {
+    // Arrange
+    render(
+      <OrderDetail
+        agricultor={null}
+        pedido={pedido('Aceptado')}
+        producto={producto}
+      />,
+    );
+
+    // Assert
+    expect(
+      screen.getByRole('region', { name: 'Agricultor' }),
+    ).toHaveTextContent(
+      'No tenemos los datos de contacto del agricultor de este pedido.',
+    );
   });
 });
