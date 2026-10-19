@@ -117,3 +117,13 @@ export const cancelarPedido = (orderId: string) =>
   pedir<Pedido>(`${ORDERS_URL}/orders/${orderId}/status`, 'PATCH', {
     status: 'Cancelado',
   });
+/** Aceptar o rechazar le corresponde al agricultor, y solo mientras el pedido está Solicitado. */
+export const responderPedido = (
+  orderId: string,
+  status: Extract<EstadoPedido, 'Aceptado' | 'Rechazado'>,
+) => pedir<Pedido>(`${ORDERS_URL}/orders/${orderId}/status`, 'PATCH', { status });
+/** El agricultor ingresa el código que le dicta el comprador al recibir el pedido. */
+export const confirmarEntrega = (orderId: string, deliveryCode: string) =>
+  pedir<Pedido>(`${ORDERS_URL}/orders/${orderId}/deliver`, 'PATCH', {
+    deliveryCode,
+  });

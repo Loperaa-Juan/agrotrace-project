@@ -1,13 +1,15 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ErrorApi } from '../auth-api';
 import {
   cancelarPedido,
+  confirmarEntrega,
   obtenerCatalogo,
   obtenerMisOfertas,
   obtenerMisPedidos,
   obtenerOfertas,
   obtenerPedidosRecibidos,
+  responderPedido,
   type ContactoPedido,
   type EstadoPedido,
   type Pedido,
@@ -17,6 +19,9 @@ import { routes } from '../routes';
 import { useSesion } from '../session-context';
 
 const ERROR_CARGA = 'No pudimos cargar el pedido. Intenta de nuevo.';
+const ERROR_CODIGO =
+  'El código de verificación no es correcto. Pídeselo de nuevo al comprador.';
+const ERROR_ENTREGA = 'No pudimos confirmar la entrega. Intenta de nuevo.';
 
 const formatoNumero = (valor: number) => valor.toLocaleString('es-CO');
 
@@ -36,10 +41,14 @@ const INSIGNIAS: Record<EstadoPedido, { icono: string; tono: string }> = {
 };
 
 /** Aviso de cada estado; el de "Solicitado" lleva además el botón de cancelar. */
-const AVISOS: Record<
-  EstadoPedido,
-  { icono: string; tono: string; titulo: string; mensaje: string }
-> = {
+type AvisoEstado = {
+  icono: string;
+  tono: string;
+  titulo: string;
+  mensaje: string;
+};
+
+const AVISOS: Record<EstadoPedido, AvisoEstado> = {
   Solicitado: {
     icono: 'info',
     tono: 'bg-amber-50 text-amber-900',
@@ -177,13 +186,86 @@ function CodigoEntrega({ codigo }: Readonly<{ codigo: string | undefined }>) {
   );
 }
 
-/** Aviso del agricultor mientras el pedido espera su respuesta. */
-const AVISO_AGRICULTOR_SOLICITADO = {
-  icono: 'pending_actions',
-  tono: 'bg-amber-50 text-amber-900',
-  titulo: 'Puedes aceptar o rechazar este pedido',
-  mensaje:
-    'Revisa si tienes la cantidad disponible. Al aceptarlo se descuenta de tu oferta.',
+/** El agricultor confirma la entrega con el código que le dicta el comprador. */
+function ConfirmarEntrega({
+  alConfirmar,
+  error,
+}: Readonly<{
+  alConfirmar?: (codigo: string) => void;
+  error?: string | null;
+}>) {
+  const idCodigo = useId();
+  const [codigo, setCodigo] = useState('');
+
+  return (
+    <form
+      className={`${TARJETA} space-y-4`}
+      onSubmit={(evento) => {
+        evento.preventDefault();
+        alConfirmar?.(codigo.trim());
+      }}
+    >
+      <div className="space-y-1">
+        <label
+          className="block text-lg font-bold text-gray-900"
+          htmlFor={idCodigo}
+        >
+          Código de verificación
+        </label>
+        <p className="text-sm text-gray-600">
+          Son los 6 dígitos que el comprador ve en su pedido. Ingrésalos cuando
+          te entregue el pago y reciba la cosecha.
+        </p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          autoComplete="one-time-code"
+          className="flex-1 h-12 px-4 rounded-xl bg-gray-50 border border-gray-200 text-2xl font-mono font-bold tracking-[0.5em] text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600"
+          id={idCodigo}
+          inputMode="numeric"
+          maxLength={6}
+          onChange={(evento) => setCodigo(evento.target.value)}
+          placeholder="000000"
+          value={codigo}
+        />
+        <button
+          className={`${BOTON_ACCION} justify-center h-12 bg-[#15803d] text-white hover:bg-[#166534] disabled:bg-gray-200 disabled:text-gray-500`}
+          disabled={codigo.trim() === ''}
+          type="submit"
+        >
+          <Icono className="text-lg" nombre="task_alt" />
+          Confirmar entrega
+        </button>
+      </div>
+      {error && (
+        <p
+          className="flex items-center gap-2 p-3 rounded-xl bg-red-50 text-sm font-medium text-red-700"
+          role="alert"
+        >
+          <Icono className="text-lg shrink-0" nombre="error" />
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
+/** Avisos del agricultor mientras debe responder el pedido o entregarlo. */
+const AVISOS_AGRICULTOR: Partial<Record<EstadoPedido, AvisoEstado>> = {
+  Solicitado: {
+    icono: 'pending_actions',
+    tono: 'bg-amber-50 text-amber-900',
+    titulo: 'Puedes aceptar o rechazar este pedido',
+    mensaje:
+      'Revisa si tienes la cantidad disponible. Al aceptarlo se descuenta de tu oferta.',
+  },
+  Aceptado: {
+    icono: 'local_shipping',
+    tono: 'bg-green-50 text-green-900',
+    titulo: 'Aceptaste este pedido',
+    mensaje:
+      'Al entregarlo, pídele al comprador su código de verificación e ingrésalo abajo para confirmar la entrega.',
+  },
 };
 
 const BOTON_ACCION =
@@ -195,6 +277,10 @@ function OrderDetail({
   pedido,
   producto,
   alCancelar,
+  alAceptar,
+  alRechazar,
+  alConfirmarEntrega,
+  errorEntrega,
   esAgricultor = false,
 }: Readonly<{
   agricultor: ContactoPedido | null | undefined;
@@ -202,15 +288,19 @@ function OrderDetail({
   pedido: Pedido;
   producto: Producto | undefined;
   alCancelar?: () => void;
+  alAceptar?: () => void;
+  alRechazar?: () => void;
+  /** Se llama con el código de verificación que ingresa el agricultor. */
+  alConfirmarEntrega?: (codigo: string) => void;
+  errorEntrega?: string | null;
   /** El agricultor responde el pedido y ve al comprador; el comprador puede cancelarlo. */
   esAgricultor?: boolean;
 }>) {
   const solicitado = pedido.status === 'Solicitado';
+  const aceptado = pedido.status === 'Aceptado';
   const insignia = INSIGNIAS[pedido.status];
   const aviso =
-    esAgricultor && solicitado
-      ? AVISO_AGRICULTOR_SOLICITADO
-      : AVISOS[pedido.status];
+    (esAgricultor && AVISOS_AGRICULTOR[pedido.status]) || AVISOS[pedido.status];
   // Cada parte ve los datos de contacto de la otra
   const contacto = esAgricultor
     ? {
@@ -282,6 +372,7 @@ function OrderDetail({
             <div className="flex flex-wrap gap-3 self-start md:self-auto">
               <button
                 className={`${BOTON_ACCION} bg-white border border-red-200 text-red-700 hover:bg-red-50`}
+                onClick={alRechazar}
                 type="button"
               >
                 <Icono className="text-lg" nombre="block" />
@@ -289,6 +380,7 @@ function OrderDetail({
               </button>
               <button
                 className={`${BOTON_ACCION} bg-[#15803d] text-white hover:bg-[#166534]`}
+                onClick={alAceptar}
                 type="button"
               >
                 <Icono className="text-lg" nombre="check" />
@@ -322,8 +414,14 @@ function OrderDetail({
           </ol>
         </div>
 
-        {pedido.status === 'Aceptado' && (
+        {aceptado && !esAgricultor && (
           <CodigoEntrega codigo={pedido.deliveryCode} />
+        )}
+        {aceptado && esAgricultor && (
+          <ConfirmarEntrega
+            alConfirmar={alConfirmarEntrega}
+            error={errorEntrega}
+          />
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -448,6 +546,7 @@ export function DetallePedidoPage() {
   const { usuario, salir } = useSesion();
   const [datos, setDatos] = useState<DatosDetalle | null>(null);
   const [error, setError] = useState(false);
+  const [errorEntrega, setErrorEntrega] = useState<string | null>(null);
   const conSesion = Boolean(usuario);
   const esAgricultor = usuario?.role === 'Agricultor';
 
@@ -525,26 +624,53 @@ export function DetallePedidoPage() {
   }
 
   const { pedido, producto } = datos;
-  const cancelar = () => {
-    cancelarPedido(pedido.OrderId)
-      // Se conservan los datos del agricultor si la respuesta no los trae
-      .then((cancelado) =>
+
+  /** Muestra el pedido que devuelve orders-service tras cambiarlo. */
+  const actualizar = (
+    cambio: Promise<Pedido>,
+    alFallar: (err: unknown) => void = () => setError(true),
+  ) => {
+    cambio
+      // Se conservan los datos de contacto y el código si la respuesta no los trae
+      .then((nuevo) =>
         setDatos({
-          pedido: { ...cancelado, farmer: cancelado.farmer ?? pedido.farmer },
+          pedido: {
+            ...nuevo,
+            farmer: nuevo.farmer ?? pedido.farmer,
+            buyer: nuevo.buyer ?? pedido.buyer,
+            deliveryCode: nuevo.deliveryCode ?? pedido.deliveryCode,
+          },
           producto,
         }),
       )
       .catch((err) => {
         if (err instanceof ErrorApi && err.status === 401) salir();
-        else setError(true);
+        else alFallar(err);
       });
+  };
+
+  const confirmar = (codigo: string) => {
+    setErrorEntrega(null);
+    actualizar(confirmarEntrega(pedido.OrderId, codigo), (err) =>
+      setErrorEntrega(
+        err instanceof ErrorApi && err.status === 400
+          ? ERROR_CODIGO
+          : ERROR_ENTREGA,
+      ),
+    );
   };
 
   return (
     <OrderDetail
       agricultor={pedido.farmer}
-      alCancelar={cancelar}
+      alAceptar={() => actualizar(responderPedido(pedido.OrderId, 'Aceptado'))}
+      alCancelar={() => actualizar(cancelarPedido(pedido.OrderId))}
+      alConfirmarEntrega={confirmar}
+      alRechazar={() =>
+        actualizar(responderPedido(pedido.OrderId, 'Rechazado'))
+      }
       comprador={pedido.buyer}
+      errorEntrega={errorEntrega}
       esAgricultor={esAgricultor}
       pedido={pedido}
       producto={producto}
