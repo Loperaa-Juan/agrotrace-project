@@ -347,6 +347,46 @@ describe('Página de detalle del pedido', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('Si el agricultor ve un pedido Solicitado, se le debe indicar que puede aceptarlo o rechazarlo', async () => {
+    // Arrange y Act
+    abrirComoAgricultor();
+
+    // Assert
+    expect(
+      await screen.findByText('Puedes aceptar o rechazar este pedido'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Tu pedido aún no ha sido aceptado por el agricultor'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('El agricultor debe ver en la tarjeta los datos del comprador que solicitó el pedido', async () => {
+    // Arrange y Act
+    abrirComoAgricultor();
+
+    // Assert
+    const seccion = await screen.findByRole('region', { name: 'Comprador' });
+    expect(seccion).toHaveTextContent('Ana Gómez');
+    expect(seccion).toHaveTextContent('3109876543');
+    expect(seccion).toHaveTextContent('Envigado');
+    expect(
+      screen.queryByRole('region', { name: 'Agricultor' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('Si el agricultor ve un pedido Solicitado, se deben mostrar los botones para aceptarlo o rechazarlo', async () => {
+    // Arrange y Act
+    abrirComoAgricultor();
+
+    // Assert
+    expect(
+      await screen.findByRole('button', { name: 'Aceptar pedido' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Rechazar pedido' }),
+    ).toBeInTheDocument();
+  });
+
   it('Al dar click en "Cancelar pedido" se debe cancelar el pedido', async () => {
     // Arrange: el pedido todavía está Solicitado
     const solicitado = { ...PEDIDO, status: 'Solicitado' };
