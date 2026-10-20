@@ -6,6 +6,11 @@ import { ProfileService } from './profile.service';
 import { UsersClient } from './users.client';
 import { Order } from '../entities/order.entity';
 
+/**
+ * Módulo de perfil (`ProfileModule`).
+ * Agrupa controladores, servicios, la entidad de órdenes para calcular estadísticas 
+ * y el cliente TCP para comunicarse con el microservicio de usuarios.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order]),
