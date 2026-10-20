@@ -8,6 +8,11 @@ import { Order } from './entities/order.entity';
 import { OrdersModule } from './orders/orders.module';
 import { ProfileModule } from './profile/profile.module';
 
+/**
+ * Módulo raíz del microservicio de órdenes (`OrdersServiceModule`).
+ * Configura la conexión global a la base de datos PostgreSQL, las variables de entorno,
+ * la validación de tokens JWT (compartidos con users-service) e importa los sub-módulos de órdenes y perfiles.
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({

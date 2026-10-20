@@ -4,6 +4,10 @@ import { OrdersServiceModule } from './orders-service.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger, ValidationPipe } from '@nestjs/common';
 
+/**
+ * Función principal de arranque (Bootstrap) para el microservicio de órdenes.
+ * Configura el servidor HTTP para rutas públicas/protegidas y el canal TCP para microservicios.
+ */
 async function bootstrap() {
   const httpPort = Number.parseInt(process.env.HTTP_PORT as string, 10) || 3004;
   const tcpPort =
