@@ -6,6 +6,11 @@ import { OrdersService } from './orders.service';
 import { CatalogClient } from './catalog.client';
 import { Order } from '../entities/order.entity';
 
+/**
+ * Módulo principal de órdenes (`OrdersModule`).
+ * Agrupa los controladores, servicios, la entidad de base de datos de órdenes 
+ * y la configuración del cliente TCP para comunicarse con el microservicio de catálogo.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order]),

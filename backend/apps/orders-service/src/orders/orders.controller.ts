@@ -15,12 +15,21 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Order } from '../entities/order.entity';
 
-// Los compradores (Persona o Negocio) hacen pedidos; el agricultor los recibe y los entrega.
-// El id y el rol siempre salen del token (request.user), nunca del body
+/**
+ * Controlador encargado de exponer los endpoints HTTP para la gestión de pedidos.
+ * Los compradores (Persona o Negocio) crean y consultan sus pedidos; el agricultor los recibe, entrega o cambia su estado.
+ * Nota: El ID y el rol del usuario siempre se obtienen de manera segura del token (request.user).
+ */
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  /**
+   * Endpoint protegido para que un comprador (Persona o Negocio) cree un nuevo pedido.
+   * @param {any} request - Objeto de petición HTTP con la información del token del usuario.
+   * @param {CreateOrderDto} dto - Datos necesarios para la creación de la orden.
+   * @returns {Promise<Order>} La orden recién creada.
+   */
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PERSONA, Role.NEGOCIO)
@@ -32,6 +41,11 @@ export class OrdersController {
     );
   }
 
+  /**
+   * Endpoint protegido para que el comprador consulte la lista de sus propios pedidos.
+   * @param {any} request - Objeto de petición HTTP con los datos del usuario autenticado.
+   * @returns {Promise<Order[]>} Lista de órdenes hechas por el comprador.
+   */
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PERSONA, Role.NEGOCIO)
@@ -39,6 +53,11 @@ export class OrdersController {
     return await this.ordersService.findByBuyer(request.user.sub);
   }
 
+  /**
+   * Endpoint protegido para que el agricultor consulte los pedidos recibidos en sus ofertas.
+   * @param {any} request - Objeto de petición HTTP con los datos del agricultor autenticado.
+   * @returns {Promise<Omit<Order, 'deliveryCode'>[]>} Lista de órdenes sin incluir el código de entrega por seguridad.
+   */
   @Get('received')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)
@@ -46,7 +65,14 @@ export class OrdersController {
     return await this.ordersService.findByFarmer(request.user.sub);
   }
 
-  // El agricultor ingresa el código que le da el comprador al recibir el pedido
+  /**
+   * Endpoint protegido para que el agricultor marque un pedido como entregado 
+   * ingresando el código de 6 dígitos dictado por el comprador.
+   * @param {any} request - Objeto de petición HTTP con los datos del agricultor.
+   * @param {string} orderId - ID de la orden en formato UUID.
+   * @param {string} deliveryCode - Código de entrega de 6 dígitos.
+   * @returns {Promise<Order>} La orden actualizada con estado Entregado.
+   */
   @Patch(':id/deliver')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)
@@ -62,8 +88,14 @@ export class OrdersController {
     );
   }
 
-  // Aceptar, rechazar o cancelar. Todos los roles entran a la ruta; el servicio decide
-  // quién puede hacer cada cambio (agricultor: aceptar/rechazar, comprador: cancelar)
+  /**
+   * Endpoint protegido para cambiar el estado de un pedido (aceptar, rechazar o cancelar).
+   * Todos los roles pueden acceder a la ruta, pero la lógica de negocio validará quién tiene permiso.
+   * @param {any} request - Objeto de petición HTTP del usuario.
+   * @param {string} orderId - ID de la orden en formato UUID.
+   * @param {UpdateOrderStatusDto} dto - DTO que contiene el nuevo estado deseado.
+   * @returns {Promise<Order>} La orden con su estado actualizado.
+   */
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PERSONA, Role.NEGOCIO, Role.AGRICULTOR)
