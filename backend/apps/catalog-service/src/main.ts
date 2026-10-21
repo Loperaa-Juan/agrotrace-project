@@ -4,6 +4,10 @@ import { CatalogServiceModule } from './catalog-service.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger, ValidationPipe } from '@nestjs/common';
 
+/**
+ * Función principal de arranque (Bootstrap) para catalog-service.
+ * Configura el servidor HTTP para endpoints públicos y protegidos, así como el transporte TCP para microservicios.
+ */
 async function bootstrap() {
   const httpPort = Number.parseInt(process.env.HTTP_PORT as string, 10) || 3002;
   const tcpPort =
