@@ -8,6 +8,10 @@ import { Order } from './entities/order.entity';
 import { OrdersModule } from './orders/orders.module';
 import { ProfileModule } from './profile/profile.module';
 
+/**
+ * Módulo raíz de orders-service. Configura la base de datos PostgreSQL, variables de entorno,
+ * validación global de JWT e importa los módulos internos de pedidos y perfiles.
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({

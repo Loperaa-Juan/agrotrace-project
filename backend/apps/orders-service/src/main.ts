@@ -4,6 +4,9 @@ import { OrdersServiceModule } from './orders-service.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger, ValidationPipe } from '@nestjs/common';
 
+/**
+ * Punto de entrada principal (bootstrap) de orders-service. Configura HTTP, CORS, Pipes y microservicio TCP.
+ */
 async function bootstrap() {
   const httpPort = Number.parseInt(process.env.HTTP_PORT as string, 10) || 3004;
   const tcpPort =
