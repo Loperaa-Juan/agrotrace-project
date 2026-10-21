@@ -13,17 +13,17 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { CatalogClient } from './catalog.client';
 import { UserSummary, UsersClient } from '../profile/users.client';
 
-// Solo los negocios pueden pedir más de esta cantidad de libras en un pedido
+/** Límite en libras permitido para compradores comunes en un pedido. */
 const LIMITE_LIBRAS = 50;
 
-// Cuántas libras hay en una unidad de cada medida. Las ofertas por 'unidad' no tienen límite
+/** Tabla de equivalencias en libras por unidad de medida. Las ofertas por 'unidad' no tienen límite. */
 const LIBRAS_POR_UNIDAD: Record<string, number> = {
   lb: 1,
   kg: 2.20462,
   g: 0.00220462,
 };
 
-// Quién puede pasar un pedido a cada estado. Entregado no está aquí: se hace con el código (deliver)
+/** Mapeo de roles autorizados para cambiar un pedido a un estado específico. */
 const QUIEN_CAMBIA_EL_ESTADO: Partial<
   Record<OrderStatus, 'agricultor' | 'comprador'>
 > = {
@@ -32,9 +32,13 @@ const QUIEN_CAMBIA_EL_ESTADO: Partial<
   [OrderStatus.CANCELADO]: 'comprador',
 };
 
-// Pedido tal como lo ve el agricultor: sin el código de entrega
+/** Tipo que representa un pedido visto por el agricultor (omitiendo el código de entrega de seguridad). */
 export type FarmerOrder = Omit<Order, 'deliveryCode'>;
 
+/**
+ * Servicio encargado de gestionar toda la lógica de negocio de los pedidos,
+ * validación de límites de compra, interacción con catálogos y usuarios, y códigos de entrega.
+ */
 @Injectable()
 export class OrdersService {
   constructor(
@@ -44,8 +48,13 @@ export class OrdersService {
     private readonly usersClient: UsersClient,
   ) {}
 
-  // El comprador sale del token; el agricultor y el precio se toman de la oferta.
-  // Los datos del agricultor y del comprador se consultan solo si el pedido es válido
+  /**
+   * Crea una nueva orden validando la oferta, límites de compra por rol y obteniendo contactos vía TCP.
+   * @param {string} buyerId - ID del comprador.
+   * @param {Role} buyerRole - Rol del comprador.
+   * @param {CreateOrderDto} dto - DTO con datos del pedido.
+   * @returns {Promise<Order>} La orden creada y guardada.
+   */
   async create(
     buyerId: string,
     buyerRole: Role,
@@ -90,6 +99,11 @@ export class OrdersService {
     );
   }
 
+  /**
+   * Consulta los pedidos realizados por un comprador.
+   * @param {string} buyerId - ID del comprador.
+   * @returns {Promise<Order[]>} Lista de pedidos ordenados por fecha descendente.
+   */
   async findByBuyer(buyerId: string): Promise<Order[]> {
     return this.orderRepository.find({
       where: { buyerId },
@@ -97,7 +111,11 @@ export class OrdersService {
     });
   }
 
-  // El agricultor no ve el código de entrega: se lo dicta el comprador al recibir el pedido
+  /**
+   * Consulta los pedidos recibidos por un agricultor (excluyendo el código de entrega).
+   * @param {string} farmerId - ID del agricultor.
+   * @returns {Promise<FarmerOrder[]>} Lista de pedidos sin código de entrega.
+   */
   async findByFarmer(farmerId: string): Promise<FarmerOrder[]> {
     const orders = await this.orderRepository.find({
       where: { farmerId },
@@ -106,7 +124,13 @@ export class OrdersService {
     return orders.map((order) => this.withoutDeliveryCode(order));
   }
 
-  // El pedido pasa a Entregado solo si ya fue aceptado y el agricultor ingresa el código que le da el comprador
+  /**
+   * Marca un pedido como entregado validando permisos, estado aceptado y código correcto.
+   * @param {string} orderId - ID de la orden.
+   * @param {string} farmerId - ID del agricultor.
+   * @param {string} deliveryCode - Código de entrega.
+   * @returns {Promise<FarmerOrder>} La orden actualizada sin el código de entrega.
+   */
   async deliver(
     orderId: string,
     farmerId: string,
@@ -127,9 +151,13 @@ export class OrdersService {
     return this.withoutDeliveryCode(await this.orderRepository.save(order));
   }
 
-  // Aceptar o rechazar le corresponde al agricultor; cancelar, al comprador.
-  // Solo se puede hacer mientras el pedido está Solicitado. Si quien cambia es el agricultor,
-  // la respuesta no incluye el código de entrega
+  /**
+   * Cambia el estado de una orden (Aceptar, Rechazar o Cancelar).
+   * @param {string} orderId - ID de la orden.
+   * @param {string} userId - ID del usuario que realiza la acción.
+   * @param {OrderStatus} status - Nuevo estado.
+   * @returns {Promise<Order | FarmerOrder>} La orden con el estado actualizado.
+   */
   async changeStatus(
     orderId: string,
     userId: string,
@@ -167,6 +195,12 @@ export class OrdersService {
       : saved;
   }
 
+  /**
+   * Busca una orden por ID o lanza un error si no existe.
+   * @private
+   * @param {string} orderId - ID de la orden.
+   * @returns {Promise<Order>} La orden encontrada.
+   */
   private async findOrder(orderId: string): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { OrderId: orderId },
@@ -177,14 +211,24 @@ export class OrdersService {
     return order;
   }
 
-  // Copia del pedido sin el código: el pedido guardado lo conserva
+  /**
+   * Retorna una copia del pedido excluyendo el código de seguridad de entrega.
+   * @private
+   * @param {Order} order - Orden original.
+   * @returns {FarmerOrder} Orden sin el campo deliveryCode.
+   */
   private withoutDeliveryCode(order: Order): FarmerOrder {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { deliveryCode, ...farmerOrder } = order;
     return farmerOrder;
   }
 
-  // Solo los datos públicos del usuario: sin correo, documento ni dirección
+  /**
+   * Extrae únicamente los datos públicos de contacto de un usuario.
+   * @private
+   * @param {UserSummary} user - Datos completos del usuario.
+   * @returns {OrderContact} Datos de contacto resumidos.
+   */
   private toContact(user: UserSummary): OrderContact {
     return {
       userId: user.userId,
@@ -194,7 +238,11 @@ export class OrdersService {
     };
   }
 
-  // Código aleatorio de 6 dígitos (puede empezar en 0, por eso se guarda como texto)
+  /**
+   * Genera un código aleatorio de seguridad de 6 dígitos.
+   * @private
+   * @returns {string} Código numérico formateado como cadena.
+   */
   private generateDeliveryCode(): string {
     return randomInt(0, 1_000_000).toString().padStart(6, '0');
   }

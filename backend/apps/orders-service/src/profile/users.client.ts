@@ -7,7 +7,9 @@ import {
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 
-// Datos públicos del usuario. Vienen de users-service (sin contraseña ni tokens)
+/**
+ * Resumen de los datos públicos del usuario obtenidos desde users-service.
+ */
 export interface UserSummary {
   userId: string;
   name: string;
@@ -20,14 +22,22 @@ export interface UserSummary {
   role: string;
 }
 
-// Consulta por TCP los usuarios de users-service
+/**
+ * Cliente TCP para consultar la información de los usuarios directamente en users-service.
+ */
 @Injectable()
 export class UsersClient {
   constructor(
     @Inject('USERS_SERVICE') private readonly usersClient: ClientProxy,
   ) {}
 
-  // users-service responde null si el usuario no existe
+  /**
+   * Consulta los datos de un usuario por su ID vía TCP.
+   * @param {string} userId - ID del usuario.
+   * @returns {Promise<UserSummary>} Datos públicos del usuario.
+   * @throws {ServiceUnavailableException} Si users-service no responde.
+   * @throws {NotFoundException} Si el usuario no existe.
+   */
   async getUser(userId: string): Promise<UserSummary> {
     let user: UserSummary | null;
     try {

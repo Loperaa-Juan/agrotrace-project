@@ -4,6 +4,10 @@ import { CatalogController } from './catalog.controller';
 import { CatalogService } from './catalog.service';
 import { Product } from '../entities/product.entitie';
 
+/**
+ * Módulo de catálogo (`CatalogModule`).
+ * Configura la persistencia de la entidad Product y exporta CatalogService para ser utilizado por otros módulos (como OffertsModule).
+ */
 @Module({
   imports: [TypeOrmModule.forFeature([Product])],
   controllers: [CatalogController],

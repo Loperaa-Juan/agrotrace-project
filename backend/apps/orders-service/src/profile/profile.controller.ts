@@ -2,12 +2,18 @@ import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard, Role, Roles, RolesGuard } from '@app/shared';
 import { Profile, ProfileService } from './profile.service';
 
-// Perfil del agricultor: sus datos y lo que vendió en la semana y en el mes.
-// El id siempre sale del token (request.user)
+/**
+ * Controlador de perfil del agricultor (datos personales y métricas de ventas semanales/mensuales).
+ */
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
+  /**
+   * Permite al agricultor consultar su propio perfil y resumen de ventas.
+   * @param {any} request - Objeto request con los datos del token.
+   * @returns {Promise<Profile>} Perfil completo con ventas.
+   */
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)

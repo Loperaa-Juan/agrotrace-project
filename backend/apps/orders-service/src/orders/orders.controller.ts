@@ -15,12 +15,20 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { Order } from '../entities/order.entity';
 
-// Los compradores (Persona o Negocio) hacen pedidos; el agricultor los recibe y los entrega.
-// El id y el rol siempre salen del token (request.user), nunca del body
+/**
+ * Controlador HTTP encargado de exponer los endpoints de gestión de pedidos.
+ * El ID y el rol de usuario se obtienen de manera segura del token (`request.user`).
+ */
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
+  /**
+   * Permite a un comprador (Persona o Negocio) crear un nuevo pedido.
+   * @param {any} request - Objeto request con la información del token del usuario.
+   * @param {CreateOrderDto} dto - DTO con los datos de creación de la orden.
+   * @returns {Promise<Order>} La orden creada.
+   */
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PERSONA, Role.NEGOCIO)
@@ -32,6 +40,11 @@ export class OrdersController {
     );
   }
 
+  /**
+   * Permite al comprador consultar la lista de sus propios pedidos.
+   * @param {any} request - Objeto request del usuario autenticado.
+   * @returns {Promise<Order[]>} Lista de órdenes del comprador.
+   */
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PERSONA, Role.NEGOCIO)
@@ -39,6 +52,11 @@ export class OrdersController {
     return await this.ordersService.findByBuyer(request.user.sub);
   }
 
+  /**
+   * Permite al agricultor consultar los pedidos recibidos en sus ofertas.
+   * @param {any} request - Objeto request del agricultor autenticado.
+   * @returns {Promise<FarmerOrder[]>} Lista de pedidos recibidos (sin código de entrega).
+   */
   @Get('received')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)
@@ -46,7 +64,13 @@ export class OrdersController {
     return await this.ordersService.findByFarmer(request.user.sub);
   }
 
-  // El agricultor ingresa el código que le da el comprador al recibir el pedido
+  /**
+   * Permite al agricultor marcar un pedido como entregado ingresando el código provisto por el comprador.
+   * @param {any} request - Objeto request del agricultor.
+   * @param {string} orderId - ID de la orden en formato UUID.
+   * @param {string} deliveryCode - Código de entrega de 6 dígitos.
+   * @returns {Promise<FarmerOrder>} La orden actualizada sin el código de entrega.
+   */
   @Patch(':id/deliver')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)
@@ -62,8 +86,13 @@ export class OrdersController {
     );
   }
 
-  // Aceptar, rechazar o cancelar. Todos los roles entran a la ruta; el servicio decide
-  // quién puede hacer cada cambio (agricultor: aceptar/rechazar, comprador: cancelar)
+  /**
+   * Permite aceptar, rechazar o cancelar un pedido según los permisos de rol correspondientes.
+   * @param {any} request - Objeto request del usuario.
+   * @param {string} orderId - ID de la orden en formato UUID.
+   * @param {UpdateOrderStatusDto} dto - DTO con el nuevo estado.
+   * @returns {Promise<Order | FarmerOrder>} La orden actualizada.
+   */
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.PERSONA, Role.NEGOCIO, Role.AGRICULTOR)

@@ -11,7 +11,9 @@ import { CatalogService } from '../catalog/catalog.service';
 import { CreateOffertDto } from './dto/create-offert.dto';
 import { UpdateOffertDto } from './dto/update-offert.dto';
 
-// Datos de una oferta que necesita orders-service para armar un pedido
+/**
+ * Interfaz que define los datos esenciales de una oferta requeridos por orders-service para procesar un pedido.
+ */
 export interface OffertSummary {
   OffertId: string;
   farmerId: string;
@@ -20,6 +22,9 @@ export interface OffertSummary {
   unitOfMeasure: string;
 }
 
+/**
+ * Servicio encargado de gestionar toda la lógica de negocio de las ofertas publicadas por los agricultores.
+ */
 @Injectable()
 export class OffertsService {
   constructor(
@@ -29,7 +34,14 @@ export class OffertsService {
     private readonly catalogService: CatalogService,
   ) {}
 
-  // El agricultor vive en users-service (se valida por TCP); el producto, en el catálogo de este servicio
+  /**
+   * Crea una nueva oferta validando la existencia del agricultor vía TCP (users-service) 
+   * y que el producto pertenezca al catálogo activo de este servicio.
+   * @param {string} farmerId - Identificador del agricultor que publica.
+   * @param {CreateOffertDto} dto - Datos de la oferta.
+   * @returns {Promise<Offert>} La oferta creada.
+   * @throws {NotFoundException} Si el producto asociado no existe o está inactivo.
+   */
   async create(farmerId: string, dto: CreateOffertDto): Promise<Offert> {
     await this.validationService.validateUserExists(farmerId);
     if (!(await this.catalogService.productExists(dto.productId))) {
@@ -41,7 +53,11 @@ export class OffertsService {
     );
   }
 
-  // Ofertas visibles para los compradores, opcionalmente de un solo producto
+  /**
+   * Obtiene todas las ofertas activas visibles para los compradores (opcionalmente filtradas por un producto).
+   * @param {string} [productId] - Identificador opcional del producto para filtrar.
+   * @returns {Promise<Offert[]>} Lista de ofertas activas.
+   */
   async findAll(productId?: string): Promise<Offert[]> {
     return this.offertRepository.find({
       where: productId ? { isActive: true, productId } : { isActive: true },
@@ -49,7 +65,11 @@ export class OffertsService {
     });
   }
 
-  // Todas las ofertas del agricultor, incluidas las retiradas
+  /**
+   * Consulta todas las ofertas publicadas por un agricultor específico, incluyendo las que se encuentren retiradas.
+   * @param {string} farmerId - Identificador único del agricultor.
+   * @returns {Promise<Offert[]>} Lista de ofertas del agricultor.
+   */
   async findMine(farmerId: string): Promise<Offert[]> {
     return this.offertRepository.find({
       where: { farmerId },
@@ -57,6 +77,13 @@ export class OffertsService {
     });
   }
 
+  /**
+   * Actualiza una oferta asegurando que pertenezca al agricultor que realiza la petición.
+   * @param {string} offertId - Identificador de la oferta.
+   * @param {string} farmerId - Identificador del agricultor propietario.
+   * @param {UpdateOffertDto} dto - Datos a actualizar.
+   * @returns {Promise<Offert>} La oferta actualizada.
+   */
   async update(
     offertId: string,
     farmerId: string,
@@ -66,14 +93,27 @@ export class OffertsService {
     return this.offertRepository.save({ ...offert, ...dto });
   }
 
-  // Borrado lógico: la oferta deja de mostrarse pero queda en la BD
+  /**
+   * Realiza un borrado lógico de una oferta propia (cambia su estado isActive a false).
+   * @param {string} offertId - Identificador de la oferta.
+   * @param {string} farmerId - Identificador del agricultor propietario.
+   * @returns {Promise<Offert>} La oferta modificada a inactiva.
+   */
   async remove(offertId: string, farmerId: string): Promise<Offert> {
     const offert = await this.findOwnOffert(offertId, farmerId);
     offert.isActive = false;
     return this.offertRepository.save(offert);
   }
 
-  // Busca la oferta y verifica que pertenezca al agricultor que la quiere modificar
+  /**
+   * Busca una oferta verificando estrictamente que pertenezca al agricultor autenticado.
+   * @private
+   * @param {string} offertId - Identificador de la oferta.
+   * @param {string} farmerId - Identificador del agricultor.
+   * @returns {Promise<Offert>} La entidad de la oferta encontrada.
+   * @throws {NotFoundException} Si la oferta no existe.
+   * @throws {ForbiddenException} Si la oferta pertenece a otro agricultor.
+   */
   private async findOwnOffert(
     offertId: string,
     farmerId: string,
@@ -90,8 +130,12 @@ export class OffertsService {
     return offert;
   }
 
-  // Usado por orders-service (TCP): solo se puede pedir una oferta activa de un producto activo.
-  // Devuelve null si no existe para que orders-service responda 404
+  /**
+   * Utilizado por orders-service (vía TCP): valida y retorna una oferta activa de un producto activo.
+   * Retorna null si no existe para que el servicio solicitante devuelva un error 404.
+   * @param {string} offertId - Identificador de la oferta.
+   * @returns {Promise<OffertSummary | null>} Resumen de la oferta o null.
+   */
   async getActiveOffert(offertId: string): Promise<OffertSummary | null> {
     const offert = await this.offertRepository.findOne({
       where: {
@@ -113,9 +157,13 @@ export class OffertsService {
     };
   }
 
-  // Usado por orders-service (TCP) cuando el agricultor acepta un pedido.
-  // La condición va en el mismo UPDATE: si dos pedidos se aceptan a la vez y solo alcanza
-  // para uno, el segundo no afecta ninguna fila y se responde false
+  /**
+   * Utilizado por orders-service (vía TCP) al aceptar un pedido para descontar stock de forma segura.
+   * Emplea condiciones atómicas en el UPDATE para manejar concurrencia.
+   * @param {string} offertId - Identificador de la oferta.
+   * @param {number} quantity - Cantidad a descontar.
+   * @returns {Promise<boolean>} True si se descontó con éxito, false si no hubo stock suficiente.
+   */
   async decreaseQuantity(offertId: string, quantity: number): Promise<boolean> {
     const result = await this.offertRepository.update(
       {

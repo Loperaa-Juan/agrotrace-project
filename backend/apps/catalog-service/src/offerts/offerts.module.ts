@@ -6,6 +6,10 @@ import { OffertsService } from './offerts.service';
 import { Offert } from '../entities/offert.entity';
 import { CatalogModule } from '../catalog/catalog.module';
 
+/**
+ * Módulo de ofertas (`OffertsModule`).
+ * Agrupa la entidad Offert, dependencias compartidas (`SharedModule`) y el módulo de catálogo.
+ */
 @Module({
   imports: [TypeOrmModule.forFeature([Offert]), SharedModule, CatalogModule],
   controllers: [OffertsController],

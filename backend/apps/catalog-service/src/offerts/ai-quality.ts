@@ -1,16 +1,23 @@
 import { BadRequestException } from '@nestjs/common';
 import { AiQuality } from '../entities/offert.entity';
 
-// Estados que detecta el modelo de visión artificial (ai-service)
+/**
+ * Estados de clasificación detectados por el modelo de inteligencia artificial (ai-service).
+ */
 export enum AiClassification {
   BUENA = 'Buena',
   REGULAR = 'Regular',
   MALA = 'Mala',
 }
 
-// Convierte la clasificación del modelo en la calidad que se guarda en la oferta.
-// Un producto clasificado como Malo está podrido: no se puede ofertar y nunca llega a la BD.
-// Se usará al crear la oferta, cuando catalog-service consulte a ai-service con la foto
+/**
+ * Convierte la clasificación otorgada por el modelo de IA al formato de calidad apto para almacenamiento.
+ * Nota: Un producto clasificado como "Malo" se considera podrido, por lo que se rechaza inmediatamente 
+ * impidiendo su registro en la base de datos.
+ * @param {AiClassification} classification - Resultado emitido por el modelo de visión artificial.
+ * @returns {AiQuality} Calidad válida para guardar en la entidad (Buena o Regular).
+ * @throws {BadRequestException} Si el producto es clasificado en estado 'Mala'.
+ */
 export function qualityToStore(classification: AiClassification): AiQuality {
   if (classification === AiClassification.MALA) {
     throw new BadRequestException(

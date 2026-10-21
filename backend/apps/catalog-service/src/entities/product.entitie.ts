@@ -14,8 +14,11 @@ import {
 } from 'typeorm';
 import { Offert } from './offert.entity';
 
+/**
+ * Categorías oficiales disponibles para clasificar los productos agrícolas del catálogo maestro.
 // Categorías de productos agrícolas del catálogo (Estas serán cambiadas cuando entrenemos el modelo de Visión Artificial
-// ya que esta dependerá de las categorías que vea el modelo durante el entrenamiento)
+ * ya que esta dependerá de las categorías que vea el modelo durante el entrenamiento)
+ */
 export enum ProductCategory {
   FRUTAS = 'Frutas',
   VERDURAS = 'Verduras',
@@ -25,7 +28,9 @@ export enum ProductCategory {
   CEREALES = 'Cereales',
 }
 
-// Unidad en la que se comercializa el producto
+/**
+ * Unidades de medida estándar utilizadas para comercializar los productos en la plataforma.
+ */
 export enum UnitOfMeasure {
   LIBRA = 'lb',
   KILOGRAMO = 'kg',
@@ -35,38 +40,49 @@ export enum UnitOfMeasure {
 
 // Cada oferta de un agricultor (precio, cantidad, disponibilidad) debe referenciar un producto de este catálogo.
 @Entity('product')
+/**
+ * Entidad de base de datos que representa el catálogo maestro de productos de AgroTrace.
+ */
 export class Product {
+  /** Identificador único del producto en formato UUID. */
   @PrimaryGeneratedColumn('uuid')
   ProductId: string;
 
+  /** Nombre único descriptivo del producto en el catálogo. */
   @Index({ unique: true })
   @Column({ length: 100 })
   name: string;
 
+  /** Categoría a la que pertenece el producto dentro del catálogo agrícola. */
   @Column({ type: 'enum', enum: ProductCategory })
   category: ProductCategory;
 
+  /** Unidad de medida estándar empleada para comercializar el producto. */
   @Column({ type: 'enum', enum: UnitOfMeasure, default: UnitOfMeasure.LIBRA })
   unitOfMeasure: UnitOfMeasure;
 
+  /** Descripción general o características del producto maestro. */
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  // URL de la imagen de referencia del producto
+  /** 
+   * URL de la imagen de referencia del producto en el catálogo.
+   */
   // @Column({ type: "varchar", nullable: true })
   // referenceImageUrl: string | null;
 
-  // Estado del producto: si está inactivo (borrado lógico) no admite nuevas ofertas
   @Column({ default: true })
   isActive: boolean;
 
+  /** Fecha y hora de creación del registro. */
   @CreateDateColumn()
   createdAt: Date;
 
+  /** Fecha y hora de la última modificación del registro. */
   @UpdateDateColumn()
   updatedAt: Date;
 
-  // Relación de uno a muchos: Un producto del catálogo puede tener muchas ofertas
+  /** Relación de uno a muchos: un producto del catálogo maestro puede poseer múltiples ofertas asociadas. */
   @OneToMany(() => Offert, (offert) => offert.product)
   offerts: Relation<Offert[]>;
 }

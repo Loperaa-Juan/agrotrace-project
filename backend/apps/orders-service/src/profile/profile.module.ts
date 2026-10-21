@@ -6,6 +6,9 @@ import { ProfileService } from './profile.service';
 import { UsersClient } from './users.client';
 import { Order } from '../entities/order.entity';
 
+/**
+ * Módulo de perfil (`ProfileModule`). Configura la entidad Order y el cliente TCP para users-service.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order]),

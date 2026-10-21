@@ -7,6 +7,11 @@ import { CatalogClient } from './catalog.client';
 import { UsersClient } from '../profile/users.client';
 import { Order } from '../entities/order.entity';
 
+/**
+ * Módulo principal de órdenes (`OrdersModule`).
+ * Configura la persistencia de la entidad Order y registra los clientes TCP 
+ * para comunicarse con catalog-service y users-service.
+ */
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order]),
