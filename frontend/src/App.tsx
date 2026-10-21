@@ -3,7 +3,6 @@ import { AppLayout } from './routes/app/app-layout';
 import { ExplorarPage } from './routes/app/explore';
 import FilterPage from './routes/app/filter-page';
 import { DetalleProductoPage } from './routes/app/product-detail';
-import { DetallePedidoPage } from './routes/app/order-detail';
 import { PedidosPage } from './routes/app/orders';
 import { PerfilPage } from './routes/app/profile';
 import { PublicarPage } from './routes/app/publish';
@@ -25,7 +24,6 @@ function App() {
             <Route path={routes.detalle} element={<DetalleProductoPage />} />
             <Route path={routes.filtros} element={<FilterPage />} />
             <Route path={routes.pedidos} element={<PedidosPage />} />
-            <Route path={routes.detallePedido} element={<DetallePedidoPage />} />
             <Route path={routes.publicar} element={<PublicarPage />} />
           </Route>
           <Route

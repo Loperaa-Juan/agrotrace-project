@@ -32,12 +32,6 @@ export type Oferta = {
   isActive: boolean;
 };
 
-/** Lo que cada parte del pedido ve de la otra: el comprador del agricultor y viceversa. */
-export type ContactoPedido = Pick<
-  PerfilUsuario,
-  'userId' | 'name' | 'phone' | 'municipality'
->;
-
 export type EstadoPedido = 'Solicitado' | 'Aceptado' | 'Rechazado' | 'Entregado' | 'Cancelado';
 
 export type Pedido = {
@@ -49,12 +43,6 @@ export type Pedido = {
   unitPrice: number;
   totalPrice: number;
   status: EstadoPedido;
-  /** Código de 6 dígitos que el comprador entrega al agricultor para confirmar la entrega. */
-  deliveryCode?: string;
-  /** Datos del agricultor guardados al crear el pedido; solo llegan en `GET /orders/me`. */
-  farmer?: ContactoPedido | null;
-  /** Datos del comprador guardados al crear el pedido; solo llegan en `GET /orders/received`. */
-  buyer?: ContactoPedido | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -109,21 +97,3 @@ export const obtenerPedidosRecibidos = () => pedir<Pedido[]>(`${ORDERS_URL}/orde
 export const obtenerPerfilAgricultor = () =>
   pedir<PerfilAgricultor>(`${ORDERS_URL}/profile/me`);
 export const obtenerMisPedidos =() => pedir<Pedido[]>(`${ORDERS_URL}/orders/me`);
-/** El comprador sale del token; el agricultor y el precio los toma orders-service de la oferta. */
-export const crearPedido = (offertId: string, quantity: number) =>
-  pedir<Pedido>(`${ORDERS_URL}/orders`, 'POST', { offertId, quantity });
-/** Solo el comprador puede cancelar, y solo mientras el pedido está Solicitado. */
-export const cancelarPedido = (orderId: string) =>
-  pedir<Pedido>(`${ORDERS_URL}/orders/${orderId}/status`, 'PATCH', {
-    status: 'Cancelado',
-  });
-/** Aceptar o rechazar le corresponde al agricultor, y solo mientras el pedido está Solicitado. */
-export const responderPedido = (
-  orderId: string,
-  status: Extract<EstadoPedido, 'Aceptado' | 'Rechazado'>,
-) => pedir<Pedido>(`${ORDERS_URL}/orders/${orderId}/status`, 'PATCH', { status });
-/** El agricultor ingresa el código que le dicta el comprador al recibir el pedido. */
-export const confirmarEntrega = (orderId: string, deliveryCode: string) =>
-  pedir<Pedido>(`${ORDERS_URL}/orders/${orderId}/deliver`, 'PATCH', {
-    deliveryCode,
-  });

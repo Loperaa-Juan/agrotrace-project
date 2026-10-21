@@ -1,8 +1,3 @@
-/*
-Esta es la entidad en la que representamos los pedidos que hace un comprador (persona o negocio)
-a un agricultor sobre una de sus ofertas
-*/
-
 import {
   Column,
   CreateDateColumn,
@@ -13,7 +8,9 @@ import {
   type ValueTransformer,
 } from 'typeorm';
 
-// Estados por los que pasa un pedido
+/**
+ * Enumerado que define los diferentes estados por los que puede pasar un pedido en AgroTrace.
+ */
 export enum OrderStatus {
   SOLICITADO = 'Solicitado', // Recién creado, esperando respuesta del agricultor
   ACEPTADO = 'Aceptado', // El agricultor lo aceptó
@@ -22,15 +19,10 @@ export enum OrderStatus {
   CANCELADO = 'Cancelado', // El comprador lo canceló antes de que fuera aceptado
 }
 
-// Datos públicos de cada parte (agricultor o comprador) que se copian al pedido al crearlo
-export interface OrderContact {
-  userId: string;
-  name: string;
-  phone: string;
-  municipality: string;
-}
-
-// Postgres devuelve las columnas numeric como string; las convertimos a number
+/**
+ * Transformador para convertir valores numéricos que PostgreSQL devuelve como string a tipo number en TypeScript.
+ * @type {ValueTransformer}
+ */
 const decimalTransformer: ValueTransformer = {
   to: (value: number) => value,
   from: (value: string | null) =>
@@ -38,36 +30,40 @@ const decimalTransformer: ValueTransformer = {
 };
 
 @Entity('order')
+/**
+ * Entidad principal que representa los pedidos realizados por un comprador (persona o negocio)
+ * sobre una de las ofertas publicadas por un agricultor.
+ */
 export class Order {
   @PrimaryGeneratedColumn('uuid')
   OrderId: string;
 
-  // Usuario que hace el pedido (persona o negocio). Vive en users-service, por eso no hay relación entre servicios
+  /**
+  * Identificador del usuario que hace el pedido (persona o negocio). Vive en users-service, por lo que no existe relación 
+  * directa entre bases de datos. 
+  */
   @Index()
   @Column({ type: 'uuid' })
   buyerId: string;
 
-  // Datos del comprador al momento del pedido, para que el agricultor pueda coordinar la entrega
-  // sin preguntar a users-service. Es null en los pedidos creados antes de guardar estos datos
-  @Column({ type: 'jsonb', nullable: true })
-  buyer: OrderContact | null;
-
-  // Oferta que se está pidiendo. Vive en catalog-service, por eso no hay relación entre servicios
+  /**
+   * Identificador de la oferta que se está pidiendo. Vive en catalog-service, por lo que no hay relación directa entre servicios.
+   */
   @Index()
   @Column({ type: 'uuid' })
   offertId: string;
 
-  // Agricultor dueño de la oferta. Se guarda aquí para consultar sus pedidos sin preguntar a catalog-service
+  /**
+   * Identificador del agricultor dueño de la oferta. Se almacena localmente para optimizar consultas de sus pedidos 
+   * sin depender de catalog-service.
+   */
   @Index()
   @Column({ type: 'uuid' })
   farmerId: string;
 
-  // Datos del agricultor al momento del pedido, para mostrarlos al comprador sin preguntar a users-service.
-  // Es null en los pedidos creados antes de guardar estos datos
-  @Column({ type: 'jsonb', nullable: true })
-  farmer: OrderContact | null;
-
-  // Cantidad pedida, en la unidad de medida del producto (lb, kg, g, unidad)
+  /**
+   * Cantidad pedida, expresada en la unidad de medida oficial del producto (lb, kg, g, unidad).
+   */
   @Column({
     type: 'numeric',
     precision: 12,
@@ -76,7 +72,10 @@ export class Order {
   })
   quantity: number;
 
-  // Precio por unidad al momento del pedido: si el agricultor cambia el precio de la oferta, el pedido no cambia
+  /**
+   * Precio unitario al momento del registro del pedido; si el agricultor modifica el precio de la oferta 
+   * posteriormente, este pedido no se altera.
+   */
   @Column({
     type: 'numeric',
     precision: 12,
@@ -85,7 +84,9 @@ export class Order {
   })
   unitPrice: number;
 
-  // quantity * unitPrice
+  /**
+   * Valor total monetario calculado como (quantity * unitPrice).
+   */
   @Column({
     type: 'numeric',
     precision: 12,
@@ -97,7 +98,11 @@ export class Order {
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.SOLICITADO })
   status: OrderStatus;
 
-  // Código de 6 dígitos que ve el comprador y que el agricultor debe ingresar al entregar el pedido
+  /**
+   * Código de seguridad de 6 dígitos visible para el comprador, el cual el agricultor debe ingresar obligatoriamente 
+   * al realizar la entrega.
+   */
+
   @Column({ length: 6 })
   deliveryCode: string;
 

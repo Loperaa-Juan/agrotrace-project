@@ -22,7 +22,7 @@
     "start:users": "nest start users-service --watch",
     "start:catalog": "nest start catalog-service --watch",
     "start:orders": "nest start orders-service --watch",
-    "docs:build": "jsdoc -c jsdoc.json"
+    "docs": "jsdoc -c jsdoc.json"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",

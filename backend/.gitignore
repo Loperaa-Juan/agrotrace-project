@@ -1,8 +1,5 @@
 # compiled output
 dist/
-
-# JSDoc generated report
-docs/
 node_modules/
 build/
 

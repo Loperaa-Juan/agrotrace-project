@@ -2,14 +2,8 @@ import { Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ValidationService } from './services/validation.service';
 
-/**
- * Módulo con la lógica compartida entre microservicios. Registra el cliente TCP
- * `USERS_SERVICE` y exporta {@link ValidationService}.
- *
- * Cada servicio que lo importe puede definir en su `.env`:
- * - `USERS_SERVICE_HOST`: host TCP de users-service (por defecto `localhost`).
- * - `USERS_SERVICE_PORT`: puerto TCP de users-service (por defecto `3001`).
- */
+// Lógica compartida entre microservicios. Cada servicio que la importe puede definir en su .env
+// USERS_SERVICE_HOST y USERS_SERVICE_PORT (TCP de users-service)
 @Module({
   imports: [
     ClientsModule.register([

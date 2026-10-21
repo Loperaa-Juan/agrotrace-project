@@ -8,22 +8,27 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomInt } from 'node:crypto';
 import { Role } from '@app/shared';
-import { Order, OrderContact, OrderStatus } from '../entities/order.entity';
+import { Order, OrderStatus } from '../entities/order.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { CatalogClient } from './catalog.client';
-import { UserSummary, UsersClient } from '../profile/users.client';
 
-// Solo los negocios pueden pedir más de esta cantidad de libras en un pedido
+/**
+ * Límite en libras permitido para compradores comunes en un solo pedido.
+ */
 const LIMITE_LIBRAS = 50;
 
-// Cuántas libras hay en una unidad de cada medida. Las ofertas por 'unidad' no tienen límite
+/**
+ * Tabla de conversión de unidades a libras. Las ofertas por 'unidad' no tienen límite de conversión en libras.
+ */
 const LIBRAS_POR_UNIDAD: Record<string, number> = {
   lb: 1,
   kg: 2.20462,
   g: 0.00220462,
 };
 
-// Quién puede pasar un pedido a cada estado. Entregado no está aquí: se hace con el código (deliver)
+/**
+ * Mapeo de quién tiene autorización para pasar un pedido a determinado estado. (Nota: 'Entregado' se maneja mediante código de entrega).
+ */
 const QUIEN_CAMBIA_EL_ESTADO: Partial<
   Record<OrderStatus, 'agricultor' | 'comprador'>
 > = {
@@ -32,20 +37,27 @@ const QUIEN_CAMBIA_EL_ESTADO: Partial<
   [OrderStatus.CANCELADO]: 'comprador',
 };
 
-// Pedido tal como lo ve el agricultor: sin el código de entrega
-export type FarmerOrder = Omit<Order, 'deliveryCode'>;
-
+/**
+ * Servicio encargado de gestionar toda la lógica de negocio relacionada con las órdenes,
+ * validación de límites de compra, interacción con el catálogo y flujos de entrega.
+ */
 @Injectable()
 export class OrdersService {
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
     private readonly catalogClient: CatalogClient,
-    private readonly usersClient: UsersClient,
   ) {}
 
-  // El comprador sale del token; el agricultor y el precio se toman de la oferta.
-  // Los datos del agricultor y del comprador se consultan solo si el pedido es válido
+  /**
+   * Crea una nueva orden validando la existencia de la oferta, restricciones de cantidad por rol y calculando precios.
+   * @param {string} buyerId - Identificador único del comprador obtenido del token.
+   * @param {Role} buyerRole - Rol actual del comprador (Persona, Negocio).
+   * @param {CreateOrderDto} dto - DTO con los datos de la oferta y cantidad.
+   * @returns {Promise<Order>} La entidad de la orden guardada en base de datos.
+   * @throws {ForbiddenException} Si un usuario común excede el límite de libras permitido.
+   * @throws {BadRequestException} Si la cantidad solicitada supera el stock disponible en la oferta.
+   */
   async create(
     buyerId: string,
     buyerRole: Role,
@@ -69,18 +81,11 @@ export class OrdersService {
       );
     }
 
-    const [farmer, buyer] = await Promise.all([
-      this.usersClient.getUser(offert.farmerId),
-      this.usersClient.getUser(buyerId),
-    ]);
-
     return this.orderRepository.save(
       this.orderRepository.create({
         buyerId,
-        buyer: this.toContact(buyer),
         offertId: dto.offertId,
         farmerId: offert.farmerId,
-        farmer: this.toContact(farmer),
         quantity: dto.quantity,
         unitPrice: offert.pricePerUnit,
         totalPrice: Math.round(dto.quantity * offert.pricePerUnit * 100) / 100,
@@ -90,6 +95,11 @@ export class OrdersService {
     );
   }
 
+  /**
+   * Consulta todos los pedidos realizados por un comprador específico, ordenados del más reciente al más antiguo.
+   * @param {string} buyerId - Identificador único del comprador.
+   * @returns {Promise<Order[]>} Lista de pedidos del comprador.
+   */
   async findByBuyer(buyerId: string): Promise<Order[]> {
     return this.orderRepository.find({
       where: { buyerId },
@@ -97,21 +107,36 @@ export class OrdersService {
     });
   }
 
-  // El agricultor no ve el código de entrega: se lo dicta el comprador al recibir el pedido
-  async findByFarmer(farmerId: string): Promise<FarmerOrder[]> {
+  /**
+   * Consulta los pedidos recibidos por un agricultor. 
+   * Excluye el código de entrega por seguridad (solo se dicta verbalmente al recibir).
+   * @param {string} farmerId - Identificador único del agricultor.
+   * @returns {Promise<Omit<Order, 'deliveryCode'>[]>} Lista de pedidos filtrados sin el código de entrega.
+   */
+  async findByFarmer(farmerId: string): Promise<Omit<Order, 'deliveryCode'>[]> {
     const orders = await this.orderRepository.find({
       where: { farmerId },
       order: { createdAt: 'DESC' },
     });
-    return orders.map((order) => this.withoutDeliveryCode(order));
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    return orders.map(({ deliveryCode, ...order }) => order);
   }
 
-  // El pedido pasa a Entregado solo si ya fue aceptado y el agricultor ingresa el código que le da el comprador
+  /**
+   * Marca un pedido como Entregado, validando que pertenezca al agricultor, 
+   * que se encuentre previamente aceptado y que el código de entrega coincida.
+   * @param {string} orderId - ID de la orden.
+   * @param {string} farmerId - ID del agricultor que intenta entregar.
+   * @param {string} deliveryCode - Código de seguridad de 6 dígitos provisto por el comprador.
+   * @returns {Promise<Order>} La orden actualizada con estado Entregado.
+   * @throws {ForbiddenException} Si el agricultor intenta entregar una orden que no le pertenece.
+   * @throws {BadRequestException} Si la orden no está aceptada o el código es inválido.
+   */
   async deliver(
     orderId: string,
     farmerId: string,
     deliveryCode: string,
-  ): Promise<FarmerOrder> {
+  ): Promise<Order> {
     const order = await this.findOrder(orderId);
     if (order.farmerId !== farmerId) {
       throw new ForbiddenException('You can only deliver your own orders');
@@ -124,17 +149,23 @@ export class OrdersService {
     }
 
     order.status = OrderStatus.ENTREGADO;
-    return this.withoutDeliveryCode(await this.orderRepository.save(order));
+    return this.orderRepository.save(order);
   }
 
-  // Aceptar o rechazar le corresponde al agricultor; cancelar, al comprador.
-  // Solo se puede hacer mientras el pedido está Solicitado. Si quien cambia es el agricultor,
-  // la respuesta no incluye el código de entrega
+  /**
+   * Cambia el estado de una orden (Aceptar, Rechazar o Cancelar) validando permisos de actor y estado inicial.
+   * @param {string} orderId - ID de la orden.
+   * @param {string} userId - ID del usuario que realiza la acción.
+   * @param {OrderStatus} status - Nuevo estado al que se desea llevar la orden.
+   * @returns {Promise<Order>} La orden con el estado actualizado.
+   * @throws {ForbiddenException} Si el usuario no tiene permisos para aplicar ese estado específico.
+   * @throws {BadRequestException} Si el pedido ya no se encuentra en estado 'Solicitado'.
+   */
   async changeStatus(
     orderId: string,
     userId: string,
     status: OrderStatus,
-  ): Promise<Order | FarmerOrder> {
+  ): Promise<Order> {
     const order = await this.findOrder(orderId);
 
     const responsable = QUIEN_CAMBIA_EL_ESTADO[status];
@@ -161,12 +192,16 @@ export class OrdersService {
     }
 
     order.status = status;
-    const saved = await this.orderRepository.save(order);
-    return responsable === 'agricultor'
-      ? this.withoutDeliveryCode(saved)
-      : saved;
+    return this.orderRepository.save(order);
   }
 
+  /**
+   * Busca una orden por su identificador único o lanza una excepción si no existe.
+   * @private
+   * @param {string} orderId - ID de la orden.
+   * @returns {Promise<Order>} La entidad de la orden encontrada.
+   * @throws {NotFoundException} Si no se encuentra la orden.
+   */
   private async findOrder(orderId: string): Promise<Order> {
     const order = await this.orderRepository.findOne({
       where: { OrderId: orderId },
@@ -177,24 +212,11 @@ export class OrdersService {
     return order;
   }
 
-  // Copia del pedido sin el código: el pedido guardado lo conserva
-  private withoutDeliveryCode(order: Order): FarmerOrder {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { deliveryCode, ...farmerOrder } = order;
-    return farmerOrder;
-  }
-
-  // Solo los datos públicos del usuario: sin correo, documento ni dirección
-  private toContact(user: UserSummary): OrderContact {
-    return {
-      userId: user.userId,
-      name: user.name,
-      phone: user.phone,
-      municipality: user.municipality,
-    };
-  }
-
-  // Código aleatorio de 6 dígitos (puede empezar en 0, por eso se guarda como texto)
+  /**
+   * Genera un código aleatorio de seguridad de 6 dígitos para la entrega (puede empezar con ceros, por eso es texto).
+   * @private
+   * @returns {string} Código numérico formateado a 6 caracteres.
+   */
   private generateDeliveryCode(): string {
     return randomInt(0, 1_000_000).toString().padStart(6, '0');
   }
