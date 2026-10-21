@@ -13,6 +13,7 @@ import { ProductCategory, UnitOfMeasure } from '../../entities/product.entitie';
  */
 export class UpdateProductDto {
   /** Nuevo nombre comercial opcional para el producto. */
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
