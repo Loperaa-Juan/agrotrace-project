@@ -4,12 +4,13 @@ import { Repository } from 'typeorm';
 import { Order, OrderStatus } from '../entities/order.entity';
 import { UserSummary, UsersClient } from './users.client';
 
-// Total vendido y número de ventas en un periodo
+/** Resumen monetario y conteo de ventas en un periodo de tiempo. */
 export interface SalesSummary {
   total: number;
   count: number;
 }
 
+/** Estructura del perfil consolidado del agricultor. */
 export interface Profile {
   user: UserSummary;
   sales: {
@@ -18,6 +19,9 @@ export interface Profile {
   };
 }
 
+/**
+ * Servicio encargado de calcular las estadísticas de ventas y unirlas con los datos de usuario.
+ */
 @Injectable()
 export class ProfileService {
   constructor(
@@ -26,7 +30,11 @@ export class ProfileService {
     private readonly usersClient: UsersClient,
   ) {}
 
-  // Una venta es un pedido Entregado; su fecha es la de entrega (updatedAt)
+  /**
+   * Obtiene el perfil de un agricultor consolidando su información personal y sus ventas de la semana y mes.
+   * @param {string} userId - ID del agricultor.
+   * @returns {Promise<Profile>} Perfil y métricas de ventas.
+   */
   async getProfile(userId: string): Promise<Profile> {
     const [user, sales] = await Promise.all([
       this.usersClient.getUser(userId),
@@ -44,14 +52,24 @@ export class ProfileService {
     };
   }
 
-  // Suma las ventas entregadas desde la fecha indicada
+  /**
+   * Suma las ventas entregadas a partir de una fecha específica.
+   * @private
+   * @param {Order[]} sales - Lista de órdenes entregadas.
+   * @param {Date} since - Fecha inicial del periodo.
+   * @returns {SalesSummary} Resumen de ventas.
+   */
   private summarize(sales: Order[], since: Date): SalesSummary {
     const inPeriod = sales.filter((sale) => sale.updatedAt >= since);
     const total = inPeriod.reduce((sum, sale) => sum + sale.totalPrice, 0);
     return { total: Math.round(total * 100) / 100, count: inPeriod.length };
   }
 
-  // Lunes de esta semana a las 00:00
+  /**
+   * Obtiene la fecha del Lunes de la semana actual a las 00:00.
+   * @private
+   * @returns {Date} Inicio de la semana.
+   */
   private startOfWeek(): Date {
     const now = new Date();
     const daysSinceMonday = (now.getDay() + 6) % 7;
@@ -62,7 +80,11 @@ export class ProfileService {
     );
   }
 
-  // Día 1 de este mes a las 00:00
+  /**
+   * Obtiene la fecha del primer día del mes actual a las 00:00.
+   * @private
+   * @returns {Date} Inicio del mes.
+   */
   private startOfMonth(): Date {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
