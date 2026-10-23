@@ -58,11 +58,31 @@ def test_predict_classifies_cropped_fruit(monkeypatch):
         received_sizes.append(image.size)
         return "Fresh", 0.9
 
-    monkeypatch.setattr("main.predict", spy_predict)
+    monkeypatch.setattr("inference.pipeline.predict", spy_predict)
 
     post_image(BANANA_PATH.read_bytes())
 
     assert received_sizes[0] != (512, 512)
+
+
+# YOLO debe correr una sola vez por foto: la misma detección sirve para recortar y para dibujar
+def test_predict_runs_detector_once(monkeypatch):
+    calls = []
+
+    with TestClient(app) as app_client:
+        original_predict = app.state.detector.predict
+
+        def counting_predict(*args, **kwargs):
+            calls.append(1)
+            return original_predict(*args, **kwargs)
+
+        monkeypatch.setattr(app.state.detector, "predict", counting_predict)
+        app_client.post(
+            "/predict",
+            files={"image": ("fruta.jpeg", BANANA_PATH.read_bytes(), "image/jpeg")},
+        )
+
+    assert len(calls) == 1
 
 
 # Si no se detecta ninguna fruta, se debe responder 422 con un mensaje claro

@@ -6,7 +6,7 @@ import pytest
 import torch
 from PIL import Image
 
-from inference.detector import crop_fruit, load_detector
+from inference.detector import draw_box, find_fruit, load_detector
 
 DETECTOR_PATH = (
     Path(__file__).resolve().parents[2] / "model" / "yoloe-26s-seg-fruits.pt"
@@ -65,26 +65,47 @@ def test_missing_detector_raises_file_not_found(tmp_path):
         load_detector(tmp_path / "yoloe-26s-seg.pt")
 
 
-# Se debe recortar la caja con mayor confianza, conservando los colores RGB de la foto
-def test_crops_most_confident_box_in_rgb():
-    image = Image.new("RGB", (100, 80))
-    image.paste((255, 0, 0), (20, 5, 90, 70))  # la fruta: solo esta zona es roja
+# Se debe devolver la caja (x1, y1, x2, y2) de la detección con mayor confianza
+def test_finds_most_confident_box():
     detector = FakeDetector(xyxy=[[10, 10, 50, 40], [20, 5, 90, 70]], conf=[0.30, 0.90])
 
-    crop = crop_fruit(detector, image)
-
-    assert crop.getcolors() == [(70 * 65, (255, 0, 0))]
+    assert find_fruit(detector, Image.new("RGB", (100, 80))) == (20, 5, 90, 70)
 
 
-# Si no se detecta ninguna fruta, no hay recorte
+# Si no se detecta ninguna fruta, no hay caja
 def test_returns_none_without_detections():
-    assert crop_fruit(FakeDetector(xyxy=[], conf=[]), Image.new("RGB", (100, 80))) is None
+    assert find_fruit(FakeDetector(xyxy=[], conf=[]), Image.new("RGB", (100, 80))) is None
 
 
-# Con el detector real, en la foto de un banano el recorte es más pequeño que la foto
-def test_crops_fruit_from_real_photo(detector):
-    photo = Image.open(BANANA_PATH)
+# Con el detector real, en la foto de un banano la caja es más pequeña que la foto (512x512)
+def test_finds_fruit_in_real_photo(detector):
+    x1, y1, x2, y2 = find_fruit(detector, Image.open(BANANA_PATH))
 
-    crop = crop_fruit(detector, photo)
+    assert (x2 - x1) * (y2 - y1) < 512 * 512
 
-    assert crop.width * crop.height < photo.width * photo.height
+
+# Se debe dibujar solo el contorno verde de la caja, sin rellenarla
+def test_draws_green_box_outline():
+    image = Image.new("RGB", (100, 80), (128, 128, 128))
+
+    annotated = draw_box(image, (20, 5, 90, 70))
+
+    # borde izquierdo, borde derecho, interior de la caja y fuera de ella
+    pixels = [annotated.getpixel(xy) for xy in [(20, 37), (90, 37), (55, 37), (5, 5)]]
+    assert pixels == [(0, 255, 0), (0, 255, 0), (128, 128, 128), (128, 128, 128)]
+
+
+# La foto original no se modifica: el recuadro se dibuja sobre una copia
+def test_draw_box_keeps_original_photo():
+    image = Image.new("RGB", (100, 80), (128, 128, 128))
+
+    draw_box(image, (20, 5, 90, 70))
+
+    assert image.getpixel((20, 37)) == (128, 128, 128)
+
+
+# Las fotos con transparencia (RGBA) se devuelven en RGB, porque JPEG no admite canal alfa
+def test_draw_box_returns_rgb_for_transparent_photo():
+    annotated = draw_box(Image.new("RGBA", (100, 80)), (20, 5, 90, 70))
+
+    assert annotated.mode == "RGB"

@@ -1,7 +1,9 @@
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageDraw
 from ultralytics import YOLOE
+
+Box = tuple[int, int, int, int]
 
 
 def load_detector(path: str | Path) -> YOLOE:
@@ -12,13 +14,19 @@ def load_detector(path: str | Path) -> YOLOE:
     return YOLOE(str(path))
 
 
-def crop_fruit(detector: YOLOE, image: Image.Image) -> Image.Image | None:
-    """Crop the most confident fruit detection, or return None if no fruit is found."""
+def find_fruit(detector: YOLOE, image: Image.Image) -> Box | None:
+    """Return the (x1, y1, x2, y2) box of the most confident fruit detection, or None."""
     # agnostic_nms: only where the fruit is matters, not which class YOLOE assigns (same as training)
     boxes = detector.predict(image, agnostic_nms=True, verbose=False)[0].boxes
     if len(boxes) == 0:
         return None
 
     best = boxes.conf.argmax()
-    # Crop the PIL image itself: ultralytics' orig_img is BGR
-    return image.crop(tuple(boxes.xyxy[best].int().tolist()))
+    return tuple(boxes.xyxy[best].int().tolist())
+
+
+def draw_box(image: Image.Image, box: Box) -> Image.Image:
+    """Return an RGB copy of the image with the box outlined in green, without a label."""
+    annotated = image.convert("RGB")
+    ImageDraw.Draw(annotated).rectangle(box, outline=(0, 255, 0), width=3)
+    return annotated

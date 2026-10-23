@@ -1,3 +1,4 @@
+import base64
 from contextlib import asynccontextmanager
 from io import BytesIO
 from pathlib import Path
@@ -7,8 +8,9 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import RedirectResponse
 from PIL import Image
 
-from inference.detector import crop_fruit, load_detector
-from inference.engine import load_model, predict
+from inference.detector import load_detector
+from inference.engine import load_model
+from inference.pipeline import analyze_fruit
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "model"
 MODEL_PATH = MODEL_DIR / "tf_model_mobilenetv2.onnx"
@@ -46,18 +48,23 @@ async def root():
 async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
     """Endpoint to predict the class of an image."""
 
-    # Load the model from app state
-    session = app.state.model
-
     # Open the uploaded file as a PIL image
     img = Image.open(BytesIO(await image.read()))
 
-    # Crop the fruit first: the classifier was trained on YOLOE crops, not full photos
-    fruit = crop_fruit(app.state.detector, img)
-    if fruit is None:
+    # Detect the fruit once, then classify its crop and mark it on the photo
+    result = analyze_fruit(app.state.detector, app.state.model, img)
+    if result is None:
         raise HTTPException(422, "No se detectó ninguna fruta en la imagen")
 
-    # Get prediction and confidence
-    predicted_class, confidence = predict(session, fruit)
+    return {
+        "class": result.predicted_class,
+        "confidence": result.trust_score,
+        "annotated_image": encode_jpeg(result.annotated_image),
+    }
 
-    return {"class": predicted_class, "confidence": confidence}
+
+def encode_jpeg(image: Image.Image) -> str:
+    """Encode an image as base64 JPEG so it fits in the JSON response."""
+    buffer = BytesIO()
+    image.save(buffer, format="JPEG")
+    return base64.b64encode(buffer.getvalue()).decode()
