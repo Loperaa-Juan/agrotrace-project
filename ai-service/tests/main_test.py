@@ -1,5 +1,8 @@
+from io import BytesIO
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from main import app
 
@@ -25,3 +28,17 @@ def test_redirect_docs():
     assert (
         response.headers["location"] == "/docs"
     )  # Verifica que la URL redirige a /docs
+
+
+# El endpoint /predict debe recibir la imagen como archivo y devolver su clase
+def test_predict_classifies_uploaded_image():
+    buffer = BytesIO()
+    Image.new("RGB", (64, 64), "red").save(buffer, format="PNG")
+
+    # El bloque with ejecuta el lifespan, que carga el modelo
+    with TestClient(app) as app_client:
+        response = app_client.post(
+            "/predict", files={"image": ("fruta.png", buffer.getvalue(), "image/png")}
+        )
+
+    assert response.json()["class"] in ("Fresh", "Mild", "Rotten")
