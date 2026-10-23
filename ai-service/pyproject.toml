@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.161.1",
+    "pillow>=13.0.0",
     "pydantic-settings>=2.16.1",
     "pysonar>=1.10.0.5888",
     "pytest>=9.1.1",
