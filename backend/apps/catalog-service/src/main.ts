@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { CatalogServiceModule } from './catalog-service.module';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { setupSwagger } from './swagger';
 
 /**
  * Función principal de arranque (Bootstrap) para catalog-service.
@@ -23,6 +24,9 @@ async function bootstrap() {
       true,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+
+  // Swagger: interfaz en /docs y documento OpenAPI en /docs-json
+  setupSwagger(app);
 
   // TCP: comunicación interna con los demás microservicios
   const microservice = app.connectMicroservice<MicroserviceOptions>({
