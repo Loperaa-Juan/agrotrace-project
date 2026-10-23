@@ -14,11 +14,12 @@ import {
   type Relation,
   type ValueTransformer,
 } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 import { Product } from './product.entitie';
 
 /**
  * Calidades permitidas que se guardan en la oferta.
- * Nota: El modelo de visión artificial también detecta "Mala", pero un producto en mal estado 
+ * Nota: El modelo de visión artificial también detecta "Mala", pero un producto en mal estado
  * no se puede vender, por lo que ese estado nunca llega a persistirse en la base de datos.
  */
 export enum AiQuality {
@@ -41,10 +42,12 @@ const decimalTransformer: ValueTransformer = {
  * Entidad de base de datos que representa una oferta publicada por un agricultor en la plataforma.
  */
 export class Offert {
+  @ApiProperty({ format: 'uuid' })
   @PrimaryGeneratedColumn('uuid')
   OffertId: string;
 
   /** Producto del catálogo maestro al que pertenece la oferta. */
+  @ApiProperty({ format: 'uuid' })
   @Column({ type: 'uuid' })
   productId: string;
 
@@ -57,15 +60,22 @@ export class Offert {
   product: Relation<Product>;
 
   /** ID del agricultor que publica la oferta (vive en users-service). */
+  @ApiProperty({ format: 'uuid' })
   @Index()
   @Column({ type: 'uuid' })
   farmerId: string;
 
   /** Descripción detallada o notas adicionales de la oferta. */
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Cosecha de la semana, sin químicos',
+  })
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
   /** Precio monetario establecido por unidad de medida. */
+  @ApiProperty({ example: 2500 })
   @Column({
     type: 'numeric',
     precision: 12,
@@ -75,6 +85,7 @@ export class Offert {
   pricePerUnit: number;
 
   /** Cantidad total de producto disponible para la venta. */
+  @ApiProperty({ example: 100 })
   @Column({
     type: 'numeric',
     precision: 12,
@@ -84,32 +95,47 @@ export class Offert {
   availableQuantity: number;
 
   /** Fecha de cosecha del producto, utilizada para asegurar la trazabilidad alimentaria. */
+  @ApiProperty({
+    type: String,
+    format: 'date',
+    nullable: true,
+    example: '2026-10-20',
+  })
   @Column({ type: 'date', nullable: true })
   harvestDate: string | null;
 
-  /** 
-   * URL de la fotografía del producto ofertado. 
+  /**
+   * URL de la fotografía del producto ofertado.
    * (Pendiente de activación al integrar almacenamiento S3 y el microservicio de IA).
    */
   // @Column({ type: 'varchar', nullable: true })
   // imageUrl: string | null;
 
-  /** 
-   * Calidad evaluada por el modelo de visión artificial (ai-service). 
+  /**
+   * Calidad evaluada por el modelo de visión artificial (ai-service).
    * Es null hasta que la foto es clasificada automáticamente.
    */
+  @ApiProperty({
+    enum: AiQuality,
+    nullable: true,
+    description:
+      'null hasta que el modelo de visión artificial clasifica la foto',
+  })
   @Column({ type: 'enum', enum: AiQuality, nullable: true })
   aiQuality: AiQuality | null;
 
   /** Estado de visibilidad de la oferta (true si está activa, false si está agotada o retirada). */
+  @ApiProperty({ description: 'false si la oferta se agotó o fue retirada' })
   @Column({ default: true })
   isActive: boolean;
 
   /** Fecha y hora de creación del registro. */
+  @ApiProperty()
   @CreateDateColumn()
   createdAt: Date;
 
   /** Fecha y hora de la última actualización del registro. */
+  @ApiProperty()
   @UpdateDateColumn()
   updatedAt: Date;
 }
