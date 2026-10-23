@@ -1,4 +1,5 @@
 import {
+  applyDecorators,
   Body,
   Controller,
   Delete,
@@ -12,11 +13,46 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
+import {
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiServiceUnavailableResponse,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { JwtAuthGuard, Role, Roles, RolesGuard } from '@app/shared';
 import { OffertsService, OffertSummary } from './offerts.service';
 import { CreateOffertDto } from './dto/create-offert.dto';
 import { UpdateOffertDto } from './dto/update-offert.dto';
 import { Offert } from '../entities/offert.entity';
+
+/** Documentación del parámetro :id que comparten las rutas de una oferta. */
+const offertIdParam = ApiParam({
+  name: 'id',
+  format: 'uuid',
+  description: 'Id de la oferta',
+});
+
+/**
+ * Documentación común de las rutas solo para Agricultor: piden token y pueden responder 401 o 403.
+ * @param {string} [forbidden] - Cuándo responde 403 la ruta.
+ */
+const farmerOnlyDocs = (forbidden = 'El usuario no tiene el rol Agricultor') =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' }),
+    ApiForbiddenResponse({ description: forbidden }),
+  );
+
+/** Respuesta 403 de las rutas que modifican una oferta ya publicada. */
+const notOwnerForbidden =
+  'El usuario no tiene el rol Agricultor o la oferta es de otro agricultor';
 
 /**
  * Controlador encargado de gestionar los endpoints HTTP y los canales de comunicación TCP para las ofertas.
@@ -35,6 +71,20 @@ export class OffertsController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)
+  @ApiOperation({ summary: 'Publicar una oferta (solo Agricultor)' })
+  @farmerOnlyDocs()
+  @ApiCreatedResponse({ description: 'Oferta publicada', type: Offert })
+  @ApiBadRequestResponse({
+    description: 'Los datos de la oferta no son válidos',
+  })
+  @ApiNotFoundResponse({
+    description:
+      'El producto no existe o fue retirado, o el agricultor no existe',
+  })
+  @ApiServiceUnavailableResponse({
+    description:
+      'users-service no responde (se usa para validar al agricultor)',
+  })
   async create(@Req() request, @Body() dto: CreateOffertDto): Promise<Offert> {
     return await this.offertsService.create(request.user.sub, dto);
   }
@@ -45,6 +95,18 @@ export class OffertsController {
    * @returns {Promise<Offert[]>} Lista de ofertas activas.
    */
   @Get()
+  @ApiOperation({ summary: 'Listar las ofertas activas' })
+  @ApiQuery({
+    name: 'productId',
+    required: false,
+    format: 'uuid',
+    description: 'Muestra solo las ofertas de este producto',
+  })
+  @ApiOkResponse({
+    description: 'Ofertas activas, de la más nueva a la más vieja',
+    type: [Offert],
+  })
+  @ApiBadRequestResponse({ description: 'productId no es un UUID' })
   async findAll(
     @Query('productId', new ParseUUIDPipe({ optional: true }))
     productId?: string,
@@ -60,19 +122,16 @@ export class OffertsController {
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)
+  @ApiOperation({
+    summary: 'Ver mis ofertas, incluidas las retiradas (solo Agricultor)',
+  })
+  @farmerOnlyDocs()
+  @ApiOkResponse({
+    description: 'Mis ofertas, de la más nueva a la más vieja',
+    type: [Offert],
+  })
   async findMine(@Req() request): Promise<Offert[]> {
     return await this.offertsService.findMine(request.user.sub);
-  }
-
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.AGRICULTOR)
-  async update(
-    @Req() request,
-    @Param('id', ParseUUIDPipe) offertId: string,
-    @Body() dto: UpdateOffertDto,
-  ): Promise<Offert> {
-    return await this.offertsService.update(offertId, request.user.sub, dto);
   }
 
   /**
@@ -82,9 +141,43 @@ export class OffertsController {
    * @param {UpdateOffertDto} dto - Datos a actualizar.
    * @returns {Promise<Offert>} La oferta actualizada.
    */
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.AGRICULTOR)
+  @ApiOperation({ summary: 'Actualizar una oferta propia (solo Agricultor)' })
+  @farmerOnlyDocs(notOwnerForbidden)
+  @offertIdParam
+  @ApiOkResponse({ description: 'Oferta actualizada', type: Offert })
+  @ApiBadRequestResponse({
+    description: 'El id no es un UUID o los datos no son válidos',
+  })
+  @ApiNotFoundResponse({ description: 'La oferta no existe' })
+  async update(
+    @Req() request,
+    @Param('id', ParseUUIDPipe) offertId: string,
+    @Body() dto: UpdateOffertDto,
+  ): Promise<Offert> {
+    return await this.offertsService.update(offertId, request.user.sub, dto);
+  }
+
+  /**
+   * Endpoint protegido (solo rol AGRICULTOR) para retirar una oferta propia (borrado lógico).
+   * @param {any} request - Objeto request del agricultor.
+   * @param {string} offertId - ID de la oferta en formato UUID.
+   * @returns {Promise<Offert>} La oferta con su estado inactivo guardado.
+   */
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)
+  @ApiOperation({ summary: 'Retirar una oferta propia (solo Agricultor)' })
+  @farmerOnlyDocs(notOwnerForbidden)
+  @offertIdParam
+  @ApiOkResponse({
+    description: 'Oferta retirada (queda con isActive en false)',
+    type: Offert,
+  })
+  @ApiBadRequestResponse({ description: 'El id no es un UUID' })
+  @ApiNotFoundResponse({ description: 'La oferta no existe' })
   async remove(
     @Req() request,
     @Param('id', ParseUUIDPipe) offertId: string,
