@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEnum,
   IsNotEmpty,
@@ -13,6 +14,7 @@ import { ProductCategory, UnitOfMeasure } from '../../entities/product.entitie';
  */
 export class UpdateProductDto {
   /** Nuevo nombre comercial opcional para el producto. */
+  @ApiPropertyOptional({ example: 'Tomate chonto', maxLength: 100 })
   @IsOptional()
   @IsString()
   @IsNotEmpty()
@@ -20,6 +22,10 @@ export class UpdateProductDto {
   name?: string;
 
   /** Nueva categoría opcional del producto. */
+  @ApiPropertyOptional({
+    enum: ProductCategory,
+    example: ProductCategory.HORTALIZAS,
+  })
   @IsOptional()
   @IsEnum(ProductCategory, {
     message: 'La categoría del producto no es válida',
@@ -27,6 +33,7 @@ export class UpdateProductDto {
   category?: ProductCategory;
 
   /** Nueva unidad de medida opcional. */
+  @ApiPropertyOptional({ enum: UnitOfMeasure, example: UnitOfMeasure.LIBRA })
   @IsOptional()
   @IsEnum(UnitOfMeasure, {
     message: 'La unidad de medida no es válida',
@@ -34,6 +41,7 @@ export class UpdateProductDto {
   unitOfMeasure?: UnitOfMeasure;
 
   /** Nueva descripción opcional del producto. */
+  @ApiPropertyOptional({ example: 'Tomate rojo para ensalada' })
   @IsOptional()
   @IsString()
   description?: string;

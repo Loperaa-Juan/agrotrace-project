@@ -12,6 +12,7 @@ import {
   OneToMany,
   type Relation,
 } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 import { Offert } from './offert.entity';
 
 /**
@@ -45,40 +46,54 @@ export enum UnitOfMeasure {
  */
 export class Product {
   /** Identificador único del producto en formato UUID. */
+  @ApiProperty({ format: 'uuid' })
   @PrimaryGeneratedColumn('uuid')
   ProductId: string;
 
   /** Nombre único descriptivo del producto en el catálogo. */
+  @ApiProperty({ example: 'Tomate chonto' })
   @Index({ unique: true })
   @Column({ length: 100 })
   name: string;
 
   /** Categoría a la que pertenece el producto dentro del catálogo agrícola. */
+  @ApiProperty({ enum: ProductCategory, example: ProductCategory.HORTALIZAS })
   @Column({ type: 'enum', enum: ProductCategory })
   category: ProductCategory;
 
   /** Unidad de medida estándar empleada para comercializar el producto. */
+  @ApiProperty({ enum: UnitOfMeasure, example: UnitOfMeasure.LIBRA })
   @Column({ type: 'enum', enum: UnitOfMeasure, default: UnitOfMeasure.LIBRA })
   unitOfMeasure: UnitOfMeasure;
 
   /** Descripción general o características del producto maestro. */
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'Tomate rojo para ensalada',
+  })
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  /** 
+  /**
    * URL de la imagen de referencia del producto en el catálogo.
    */
   // @Column({ type: "varchar", nullable: true })
   // referenceImageUrl: string | null;
 
+  @ApiProperty({
+    description: 'false si el producto fue retirado del catálogo',
+  })
   @Column({ default: true })
   isActive: boolean;
 
   /** Fecha y hora de creación del registro. */
+  @ApiProperty()
   @CreateDateColumn()
   createdAt: Date;
 
   /** Fecha y hora de la última modificación del registro. */
+  @ApiProperty()
   @UpdateDateColumn()
   updatedAt: Date;
 
