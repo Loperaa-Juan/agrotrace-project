@@ -1,10 +1,13 @@
 from io import BytesIO
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
 
 from main import app
+
+BANANA_PATH = Path(__file__).resolve().parent / "fixtures" / "banana.jpeg"
 
 client = TestClient(app)
 
@@ -30,15 +33,44 @@ def test_redirect_docs():
     )  # Verifica que la URL redirige a /docs
 
 
-# El endpoint /predict debe recibir la imagen como archivo y devolver su clase
-def test_predict_classifies_uploaded_image():
+def post_image(content, filename="fruta.jpeg", content_type="image/jpeg"):
+    # El bloque with ejecuta el lifespan, que carga los modelos
+    with TestClient(app) as app_client:
+        return app_client.post(
+            "/predict", files={"image": (filename, content, content_type)}
+        )
+
+
+# El endpoint /predict debe recibir la foto como archivo y devolver la clase de la fruta
+def test_predict_classifies_fruit_photo():
+    response = post_image(BANANA_PATH.read_bytes())
+
+    assert response.json()["class"] in ("Fresh", "Mild", "Rotten")
+
+
+# El clasificador debe recibir el recorte de la fruta, no la foto completa (512x512)
+def test_predict_classifies_cropped_fruit(monkeypatch):
+    received_sizes = []
+
+    def spy_predict(session, image):
+        received_sizes.append(image.size)
+        return "Fresh", 0.9
+
+    monkeypatch.setattr("main.predict", spy_predict)
+
+    post_image(BANANA_PATH.read_bytes())
+
+    assert received_sizes[0] != (512, 512)
+
+
+# Si no se detecta ninguna fruta, se debe responder 422 con un mensaje claro
+def test_predict_without_fruit_returns_422():
     buffer = BytesIO()
     Image.new("RGB", (64, 64), "red").save(buffer, format="PNG")
 
-    # El bloque with ejecuta el lifespan, que carga el modelo
-    with TestClient(app) as app_client:
-        response = app_client.post(
-            "/predict", files={"image": ("fruta.png", buffer.getvalue(), "image/png")}
-        )
+    response = post_image(buffer.getvalue(), "rojo.png", "image/png")
 
-    assert response.json()["class"] in ("Fresh", "Mild", "Rotten")
+    assert (response.status_code, response.json()) == (
+        422,
+        {"detail": "No se detectó ninguna fruta en la imagen"},
+    )

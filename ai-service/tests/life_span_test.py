@@ -14,3 +14,14 @@ def test_lifespan_loads_model(monkeypatch):
     with TestClient(app):
         load_model_mock.assert_called_once()
         assert app.state.model == fake_model
+
+
+def test_lifespan_loads_detector(monkeypatch):
+    fake_detector = Mock()
+
+    load_detector_mock = Mock(return_value=fake_detector)
+    monkeypatch.setattr("main.load_detector", load_detector_mock)
+
+    with TestClient(app):
+        load_detector_mock.assert_called_once()
+        assert app.state.detector == fake_detector
