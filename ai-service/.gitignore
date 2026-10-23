@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Environment variables
+.env
+
+# Tests and coverage
+.pytest_cache/
+.coverage
+coverage.xml
+
+# SonarQube scanner
+.scannerwork/
