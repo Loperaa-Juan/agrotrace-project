@@ -1,6 +1,8 @@
+import base64
 from io import BytesIO
 from pathlib import Path
 
+import numpy as np
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -74,3 +76,34 @@ def test_predict_without_fruit_returns_422():
         422,
         {"detail": "No se detectó ninguna fruta en la imagen"},
     )
+
+
+def decode_image(encoded):
+    return Image.open(BytesIO(base64.b64decode(encoded)))
+
+
+def count_green_pixels(image):
+    # Píxeles casi verde puro (0, 255, 0): el color del recuadro que marca la fruta
+    pixels = np.asarray(image.convert("RGB")).astype(int)
+    return int(
+        ((pixels[..., 1] > 200) & (pixels[..., 0] < 80) & (pixels[..., 2] < 80)).sum()
+    )
+
+
+# La respuesta debe incluir la foto completa (no el recorte) como JPEG en base64
+def test_predict_returns_annotated_photo():
+    response = post_image(BANANA_PATH.read_bytes())
+
+    annotated = decode_image(response.json()["annotated_image"])
+
+    assert (annotated.format, annotated.size) == ("JPEG", (512, 512))
+
+
+# La foto devuelta debe tener dibujado el recuadro verde alrededor de la fruta.
+# La foto original no tiene píxeles verde puro; un recuadro de 3 px alrededor del banano deja unos 4000
+def test_predict_draws_bounding_box_on_photo():
+    response = post_image(BANANA_PATH.read_bytes())
+
+    annotated = decode_image(response.json()["annotated_image"])
+
+    assert count_green_pixels(annotated) > 2000
