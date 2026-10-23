@@ -1,85 +1,142 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# AgroTrace Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend oficial del sistema **AgroTrace**, diseñado para conectar de manera segura y transparente a compradores (personas y negocios) con agricultores locales mediante una arquitectura escalable de microservicios.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Arquitectura
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+El sistema está construido como un **monorepo con microservicios** en NestJS. Los servicios se comunican internamente mediante **TCP** y exponen endpoints HTTP independientes hacia el cliente (frontend).
 
-## Project setup
+```mermaid
+graph TD
+    Client[Frontend / Clientes] -->|HTTP REST| US[users-service :3000]
+    Client -->|HTTP REST| CS[catalog-service :3002]
+    Client -->|HTTP REST| OS[orders-service :3004]
 
-```bash
-$ pnpm install
+    OS -->|TCP :3001| US
+    OS -->|TCP :3003| CS
+    CS -->|TCP :3001| US
+
+    subgraph PostgreSQL
+        DB[(agrotrace :5434)]
+    end
+
+    US --> DB
+    CS --> DB
+    OS --> DB
 ```
 
-## Compile and run the project
+### Servicios
+
+| Servicio | Puerto HTTP | Puerto TCP (interno) | Responsabilidad |
+|---|---|---|---|
+| `users-service` | 3000 | 3001 | Registro, autenticación (JWT), roles (`Persona`, `Negocio`, `Agricultor`, `Admin`), perfiles y validaciones de identidad. |
+| `catalog-service` | 3002 | 3003 | Catálogo maestro de productos agrícolas y ofertas publicadas por los agricultores, con validaciones de calidad mediante visión artificial. |
+| `orders-service` | 3004 | 3005 | Ciclo de vida de los pedidos, límites de compra, códigos de entrega seguros de 6 dígitos y métricas de ventas. |
+| `libs/shared` | — | — | Librería transversal: guards globales (`JwtAuthGuard`, `RolesGuard`), decoradores de roles, enumerados y servicios de validación TCP. |
+
+### Decisión de diseño: base de datos compartida
+
+Los tres microservicios usan **una única base de datos PostgreSQL** (`agrotrace`). Esto se hizo de forma **consciente**, apartándose del principio clásico de "una base de datos por servicio", por la siguiente razón:
+
+- **Reducción de costos:** en un escenario real, mantener una sola instancia de base de datos evita multiplicar los costos de infraestructura, administración y respaldos que implicaría una instancia por servicio.
+
+Este enfoque prioriza la simplicidad operativa y el costo. Si el sistema escalara, la base de datos podría separarse por servicio.
+
+---
+
+## Tecnologías
+
+- **Framework:** [NestJS](https://nestjs.com/) (Node.js)
+- **Lenguaje:** TypeScript
+- **Base de datos:** PostgreSQL con [TypeORM](https://typeorm.io/)
+- **Gestor de paquetes:** [pnpm](https://pnpm.io/) (workspaces)
+- **Autenticación:** JSON Web Tokens (JWT)
+- **Comunicación:** HTTP (REST) y TCP (microservicios NestJS)
+- **Documentación de código:** JSDoc en clases, servicios, entidades y controladores
+
+---
+
+## Prerrequisitos
+
+- [Node.js](https://nodejs.org/) 18 o superior
+- [pnpm](https://pnpm.io/): `npm install -g pnpm`
+- PostgreSQL activo, con una base de datos llamada `agrotrace`
+
+---
+
+## Instalación y configuración
+
+1. **Clonar el repositorio e instalar dependencias:**
+
+   ```bash
+   git clone <url-del-repositorio>
+   cd backend
+   pnpm install
+   ```
+
+2. **Configurar las variables de entorno:** en la carpeta de cada microservicio dentro de `apps/`, copia `.env.example` a `.env` y completa los valores.
+
+   ```bash
+   cp apps/users-service/.env.example apps/users-service/.env
+   cp apps/catalog-service/.env.example apps/catalog-service/.env
+   cp apps/orders-service/.env.example apps/orders-service/.env
+   ```
+
+### Variables de entorno
+
+| Variable | Servicios | Descripción | Ejemplo |
+|---|---|---|---|
+| `NODE_ENV` | Todos | Entorno de ejecución | `development` |
+| `HTTP_PORT` | Todos | Puerto HTTP del servicio | `3000` / `3002` / `3004` |
+| `HOST` | Todos | Host del microservicio TCP | `0.0.0.0` |
+| `MICROSERVICE_PORT` | Todos | Puerto TCP interno | `3001` / `3003` / `3005` |
+| `DATABASE_HOST` | Todos | Host de PostgreSQL | `localhost` |
+| `DATABASE_PORT` | Todos | Puerto de PostgreSQL | `5434` |
+| `DATABASE_USERNAME` | Todos | Usuario de la base de datos | `tu_usuario` |
+| `DATABASE_PASSWORD` | Todos | Contraseña de la base de datos | `tu_contraseña` |
+| `DATABASE_NAME` | Todos | Base de datos compartida | `agrotrace` |
+| `JWT_SECRET` | Todos | Secreto JWT. **Debe ser el mismo en los tres servicios.** | `cambia-este-secreto` |
+| `JWT_EXPIRES_IN` | `users-service` | Duración del token | `15m` |
+| `USERS_SERVICE_HOST` / `USERS_SERVICE_PORT` | `catalog`, `orders` | Ubicación TCP de `users-service` | `localhost` / `3001` |
+| `CATALOG_SERVICE_HOST` / `CATALOG_SERVICE_PORT` | `orders` | Ubicación TCP de `catalog-service` | `localhost` / `3003` |
+| `CORS_ORIGIN` | Todos (opcional) | URL(s) del frontend separadas por coma. Si se omite, se acepta cualquier origen (solo desarrollo). | `http://localhost:5173` |
+
+> Los servicios consumidos por TCP (`users-service` y `catalog-service`) deben estar levantados antes que quienes los llaman.
+
+---
+
+## Ejecución
+
+### Desarrollo
+
+Cada microservicio se levanta de forma independiente, en una terminal distinta. Se recomienda este orden:
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+pnpm --filter users-service run start:dev
+pnpm --filter catalog-service run start:dev
+pnpm --filter orders-service run start:dev
 ```
 
-## Run tests
+### Producción
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+pnpm --filter users-service run build
+pnpm --filter users-service run start:prod
 ```
 
-## Resources
+Repite el procedimiento para `catalog-service` y `orders-service`.
 
-Check out a few resources that may come in handy when working with NestJS:
+---
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Documentación del código
 
-## Support
+Todo el código fuente cuenta con anotaciones JSDoc detalladas en clases, métodos, DTOs y entidades, para facilitar el mantenimiento y las herramientas de autocompletado.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+---
 
-## Stay in touch
+## Autores
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Valentina Cano Meneses
+- Juan Jose Lopera Londoño
