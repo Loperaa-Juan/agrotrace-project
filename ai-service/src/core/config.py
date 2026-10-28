@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     supported_file_types: ClassVar[dict[str, str]] = {
         "image/png": "png",
         "image/jpg": "jpg",
+        "image/jpeg": "jpeg",
         "image/webp": "webp",
     }
 
