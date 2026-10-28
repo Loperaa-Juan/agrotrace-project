@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from io import BytesIO
 from pathlib import Path
 from typing import Annotated
+
 import magic
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import RedirectResponse
@@ -62,6 +63,15 @@ async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="La imagen excede el tamaño máximo permitido",
+        )
+
+    # Validate the file type
+    file_type = magic.from_buffer(buffer=content, mime=True)
+
+    if file_type not in settings.supported_file_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Tipo de archivo no soportado. Tipos de archivo soportados: {settings.supported_file_types}",
         )
 
     # Open the uploaded file as a PIL image
