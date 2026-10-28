@@ -1,9 +1,17 @@
+/**
+ * @file Página de aterrizaje o bienvenida de la aplicación (`Landing`). Presenta la propuesta de valor
+ * de AgroTrace, enlaces de autenticación rápida y los beneficios principales de la plataforma de comercio agrícola.
+ */
+
+/** Configuración de estilos y clases de Tailwind para los botones secundarios de navegación. */
 const BOTON_SECUNDARIO =
   'px-4 h-10 inline-flex items-center rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 cursor-pointer';
-const BOTON_PRIMARIO =
+
+  /** Configuración de estilos y clases de Tailwind para los botones primarios principales. */
+  const BOTON_PRIMARIO =
   'px-4 sm:px-5 h-10 inline-flex items-center rounded-xl bg-[#15803d] hover:bg-[#166534] text-white text-sm font-semibold shadow-sm hover:shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 active:scale-95 cursor-pointer';
 
-  
+/** Lista de beneficios y características clave mostradas en tarjetas dentro de la página de aterrizaje. */
 const BENEFICIOS = [
   {
     icono: 'document_scanner',
@@ -21,6 +29,10 @@ const BENEFICIOS = [
   },
 ];
 
+/**
+ * Componente principal de la página de aterrizaje (`Landing`).
+ * @component
+ */
 function Landing() {
   return (
     <div className="min-h-screen flex flex-col bg-white">

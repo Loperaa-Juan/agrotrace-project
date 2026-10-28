@@ -1,3 +1,7 @@
+/**
+ * @file Definiciones de tipos globales para el entorno de Vite en TypeScript.
+ */
+
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {

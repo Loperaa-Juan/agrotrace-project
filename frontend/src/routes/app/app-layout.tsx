@@ -1,9 +1,15 @@
+/**
+ * @file Estructura general de diseño (Layout) para las vistas protegidas de la aplicación.
+ * Mantiene la cabecera fija, gestiona el menú desplegable del usuario y renderiza el contenido dinámico mediante {@link Outlet}.
+ */
+
 import { useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import type { RolUsuario, Usuario } from '../auth-api';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
 
+/** Mapeo de los roles de usuario a etiquetas legibles para la interfaz. */
 const ROLES: Record<RolUsuario, string> = {
   Agricultor: 'Agricultor',
   Persona: 'Comprador',
@@ -14,7 +20,12 @@ const ROLES: Record<RolUsuario, string> = {
 const OPCION_MENU =
   'w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors cursor-pointer focus:outline-none focus:bg-gray-100';
 
-/** Iniciales de las dos primeras palabras del nombre, por ejemplo "JP" para Juan Pérez. */
+/**
+ * Genera las iniciales a partir de las dos primeras palabras de un nombre (ej. "Juan Pérez" -> "JP").
+ * @function iniciales
+ * @param {string} nombre Nombre completo del usuario.
+ * @returns {string} Iniciales en mayúsculas.
+ */
 function iniciales(nombre: string) {
   return nombre
     .split(/\s+/)
@@ -24,6 +35,10 @@ function iniciales(nombre: string) {
     .join('');
 }
 
+/**
+ * Componente reutilizable para renderizar iconos de Google Material Symbols.
+ * @component
+ */
 function Icono({
   nombre,
   className = '',
@@ -38,6 +53,11 @@ function Icono({
   );
 }
 
+/**
+ * Componente de menú desplegable de usuario ubicado en la cabecera. Permite navegar
+ * entre las distintas secciones según el rol y cerrar la sesión actual.
+ * @component
+ */
 function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
   const { cerrarSesion } = useSesion();
   const navigate = useNavigate();
@@ -161,7 +181,11 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
   );
 }
 
-/** Estructura común de las páginas de la aplicación: la cabecera se mantiene montada al navegar entre ellas. */
+/**
+ * Componente de diseño principal (`AppLayout`). La cabecera se mantiene montada de forma persistente
+ * mientras el usuario navega entre las diferentes páginas internas de la plataforma.
+ * @component
+ */
 export function AppLayout() {
   const { usuario } = useSesion();
 

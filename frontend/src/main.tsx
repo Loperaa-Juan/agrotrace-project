@@ -1,3 +1,8 @@
+/**
+ * @file Punto de entrada principal de la aplicación React. 
+ * Monta el componente raíz {@link App} dentro del DOM usando React 18+.
+ */
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';

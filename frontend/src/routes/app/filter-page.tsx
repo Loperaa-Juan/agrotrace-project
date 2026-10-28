@@ -1,3 +1,8 @@
+/**
+ * @file Vista de filtrado avanzado de cosechas (`FilterPage`). Permite a los usuarios buscar productos
+ * específicos por nombre, filtrar por grados de calidad evaluados por Inteligencia Artificial (IA) y ajustar un rango de precio máximo.
+ */
+
 import { useEffect, useState } from 'react';
 import {
   obtenerCatalogo,
@@ -7,7 +12,7 @@ import {
 } from '../profile-api';
 import { Icono, TarjetaCosecha } from './explore';
 
-/** Solo A y B: el grado C no se publica, así que no hay nada que filtrar. */
+/** Configuración de los grados de calidad evaluados por IA disponibles para filtrado (solo se publican A y B). */
 const CALIDADES = [
   {
     grado: 'A',
@@ -27,6 +32,11 @@ const CALIDADES = [
 
 const PRECIO_MAXIMO = 30000;
 
+/**
+ * Componente principal de la vista de filtrado (`FilterPage`). Gestiona el estado de los filtros de búsqueda
+ * y la actualización reactiva de las ofertas que cumplen con los criterios.
+ * @component
+ */
 function FilterPage() {
   const [nombre, setNombre] = useState('');
   const [busqueda, setBusqueda] = useState('');
@@ -49,6 +59,7 @@ function FilterPage() {
 
   const nombreDe = (productId: string) => productoDe(productId)?.name ?? '';
 
+  /** Filtrado de ofertas basado en el texto de búsqueda, calidades seleccionadas y precio máximo permitido. */
   const ofertasFiltradas = ofertas.filter(
     (oferta) =>
       nombreDe(oferta.productId)
@@ -60,6 +71,7 @@ function FilterPage() {
       oferta.pricePerUnit <= precioMaximo,
   );
 
+  /** Alterna la selección de un grado de calidad en el filtro. */
   const alternarGrado = (grado: string) =>
     setGrados(
       grados.includes(grado)

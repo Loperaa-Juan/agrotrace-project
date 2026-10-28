@@ -1,3 +1,8 @@
+/**
+ * @file Vista de autenticación y registro de usuarios (`LoginPage`). Gestiona la selección de perfiles
+ * (Agricultor, Persona, Negocio), formularios dinámicos, validaciones de alta y control de sesiones.
+ */
+
 import { useState, type ChangeEvent, type ReactNode, type SubmitEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
@@ -22,8 +27,10 @@ import {
 import { inicioDe, routes } from '../routes';
 import { useSesion } from '../session-context';
 
+/** Modos posibles de la vista de autenticación. */
 type AuthMode = 'login' | 'register';
 
+/** Estructura de configuración visual e informativa para cada tipo de perfil de usuario. */
 type Perfil = {
   rol: NuevoUsuario['role'];
   icono: string;
@@ -84,6 +91,7 @@ const PERFILES: Perfil[] = [
   },
 ];
 
+/** Documentos aceptados */
 const TIPOS_DOCUMENTO: { valor: TipoDocumento; etiqueta: string }[] = [
   { valor: 'CC', etiqueta: 'CC · Cédula de ciudadanía' },
   { valor: 'CE', etiqueta: 'CE · Cédula de extranjería' },
@@ -138,6 +146,10 @@ const conError = (id: string, error?: string) => ({
   'aria-describedby': error ? `${id}-error` : undefined,
 });
 
+/**
+ * Componente reutilizable para renderizar iconos de Google Material Symbols.
+ * @component
+ */
 function Icono({ nombre, className = '' }: Readonly<{ nombre: string; className?: string }>) {
   return (
     <span aria-hidden="true" className={`material-symbols-outlined ${className}`}>
@@ -146,6 +158,10 @@ function Icono({ nombre, className = '' }: Readonly<{ nombre: string; className?
   );
 }
 
+/**
+ * Componente para mostrar mensajes de error accesibles en los campos del formulario.
+ * @component
+ */
 function MensajeError({ id, error }: Readonly<{ id: string; error?: string }>) {
   if (!error) return null;
   return (
@@ -156,6 +172,10 @@ function MensajeError({ id, error }: Readonly<{ id: string; error?: string }>) {
   );
 }
 
+/**
+ * Contenedor estructurado para cada campo de entrada del formulario con etiqueta e icono.
+ * @component
+ */
 function Campo({
   id,
   etiqueta,
@@ -183,6 +203,10 @@ function Campo({
   );
 }
 
+/**
+ * Componente principal de la vista de autenticación y registro de usuarios.
+ * @component
+ */
 export function LoginPage() {
   const navigate = useNavigate();
   const { entrar } = useSesion();
@@ -215,12 +239,20 @@ export function LoginPage() {
   const limpiarError = (campo: keyof DatosRegistro) =>
     setErrores((previos) => (previos[campo] ? { ...previos, [campo]: undefined } : previos));
 
+  /**
+   * Genera un manejador de eventos para actualizar el estado del formulario de registro
+   * y limpiar automáticamente el error del campo modificado.
+   */
   const cambiarRegistro =
     (campo: keyof CamposRegistro) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setRegistro((previo) => ({ ...previo, [campo]: event.target.value }));
       limpiarError(campo);
     };
 
+  /**
+   * Actualiza el perfil seleccionado y valida si el tipo de documento actual es compatible;
+   * de lo contrario, lo ajusta al primer documento permitido para ese rol.
+   */
   const elegirPerfil = (nuevo: Perfil) => {
     setRol(nuevo.rol);
     // Un NIT elegido como Negocio no vale al pasar a Persona o Agricultor.
@@ -231,6 +263,10 @@ export function LoginPage() {
     }
   };
 
+  /**
+   * Establece los errores en el formulario y desplaza el foco automáticamente
+   * hacia el primer campo que contenga un error de validación.
+   */
   const marcarErrores = (encontrados: ErroresRegistro) => {
     setErrores(encontrados);
     const primero = ORDEN_CAMPOS.find((campo) => encontrados[campo]);
@@ -240,11 +276,17 @@ export function LoginPage() {
     return true;
   };
 
+  /**
+   * Guarda los datos de la sesión actual y redirige al usuario a su vista inicial correspondiente.
+   */
   const abrirSesion = (sesion: Sesion) => {
     entrar(sesion);
     navigate(inicioDe(sesion.user.role));
   };
 
+  /**
+   * Valida el formulario de registro y procesa la creación de una nueva cuenta enviando los datos al backend.
+   */
   const crearCuenta = async () => {
     if (marcarErrores(validarRegistro({ ...registro, correo, clave }, perfil.documentos))) return;
     try {
@@ -270,6 +312,9 @@ export function LoginPage() {
     }
   };
 
+  /**
+   * Procesa el inicio de sesión enviando las credenciales al backend.
+   */
   const ingresar = async () => {
     try {
       abrirSesion(await iniciarSesion(normalizarCorreo(correo), clave));
@@ -279,6 +324,9 @@ export function LoginPage() {
     }
   };
 
+  /**
+   * Maneja el evento de envío del formulario diferenciando si el usuario está ingresando o registrándose.
+   */
   const enviar = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);

@@ -1,3 +1,8 @@
+/**
+ * @file Componente raíz de la aplicación. Configura el proveedor de sesión global {@link SesionProvider}
+ * y el sistema de enrutamiento principal mediante {@link BrowserRouter}.
+ */
+
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './routes/app/app-layout';
 import { ExplorarPage } from './routes/app/explore';
@@ -12,6 +17,11 @@ import Landing from './routes/Landing';
 import { routes } from './routes/routes';
 import { SesionProvider } from './routes/session-context';
 
+/**
+ * Componente principal que define las rutas públicas y protegidas de la plataforma.
+ * @component
+ * @returns {JSX.Element} Estructura de rutas de la aplicación envuelta en el contexto de sesión.
+ */
 function App() {
   return (
     <SesionProvider>

@@ -1,3 +1,8 @@
+/**
+ * @file Vista de detalle de pedidos (`DetallePedidoPage`). Permite tanto a compradores como a agricultores
+ * gestionar el ciclo de vida de un pedido, visualizar líneas de tiempo, códigos de entrega seguros y datos de contacto.
+ */
+
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { ErrorApi } from '../auth-api';
@@ -23,8 +28,10 @@ const ERROR_CODIGO =
   'El código de verificación no es correcto. Pídeselo de nuevo al comprador.';
 const ERROR_ENTREGA = 'No pudimos confirmar la entrega. Intenta de nuevo.';
 
+/** Formatea un número al estándar colombiano con separadores de miles. */
 const formatoNumero = (valor: number) => valor.toLocaleString('es-CO');
 
+/** Formatea una fecha ISO a formato legible en español. */
 const formatoFecha = (fechaIso: string) =>
   new Date(fechaIso).toLocaleDateString('es-CO', {
     day: 'numeric',
@@ -32,6 +39,7 @@ const formatoFecha = (fechaIso: string) =>
     year: 'numeric',
   });
 
+/** Configuración visual de insignias según el estado del pedido. */
 const INSIGNIAS: Record<EstadoPedido, { icono: string; tono: string }> = {
   Solicitado: { icono: 'schedule', tono: 'bg-amber-100 text-amber-800' },
   Aceptado: { icono: 'check_circle', tono: 'bg-green-100 text-[#15803d]' },
@@ -40,7 +48,7 @@ const INSIGNIAS: Record<EstadoPedido, { icono: string; tono: string }> = {
   Cancelado: { icono: 'cancel', tono: 'bg-gray-200 text-gray-700' },
 };
 
-/** Aviso de cada estado; el de "Solicitado" lleva además el botón de cancelar. */
+/** Estructura de avisos informativos según el estado del pedido. */
 type AvisoEstado = {
   icono: string;
   tono: string;
@@ -91,6 +99,10 @@ const TARJETA =
 const TITULO_TARJETA =
   'text-xs font-bold text-gray-900 uppercase tracking-wider';
 
+/**
+ * Componente reutilizable para renderizar iconos de Google Material Symbols.
+ * @component
+ */
 function Icono({
   nombre,
   className = '',
@@ -105,6 +117,10 @@ function Icono({
   );
 }
 
+/**
+ * Componente de paso individual para la línea de tiempo del pedido.
+ * @component
+ */
 function PasoLinea({
   actual,
   children,
@@ -137,9 +153,13 @@ function PasoLinea({
   );
 }
 
-/** Una casilla por dígito: el código de entrega siempre tiene 6. */
+/** Una casilla por dígito: el código de entrega siempre consta de 6 dígitos. */
 const CASILLAS_CODIGO = ['d1', 'd2', 'd3', 'd4', 'd5', 'd6'];
 
+/**
+ * Componente que muestra el código de entrega segura de 6 dígitos para el comprador.
+ * @component
+ */
 function CodigoEntrega({ codigo }: Readonly<{ codigo: string | undefined }>) {
   return (
     <div className="relative overflow-hidden rounded-2xl p-6 md:p-8 bg-linear-to-br from-[#15803d] via-[#0a4d23] to-[#043316] text-white shadow-xl">
@@ -186,7 +206,10 @@ function CodigoEntrega({ codigo }: Readonly<{ codigo: string | undefined }>) {
   );
 }
 
-/** El agricultor confirma la entrega con el código que le dicta el comprador. */
+/**
+ * Componente para que el agricultor ingrese el código de verificación dictado por el comprador y confirme la entrega.
+ * @component
+ */
 function ConfirmarEntrega({
   alConfirmar,
   error,
@@ -250,7 +273,7 @@ function ConfirmarEntrega({
   );
 }
 
-/** Avisos del agricultor mientras debe responder el pedido o entregarlo. */
+/** Avisos personalizados para el agricultor durante el ciclo de vida del pedido. */
 const AVISOS_AGRICULTOR: Partial<Record<EstadoPedido, AvisoEstado>> = {
   Solicitado: {
     icono: 'pending_actions',
@@ -278,6 +301,10 @@ const AVISOS_AGRICULTOR: Partial<Record<EstadoPedido, AvisoEstado>> = {
 const BOTON_ACCION =
   'shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors';
 
+/**
+ * Componente principal de presentación para los detalles del pedido (`OrderDetail`).
+ * @component
+ */
 function OrderDetail({
   agricultor,
   comprador,
@@ -499,6 +526,10 @@ function OrderDetail({
   );
 }
 
+/**
+ * Componente que renderiza los datos de contacto de la contraparte del pedido.
+ * @component
+ */
 function TarjetaContacto({
   contacto,
   icono,
@@ -539,6 +570,10 @@ type DatosDetalle = {
   producto: Producto | undefined;
 };
 
+/**
+ * Componente contenedor para mensajes de estado o carga.
+ * @component
+ */
 function Aviso({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-10 space-y-4">
@@ -547,7 +582,11 @@ function Aviso({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
-/** Página de la ruta `/pedidos/:orderId`: busca el pedido del comprador y su producto. */
+/**
+ * Página principal de la ruta `/pedidos/:orderId` (`DetallePedidoPage`). Busca y gestiona la información
+ * del pedido según el rol del usuario (comprador o agricultor).
+ * @component
+ */
 export function DetallePedidoPage() {
   const { orderId } = useParams();
   const { usuario, salir } = useSesion();
@@ -632,7 +671,7 @@ export function DetallePedidoPage() {
 
   const { pedido, producto } = datos;
 
-  /** Muestra el pedido que devuelve orders-service tras cambiarlo. */
+  /** Actualiza el estado del pedido tras recibir una respuesta exitosa del backend. */
   const actualizar = (
     cambio: Promise<Pedido>,
     alFallar: (err: unknown) => void = () => setError(true),
@@ -659,6 +698,7 @@ export function DetallePedidoPage() {
       });
   };
 
+  /** Procesa la confirmación de entrega mediante el código de verificación ingresado. */
   const confirmar = (codigo: string) => {
     setErrorEntrega(null);
     actualizar(confirmarEntrega(pedido.OrderId, codigo), (err) =>
