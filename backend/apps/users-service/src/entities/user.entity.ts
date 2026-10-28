@@ -23,9 +23,8 @@ export { UserRole };
 
 /**
  * Entidad que representa la tabla de usuarios en la base de datos de AgroTrace.
- * Almacena información de perfil, credenciales, tipo de documento (CC, NIT, CE) 
+ * Almacena información de perfil, credenciales, tipo de documento (CC, NIT, CE)
  * y el rol correspondiente para gestionar el acceso basado en privilegios de la plataforma.
- * @class User
  */
 
 @Entity('users')

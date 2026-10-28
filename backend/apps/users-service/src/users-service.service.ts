@@ -6,7 +6,7 @@ import { Injectable } from '@nestjs/common';
 export class UsersServiceService {
   /**
    * Metodo de pruebas para verificar el estado del microservicio de usuarios
-   * @returns {string} Saludo de confirmacion de que el servicio esta activo
+   * @returns Saludo de confirmacion de que el servicio esta activo
    */
   getHello(): string {
     return 'Hello World!';
