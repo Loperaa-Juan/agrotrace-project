@@ -25,3 +25,8 @@ def test_lifespan_loads_detector(monkeypatch):
     with TestClient(app):
         load_detector_mock.assert_called_once()
         assert app.state.detector == fake_detector
+
+
+def test_lifespan_creates_s3_client(s3_client):
+    with TestClient(app):
+        assert app.state.s3 == s3_client

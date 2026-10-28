@@ -1,4 +1,5 @@
 import base64
+import re
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
@@ -165,3 +166,51 @@ def test_predict_draws_bounding_box_on_photo():
     annotated = decode_image(response.json()["annotated_image"])
 
     assert count_green_pixels(annotated) > 2000
+
+
+# Una key de S3 es la carpeta, un uuid v4 y la extensión de la imagen
+def key_pattern(folder):
+    uuid4 = r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"
+    return rf"{folder}/{uuid4}\.jpeg"
+
+
+def uploaded_objects(s3_client):
+    # Lo que se guardó en S3, indexado por key
+    return {call.kwargs["Key"]: call.kwargs for call in s3_client.put_object.call_args_list}
+
+
+# La respuesta debe incluir la key de la foto original y la de la foto con el recuadro, cada una en su carpeta
+def test_predict_returns_storage_keys():
+    body = post_image(BANANA_PATH.read_bytes()).json()
+
+    assert re.fullmatch(key_pattern("original"), body["original_key"])
+    assert re.fullmatch(key_pattern("annotated"), body["annotated_key"])
+
+
+# La foto original se guarda tal cual la subió el usuario
+def test_predict_uploads_original_photo(s3_client):
+    content = BANANA_PATH.read_bytes()
+
+    body = post_image(content).json()
+
+    uploaded = uploaded_objects(s3_client)[body["original_key"]]
+    assert (uploaded["Body"], uploaded["ContentType"]) == (content, "image/jpeg")
+
+
+# La foto con el recuadro se guarda igual a la que se devuelve en la respuesta
+def test_predict_uploads_annotated_photo(s3_client):
+    body = post_image(BANANA_PATH.read_bytes()).json()
+
+    uploaded = uploaded_objects(s3_client)[body["annotated_key"]]
+    assert uploaded["Body"] == base64.b64decode(body["annotated_image"])
+    assert uploaded["ContentType"] == "image/jpeg"
+
+
+# Si no se detecta ninguna fruta no se guarda nada en S3
+def test_predict_without_fruit_uploads_nothing(s3_client):
+    buffer = BytesIO()
+    Image.new("RGB", (64, 64), "red").save(buffer, format="PNG")
+
+    post_image(buffer.getvalue(), "rojo.png", "image/png")
+
+    s3_client.put_object.assert_not_called()

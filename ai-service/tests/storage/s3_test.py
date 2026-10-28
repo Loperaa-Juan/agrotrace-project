@@ -1,9 +1,10 @@
+import uuid
 from unittest.mock import Mock, patch
 
 import pytest
 
 from core.config import settings
-from storage.s3 import create_s3_client, get_presigned_url, upload_image
+from storage.s3 import build_key, create_s3_client, get_presigned_url, upload_image
 
 
 @pytest.fixture
@@ -64,3 +65,17 @@ def test_get_presigned_url_expires(bucket):
         ExpiresIn=600,
     )
     assert url == "https://signed-url"
+
+
+# El nombre del archivo es un uuid v4 dentro de la carpeta indicada, con su extensión
+def test_build_key_uses_uuid4_in_folder():
+    folder, filename = build_key("original", "jpeg").split("/")
+
+    name, extension = filename.rsplit(".", 1)
+    assert (folder, extension) == ("original", "jpeg")
+    assert str(uuid.UUID(name, version=4)) == name
+
+
+# Dos imágenes nunca deben quedar con la misma key
+def test_build_key_is_unique():
+    assert build_key("original", "jpeg") != build_key("original", "jpeg")

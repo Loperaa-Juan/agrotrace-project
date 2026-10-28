@@ -6,6 +6,7 @@ from typing import Annotated
 
 import magic
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import RedirectResponse
 from PIL import Image
 
@@ -13,17 +14,22 @@ from core.config import settings
 from inference.detector import load_detector
 from inference.engine import load_model
 from inference.pipeline import analyze_fruit
+from storage.s3 import build_key, create_s3_client, upload_image
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "model"
 MODEL_PATH = MODEL_DIR / "tf_model_mobilenetv2.onnx"
 DETECTOR_PATH = MODEL_DIR / "yoloe-26s-seg-fruits.pt"
 
+ORIGINAL_FOLDER = "original"
+ANNOTATED_FOLDER = "annotated"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load the models when the app starts
+    # Load the models and create the S3 client when the app starts
     app.state.model = load_model(MODEL_PATH)
     app.state.detector = load_detector(DETECTOR_PATH)
+    app.state.s3 = create_s3_client()
     yield
     # Unload the model when the app stops (if applicable)
     # del app.state.model
@@ -82,15 +88,35 @@ async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
     if result is None:
         raise HTTPException(422, "No se detectó ninguna fruta en la imagen")
 
+    annotated_jpeg = to_jpeg_bytes(result.annotated_image)
+
+    # Store both photos, each one in its own folder (boto3 is blocking, so run it in a thread)
+    original_key = await run_in_threadpool(
+        upload_image,
+        app.state.s3,
+        content,
+        build_key(ORIGINAL_FOLDER, settings.supported_file_types[file_type]),
+        file_type,
+    )
+    annotated_key = await run_in_threadpool(
+        upload_image,
+        app.state.s3,
+        annotated_jpeg,
+        build_key(ANNOTATED_FOLDER, "jpeg"),
+        "image/jpeg",
+    )
+
     return {
         "class": result.predicted_class,
         "confidence": result.trust_score,
-        "annotated_image": encode_jpeg(result.annotated_image),
+        "annotated_image": base64.b64encode(annotated_jpeg).decode(),
+        "original_key": original_key,
+        "annotated_key": annotated_key,
     }
 
 
-def encode_jpeg(image: Image.Image) -> str:
-    """Encode an image as base64 JPEG so it fits in the JSON response."""
+def to_jpeg_bytes(image: Image.Image) -> bytes:
+    """Encode an image as JPEG."""
     buffer = BytesIO()
     image.save(buffer, format="JPEG")
-    return base64.b64encode(buffer.getvalue()).decode()
+    return buffer.getvalue()
