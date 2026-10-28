@@ -4,7 +4,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import RedirectResponse
 from PIL import Image
 
@@ -47,6 +47,12 @@ async def root():
 )
 async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
     """Endpoint to predict the class of an image."""
+    
+    if not image:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se encontró el archivo"
+        )
 
     # Open the uploaded file as a PIL image
     img = Image.open(BytesIO(await image.read()))
