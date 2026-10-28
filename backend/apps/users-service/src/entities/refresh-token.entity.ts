@@ -9,9 +9,8 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 /**
- * Entidad que representa los tokens de actualización (Refresh Tokens) 
+ * Entidad que representa los tokens de actualización (Refresh Tokens)
  * asociados a las sesiones activas de los usuarios para el manejo seguro de JWT.
- * @class RefreshToken
  */
 @Entity('refresh_tokens')
 export class RefreshToken {

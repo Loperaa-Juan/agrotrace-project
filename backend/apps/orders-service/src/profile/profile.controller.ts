@@ -11,8 +11,8 @@ export class ProfileController {
 
   /**
    * Permite al agricultor consultar su propio perfil y resumen de ventas.
-   * @param {any} request - Objeto request con los datos del token.
-   * @returns {Promise<Profile>} Perfil completo con ventas.
+   * @param request - Objeto request con los datos del token.
+   * @returns Perfil completo con ventas.
    */
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)

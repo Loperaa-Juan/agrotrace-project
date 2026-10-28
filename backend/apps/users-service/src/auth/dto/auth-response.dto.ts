@@ -17,7 +17,7 @@ export class AuthUserDto {
 }
 
 /**
- * DTO que encapsula la respuesta de autenticación, 
+ * DTO que encapsula la respuesta de autenticación,
  * incluyendo los tokens de acceso y los datos públicos del usuario.
  */
 export class AuthResponseDto {
@@ -31,8 +31,8 @@ export class AuthResponseDto {
 }
 /**
  * Convierte la entidad en datos públicos
- * @param {User} user - Entidad completa del usuario desde la base de datos.
- * @returns {AuthUserDto} Objeto con los campos públicos del usuario (sin contraseña ni tokens).
+ * @param user - Entidad completa del usuario desde la base de datos.
+ * @returns Objeto con los campos públicos del usuario (sin contraseña ni tokens).
  */
 export function toAuthUserDto(user: User): AuthUserDto {
   return {

@@ -32,8 +32,8 @@ export class ProfileService {
 
   /**
    * Obtiene el perfil de un agricultor consolidando su información personal y sus ventas de la semana y mes.
-   * @param {string} userId - ID del agricultor.
-   * @returns {Promise<Profile>} Perfil y métricas de ventas.
+   * @param userId - ID del agricultor.
+   * @returns Perfil y métricas de ventas.
    */
   async getProfile(userId: string): Promise<Profile> {
     const [user, sales] = await Promise.all([
@@ -54,10 +54,9 @@ export class ProfileService {
 
   /**
    * Suma las ventas entregadas a partir de una fecha específica.
-   * @private
-   * @param {Order[]} sales - Lista de órdenes entregadas.
-   * @param {Date} since - Fecha inicial del periodo.
-   * @returns {SalesSummary} Resumen de ventas.
+   * @param sales - Lista de órdenes entregadas.
+   * @param since - Fecha inicial del periodo.
+   * @returns Resumen de ventas.
    */
   private summarize(sales: Order[], since: Date): SalesSummary {
     const inPeriod = sales.filter((sale) => sale.updatedAt >= since);
@@ -67,8 +66,7 @@ export class ProfileService {
 
   /**
    * Obtiene la fecha del Lunes de la semana actual a las 00:00.
-   * @private
-   * @returns {Date} Inicio de la semana.
+   * @returns Inicio de la semana.
    */
   private startOfWeek(): Date {
     const now = new Date();
@@ -82,8 +80,7 @@ export class ProfileService {
 
   /**
    * Obtiene la fecha del primer día del mes actual a las 00:00.
-   * @private
-   * @returns {Date} Inicio del mes.
+   * @returns Inicio del mes.
    */
   private startOfMonth(): Date {
     const now = new Date();

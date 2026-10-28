@@ -1,4 +1,4 @@
-/* 
+/*
 En agrotrace debemos manejar un catálogo maestro donde se definen los productos que se pueden comercializar en la plataforma.
 */
 

@@ -1,6 +1,6 @@
 /**
  * Inicializador de entorno para catalog-service.
- * Debe importarse obligatoriamente antes que cualquier otro módulo, 
+ * Debe importarse obligatoriamente antes que cualquier otro módulo,
  * ya que catalog-service.module.ts evalúa process.env al momento de inicializarse.
  */
 

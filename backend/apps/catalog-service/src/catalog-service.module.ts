@@ -11,7 +11,7 @@ import { Offert } from './entities/offert.entity';
 
 /**
  * Módulo raíz de catalog-service (`CatalogServiceModule`).
- * Configura la conexión global a PostgreSQL, las variables de entorno, la validación global de tokens JWT 
+ * Configura la conexión global a PostgreSQL, las variables de entorno, la validación global de tokens JWT
  * e importa los sub-módulos del catálogo y las ofertas.
  */
 @Module({

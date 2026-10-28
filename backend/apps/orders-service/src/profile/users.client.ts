@@ -33,10 +33,10 @@ export class UsersClient {
 
   /**
    * Consulta los datos de un usuario por su ID vía TCP.
-   * @param {string} userId - ID del usuario.
-   * @returns {Promise<UserSummary>} Datos públicos del usuario.
-   * @throws {ServiceUnavailableException} Si users-service no responde.
-   * @throws {NotFoundException} Si el usuario no existe.
+   * @param userId - ID del usuario.
+   * @returns Datos públicos del usuario.
+   * @throws `ServiceUnavailableException` Si users-service no responde.
+   * @throws `NotFoundException` Si el usuario no existe.
    */
   async getUser(userId: string): Promise<UserSummary> {
     let user: UserSummary | null;

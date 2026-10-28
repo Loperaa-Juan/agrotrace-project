@@ -7,7 +7,7 @@ import { Injectable } from '@nestjs/common';
 export class CatalogServiceService {
   /**
    * Retorna una cadena de verificación de funcionamiento.
-   * @returns {string} Mensaje "Hello World!".
+   * @returns Mensaje "Hello World!".
    */
   getHello(): string {
     return 'Hello World!';

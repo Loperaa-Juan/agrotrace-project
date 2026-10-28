@@ -10,7 +10,7 @@ export class CatalogServiceController {
 
   /**
    * Endpoint base de prueba para comprobar que el servicio de catálogo se encuentra operativo.
-   * @returns {string} Mensaje de saludo básico.
+   * @returns Mensaje de saludo básico.
    */
   @Get()
   getHello(): string {

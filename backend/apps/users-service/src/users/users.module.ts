@@ -6,12 +6,12 @@ import { User } from '../entities/user.entity';
 
 /**
  * Módulo de usuarios (UsersModule).
- * Agrupa los componentes internos encargados de la gestión de perfiles, 
+ * Agrupa los componentes internos encargados de la gestión de perfiles,
  * consultas de base de datos y comunicación por patrones de mensajes para los usuarios.
  */
 @Module({
   /**
-   * Importa el repositorio de TypeORM para la entidad `User`, 
+   * Importa el repositorio de TypeORM para la entidad `User`,
    * permitiendo que el servicio interactúe con la tabla de usuarios en la base de datos.
    */
   imports: [TypeOrmModule.forFeature([User])],

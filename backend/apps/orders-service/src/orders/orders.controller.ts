@@ -25,9 +25,9 @@ export class OrdersController {
 
   /**
    * Permite a un comprador (Persona o Negocio) crear un nuevo pedido.
-   * @param {any} request - Objeto request con la información del token del usuario.
-   * @param {CreateOrderDto} dto - DTO con los datos de creación de la orden.
-   * @returns {Promise<Order>} La orden creada.
+   * @param request - Objeto request con la información del token del usuario.
+   * @param dto - DTO con los datos de creación de la orden.
+   * @returns La orden creada.
    */
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -42,8 +42,8 @@ export class OrdersController {
 
   /**
    * Permite al comprador consultar la lista de sus propios pedidos.
-   * @param {any} request - Objeto request del usuario autenticado.
-   * @returns {Promise<Order[]>} Lista de órdenes del comprador.
+   * @param request - Objeto request del usuario autenticado.
+   * @returns Lista de órdenes del comprador.
    */
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -54,8 +54,8 @@ export class OrdersController {
 
   /**
    * Permite al agricultor consultar los pedidos recibidos en sus ofertas.
-   * @param {any} request - Objeto request del agricultor autenticado.
-   * @returns {Promise<FarmerOrder[]>} Lista de pedidos recibidos (sin código de entrega).
+   * @param request - Objeto request del agricultor autenticado.
+   * @returns Lista de pedidos recibidos (sin código de entrega).
    */
   @Get('received')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -66,10 +66,10 @@ export class OrdersController {
 
   /**
    * Permite al agricultor marcar un pedido como entregado ingresando el código provisto por el comprador.
-   * @param {any} request - Objeto request del agricultor.
-   * @param {string} orderId - ID de la orden en formato UUID.
-   * @param {string} deliveryCode - Código de entrega de 6 dígitos.
-   * @returns {Promise<FarmerOrder>} La orden actualizada sin el código de entrega.
+   * @param request - Objeto request del agricultor.
+   * @param orderId - ID de la orden en formato UUID.
+   * @param deliveryCode - Código de entrega de 6 dígitos.
+   * @returns La orden actualizada sin el código de entrega.
    */
   @Patch(':id/deliver')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -88,10 +88,10 @@ export class OrdersController {
 
   /**
    * Permite aceptar, rechazar o cancelar un pedido según los permisos de rol correspondientes.
-   * @param {any} request - Objeto request del usuario.
-   * @param {string} orderId - ID de la orden en formato UUID.
-   * @param {UpdateOrderStatusDto} dto - DTO con el nuevo estado.
-   * @returns {Promise<Order | FarmerOrder>} La orden actualizada.
+   * @param request - Objeto request del usuario.
+   * @param orderId - ID de la orden en formato UUID.
+   * @param dto - DTO con el nuevo estado.
+   * @returns La orden actualizada.
    */
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)

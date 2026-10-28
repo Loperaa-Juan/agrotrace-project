@@ -52,8 +52,8 @@ export class CatalogController {
 
   /**
    * Endpoint protegido (solo ADMIN) para crear un nuevo producto en el catálogo.
-   * @param {CreateProductDto} dto - Datos de creación del producto.
-   * @returns {Promise<Product>} El producto creado.
+   * @param dto - Datos de creación del producto.
+   * @returns El producto creado.
    */
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -71,7 +71,7 @@ export class CatalogController {
 
   /**
    * Endpoint público para listar todos los productos activos del catálogo.
-   * @returns {Promise<Product[]>} Lista de productos activos.
+   * @returns Lista de productos activos.
    */
   @Get()
   @ApiOperation({ summary: 'Listar los productos activos' })
@@ -85,8 +85,8 @@ export class CatalogController {
 
   /**
    * Endpoint público para consultar el detalle de un producto específico mediante su ID.
-   * @param {string} productId - Identificador UUID del producto.
-   * @returns {Promise<Product>} El producto encontrado.
+   * @param productId - Identificador UUID del producto.
+   * @returns El producto encontrado.
    */
   @Get(':id')
   @ApiOperation({ summary: 'Ver un producto' })
@@ -102,9 +102,9 @@ export class CatalogController {
 
   /**
    * Endpoint protegido (solo ADMIN) para actualizar la información de un producto.
-   * @param {string} productId - Identificador UUID del producto.
-   * @param {UpdateProductDto} dto - Datos a modificar.
-   * @returns {Promise<Product>} El producto actualizado.
+   * @param productId - Identificador UUID del producto.
+   * @param dto - Datos a modificar.
+   * @returns El producto actualizado.
    */
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -126,8 +126,8 @@ export class CatalogController {
 
   /**
    * Endpoint protegido (solo ADMIN) para realizar el borrado lógico de un producto.
-   * @param {string} productId - Identificador UUID del producto.
-   * @returns {Promise<Product>} El producto marcado como inactivo.
+   * @param productId - Identificador UUID del producto.
+   * @returns El producto marcado como inactivo.
    */
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
