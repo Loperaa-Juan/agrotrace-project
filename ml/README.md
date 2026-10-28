@@ -80,6 +80,18 @@ Entrenamiento del clasificador de calidad (**Fresh**, **Mild**, **Rotten**) con 
 
 Corre en una GPU A100 de Runpod conectada a VS Code como servidor Jupyter remoto.
 
+## **Resultados**
+
+| Etapa | Métrica | Valor |
+| --- | --- | --- |
+| Dataset | Imágenes de partida | 21.340 |
+| Dataset | Imágenes con fruta detectada por YOLOE | 10.851 |
+| Dataset | Split estratificado (train / test / eval) | 85% / 10% / 5% |
+| Clasificador | Épocas de entrenamiento | 50 |
+| Clasificador | Accuracy en test | ~82% |
+
+El accuracy en test es el del notebook de clasificación, donde test también se usó como validación durante el entrenamiento.
+
 ## **Del experimento a producción**
 
 El microservicio [`ai-service/`](../ai-service/README.md) no entrena nada: solo carga los modelos exportados desde esta carpeta. Para actualizarlos, copia los archivos a `ai-service/model/` con estos nombres exactos, porque así los busca el código:
