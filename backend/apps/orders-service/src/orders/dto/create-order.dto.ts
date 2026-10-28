@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsPositive, IsUUID } from 'class-validator';
 
 /**
@@ -6,10 +7,12 @@ import { IsPositive, IsUUID } from 'class-validator';
  */
 export class CreateOrderDto {
   /** Identificador único de la oferta seleccionada. */
+  @ApiProperty({ format: 'uuid' })
   @IsUUID('all', { message: 'La oferta no es válida' })
   offertId: string;
 
   /** Cantidad del producto que se desea pedir. */
+  @ApiProperty({ example: 5, minimum: 0, exclusiveMinimum: true })
   @IsPositive({ message: 'La cantidad debe ser mayor a 0' })
   quantity: number;
 }
