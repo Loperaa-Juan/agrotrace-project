@@ -41,7 +41,7 @@ const offertIdParam = ApiParam({
 
 /**
  * Documentación común de las rutas solo para Agricultor: piden token y pueden responder 401 o 403.
- * @param {string} [forbidden] - Cuándo responde 403 la ruta.
+ * @param forbidden - Cuándo responde 403 la ruta.
  */
 const farmerOnlyDocs = (forbidden = 'El usuario no tiene el rol Agricultor') =>
   applyDecorators(
@@ -64,9 +64,9 @@ export class OffertsController {
 
   /**
    * Endpoint protegido (solo rol AGRICULTOR) para publicar una nueva oferta.
-   * @param {any} request - Objeto request con la información del token.
-   * @param {CreateOffertDto} dto - Datos de la oferta a crear.
-   * @returns {Promise<Offert>} La oferta creada.
+   * @param request - Objeto request con la información del token.
+   * @param dto - Datos de la oferta a crear.
+   * @returns La oferta creada.
    */
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -91,8 +91,8 @@ export class OffertsController {
 
   /**
    * Endpoint público para listar ofertas activas, permitiendo filtrar opcionalmente por producto.
-   * @param {string} [productId] - ID opcional del producto.
-   * @returns {Promise<Offert[]>} Lista de ofertas activas.
+   * @param productId - ID opcional del producto.
+   * @returns Lista de ofertas activas.
    */
   @Get()
   @ApiOperation({ summary: 'Listar las ofertas activas' })
@@ -116,8 +116,8 @@ export class OffertsController {
 
   /**
    * Endpoint protegido (solo rol AGRICULTOR) para consultar las ofertas propias (incluyendo retiradas).
-   * @param {any} request - Objeto request del agricultor autenticado.
-   * @returns {Promise<Offert[]>} Lista de ofertas propias.
+   * @param request - Objeto request del agricultor autenticado.
+   * @returns Lista de ofertas propias.
    */
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -136,10 +136,10 @@ export class OffertsController {
 
   /**
    * Endpoint protegido (solo rol AGRICULTOR) para modificar una oferta propia.
-   * @param {any} request - Objeto request del agricultor.
-   * @param {string} offertId - ID de la oferta en formato UUID.
-   * @param {UpdateOffertDto} dto - Datos a actualizar.
-   * @returns {Promise<Offert>} La oferta actualizada.
+   * @param request - Objeto request del agricultor.
+   * @param offertId - ID de la oferta en formato UUID.
+   * @param dto - Datos a actualizar.
+   * @returns La oferta actualizada.
    */
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -162,9 +162,9 @@ export class OffertsController {
 
   /**
    * Endpoint protegido (solo rol AGRICULTOR) para retirar una oferta propia (borrado lógico).
-   * @param {any} request - Objeto request del agricultor.
-   * @param {string} offertId - ID de la oferta en formato UUID.
-   * @returns {Promise<Offert>} La oferta con su estado inactivo guardado.
+   * @param request - Objeto request del agricultor.
+   * @param offertId - ID de la oferta en formato UUID.
+   * @returns La oferta con su estado inactivo guardado.
    */
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -187,8 +187,8 @@ export class OffertsController {
 
   /**
    * Patrón de mensaje TCP consumido por orders-service para consultar y validar una oferta.
-   * @param {string} offertId - Identificador único de la oferta.
-   * @returns {Promise<OffertSummary | null>} Resumen de la oferta o null.
+   * @param offertId - Identificador único de la oferta.
+   * @returns Resumen de la oferta o null.
    */
   @MessagePattern('get_offert')
   async getOffert(@Payload() offertId: string): Promise<OffertSummary | null> {
@@ -197,8 +197,8 @@ export class OffertsController {
 
   /**
    * Patrón de mensaje TCP consumido por orders-service cuando el agricultor acepta un pedido y se requiere descontar inventario.
-   * @param {{ offertId: string; quantity: number }} payload - Objeto que contiene el ID de la oferta y la cantidad a descontar.
-   * @returns {Promise<boolean>} True si el descuento fue exitoso, false si falló por falta de stock.
+   * @param payload - Objeto que contiene el ID de la oferta y la cantidad a descontar.
+   * @returns True si el descuento fue exitoso, false si falló por falta de stock.
    */
   @MessagePattern('decrease_offert_quantity')
   async decreaseQuantity(
