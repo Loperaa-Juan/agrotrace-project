@@ -29,6 +29,22 @@ graph LR
 | 2 | `fruit_dataset.ipynb` | Colab, guardando el progreso en Google Drive |
 | 3 | `classification_algorithm.ipynb` | GPU A100 de Runpod, conectada a VS Code como servidor Jupyter remoto |
 
+### **Cómo reproducirlos**
+
+Las dependencias se instalan dentro de cada notebook, no hay un `requirements.txt`:
+
+| Notebook | Dependencias |
+| --- | --- |
+| `segmentation_algorithm.ipynb` | `ultralytics`, `opencv-python` |
+| `fruit_dataset.ipynb` | `imagehash`, `ultralytics`, `opencv-python` |
+| `classification_algorithm.ipynb` | `tensorflow[and-cuda]`, `huggingface_hub`, `matplotlib` y, para exportar, `tensorflow-onnx` (desde GitHub) |
+
+Credenciales y servicios necesarios:
+
+- **Google Drive:** `segmentation_algorithm.ipynb` y `fruit_dataset.ipynb` montan Drive en Colab para leer las imágenes y guardar el progreso.
+- **Hugging Face:** `fruit_dataset.ipynb` pide iniciar sesión con `login()` para publicar el dataset. `classification_algorithm.ipynb` descarga los recortes de [`Juanxxo/agrotrace`](https://huggingface.co/datasets/Juanxxo/agrotrace).
+- **GPU:** el entrenamiento del clasificador necesita una GPU (se usó una A100).
+
 ### **Segmentación** (`segmentation_algorithm.ipynb`)
 
 Detección y recorte de la fruta con **YOLOE** (`ultralytics`) antes de clasificarla. Los datasets públicos de entrenamiento traen la fruta bien encuadrada, pero en producción las fotos tomadas con el celular incluyen fondo y otros objetos. Por eso, primero se localiza la fruta con un bounding box y se recorta.
