@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsIn } from 'class-validator';
 import { OrderStatus } from '../../entities/order.entity';
 
@@ -16,6 +17,7 @@ const ESTADOS_PERMITIDOS = [
  */
 export class UpdateOrderStatusDto {
   /** Nuevo estado deseado para la orden (Aceptado, Rechazado o Cancelado). */
+  @ApiProperty({ enum: ESTADOS_PERMITIDOS, example: OrderStatus.ACEPTADO })
   @IsIn(ESTADOS_PERMITIDOS, {
     message: 'El estado debe ser Aceptado, Rechazado o Cancelado',
   })

@@ -4,6 +4,7 @@ import { UsersServiceModule } from './users-service.module';
 import { HttpToRpcExceptionFilter } from './filters/http-to-rpc-exception.filter';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { setupSwagger } from './swagger';
 /**
  * Archivo de entrada en el cual se configuran elementos globales y ubica el puerto
  * especifico para recibir peticiones
@@ -23,6 +24,9 @@ async function bootstrap() {
       true,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+
+  // Swagger: interfaz en /docs y documento OpenAPI en /docs-json
+  setupSwagger(app);
 
   // TCP: comunicación interna con los demás microservicios
   const microservice = app.connectMicroservice<MicroserviceOptions>({
