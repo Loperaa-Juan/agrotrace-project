@@ -3,20 +3,29 @@ import {
   Body,
   Controller,
   Delete,
+  FileTypeValidator,
   Get,
+  MaxFileSizeValidator,
   Param,
+  ParseFilePipe,
   ParseUUIDPipe,
   Patch,
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiCreatedResponse,
+  ApiExtraModels,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -25,6 +34,7 @@ import {
   ApiQuery,
   ApiServiceUnavailableResponse,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { JwtAuthGuard, Role, Roles, RolesGuard } from '@app/shared';
 import { OffertsService, OffertSummary } from './offerts.service';
@@ -50,6 +60,9 @@ const farmerOnlyDocs = (forbidden = 'El usuario no tiene el rol Agricultor') =>
     ApiForbiddenResponse({ description: forbidden }),
   );
 
+/** Tamaño máximo de la foto de la fruta (el mismo límite que valida el ai-service). */
+const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+
 /** Respuesta 403 de las rutas que modifican una oferta ya publicada. */
 const notOwnerForbidden =
   'El usuario no tiene el rol Agricultor o la oferta es de otro agricultor';
@@ -66,16 +79,39 @@ export class OffertsController {
    * Endpoint protegido (solo rol AGRICULTOR) para publicar una nueva oferta.
    * @param request - Objeto request con la información del token.
    * @param dto - Datos de la oferta a crear.
+   * @param image - Foto de la fruta (campo `image` del multipart).
    * @returns La oferta creada.
    */
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.AGRICULTOR)
+  @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({ summary: 'Publicar una oferta (solo Agricultor)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiExtraModels(CreateOffertDto)
+  @ApiBody({
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CreateOffertDto) },
+        {
+          type: 'object',
+          required: ['image'],
+          properties: {
+            image: {
+              type: 'string',
+              format: 'binary',
+              description: 'Foto de la fruta (jpeg, png o webp, máximo 6 MB)',
+            },
+          },
+        },
+      ],
+    },
+  })
   @farmerOnlyDocs()
   @ApiCreatedResponse({ description: 'Oferta publicada', type: Offert })
   @ApiBadRequestResponse({
-    description: 'Los datos de la oferta no son válidos',
+    description:
+      'Los datos no son válidos, falta la imagen, no se detectó fruta o la fruta está en mal estado',
   })
   @ApiNotFoundResponse({
     description:
@@ -83,10 +119,26 @@ export class OffertsController {
   })
   @ApiServiceUnavailableResponse({
     description:
-      'users-service no responde (se usa para validar al agricultor)',
+      'users-service (valida al agricultor) o ai-service (clasifica la foto) no responde',
   })
-  async create(@Req() request, @Body() dto: CreateOffertDto): Promise<Offert> {
-    return await this.offertsService.create(request.user.sub, dto);
+  async create(
+    @Req() request,
+    @Body() dto: CreateOffertDto,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: MAX_IMAGE_BYTES }),
+          // Solo el mimetype declarado: el ai-service valida el contenido real del archivo
+          new FileTypeValidator({
+            fileType: /image\/(jpeg|png|webp)/,
+            skipMagicNumbersValidation: true,
+          }),
+        ],
+      }),
+    )
+    image: Express.Multer.File,
+  ): Promise<Offert> {
+    return await this.offertsService.create(request.user.sub, dto, image);
   }
 
   /**

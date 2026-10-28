@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsDateString,
   IsOptional,
   IsPositive,
   IsString,
-  IsUrl,
   IsUUID,
 } from 'class-validator';
 
@@ -30,11 +30,13 @@ export class CreateOffertDto {
 
   /** Precio monetario establecido por cada unidad de medida (debe ser mayor a cero). */
   @ApiProperty({ minimum: 0, exclusiveMinimum: true, example: 2500 })
+  @Type(() => Number)
   @IsPositive({ message: 'El precio por unidad debe ser mayor a 0' })
   pricePerUnit: number;
 
   /** Cantidad total disponible del producto para la oferta (debe ser mayor a cero). */
   @ApiProperty({ minimum: 0, exclusiveMinimum: true, example: 100 })
+  @Type(() => Number)
   @IsPositive({ message: 'La cantidad disponible debe ser mayor a 0' })
   availableQuantity: number;
 
@@ -43,12 +45,4 @@ export class CreateOffertDto {
   @IsOptional()
   @IsDateString({}, { message: 'La fecha de cosecha no es válida' })
   harvestDate?: string;
-
-  /** URL de la imagen del producto ofertado. */
-  @ApiPropertyOptional({
-    format: 'uri',
-    example: 'https://bucket.s3.amazonaws.com/ofertas/tomate.jpg',
-  })
-  @IsUrl({}, { message: 'La imagen del producto no es válida' })
-  imageUrl?: string;
 }

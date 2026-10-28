@@ -5,9 +5,9 @@ import { AiQuality } from '../entities/offert.entity';
  * Estados de clasificación detectados por el modelo de inteligencia artificial (ai-service).
  */
 export enum AiClassification {
-  BUENA = 'Buena',
-  REGULAR = 'Regular',
-  MALA = 'Mala',
+  BUENA = 'Fresh',
+  REGULAR = 'Mild',
+  MALA = 'Rotten',
 }
 
 /**

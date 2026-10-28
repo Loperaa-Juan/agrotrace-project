@@ -15,12 +15,15 @@ describe('OffertsController', () => {
     availableQuantity: 120,
   };
 
+  // Foto de la fruta que sube el agricultor
+  const image: any = { originalname: 'tomate.jpg' };
+
   beforeEach(() => {
     // El servicio falso responde con lo que recibe, así una sola aserción
     // comprueba que el controlador le pasa los datos y retorna su respuesta
     offertsService = {
-      create: jest.fn((farmerId, data) =>
-        Promise.resolve({ ...data, farmerId }),
+      create: jest.fn((farmerId, data, file) =>
+        Promise.resolve({ ...data, farmerId, imageName: file.originalname }),
       ),
       findAll: jest.fn((productId) => Promise.resolve([{ productId }])),
       findMine: jest.fn((farmerId) => Promise.resolve([{ farmerId }])),
@@ -42,15 +45,19 @@ describe('OffertsController', () => {
   });
 
   describe('create', () => {
-    it('Debe crear la oferta a nombre del agricultor autenticado', async () => {
+    it('Debe crear la oferta con la foto a nombre del agricultor autenticado', async () => {
       // Arrange
       const datos = dto;
 
       // Act
-      const result = await controller.create(request, datos);
+      const result = await controller.create(request, datos, image);
 
       // Assert
-      expect(result).toEqual({ ...dto, farmerId: 'farmer-1' });
+      expect(result).toEqual({
+        ...dto,
+        farmerId: 'farmer-1',
+        imageName: 'tomate.jpg',
+      });
     });
   });
 

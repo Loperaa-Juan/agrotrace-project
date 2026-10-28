@@ -28,7 +28,8 @@
     },
     "types": [
       "node",
-      "jest"
+      "jest",
+      "multer"
     ],
     "baseUrl": "./"
   }

@@ -23,7 +23,7 @@ async function bootstrap() {
       process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ??
       true,
   });
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   // Swagger: interfaz en /docs y documento OpenAPI en /docs-json
   setupSwagger(app);
