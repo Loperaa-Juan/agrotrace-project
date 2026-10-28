@@ -12,6 +12,23 @@ Esta carpeta (`ml/`) reúne todo lo relacionado con el **entrenamiento** de esos
 | [`fruit_dataset.ipynb`](fruit_dataset.ipynb) | Construir el dataset de tres clases | Dataset publicado en Hugging Face |
 | [`classification_algorithm.ipynb`](classification_algorithm.ipynb) | Entrenar el clasificador con **MobileNetV2** | `tf_model_mobilenetv2.onnx` |
 
+### **Flujo de trabajo**
+
+Los notebooks se ejecutan en este orden, porque la salida de cada uno alimenta al siguiente:
+
+```mermaid
+graph LR
+    S[segmentation_algorithm<br/>Colab] --> D[fruit_dataset<br/>Colab + Google Drive]
+    D -->|Hugging Face<br/>Juanxxo/agrotrace| C[classification_algorithm<br/>Runpod A100]
+    C -->|ONNX| AI[ai-service]
+```
+
+| Paso | Notebook | Dónde corre |
+| --- | --- | --- |
+| 1 | `segmentation_algorithm.ipynb` | Colab, con las imágenes de prueba en Google Drive |
+| 2 | `fruit_dataset.ipynb` | Colab, guardando el progreso en Google Drive |
+| 3 | `classification_algorithm.ipynb` | GPU A100 de Runpod, conectada a VS Code como servidor Jupyter remoto |
+
 ### **Segmentación** (`segmentation_algorithm.ipynb`)
 
 Detección y recorte de la fruta con **YOLOE** (`ultralytics`) antes de clasificarla. Los datasets públicos de entrenamiento traen la fruta bien encuadrada, pero en producción las fotos tomadas con el celular incluyen fondo y otros objetos. Por eso, primero se localiza la fruta con un bounding box y se recorta.
