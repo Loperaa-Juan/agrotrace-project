@@ -1,3 +1,8 @@
+/**
+ * @file Vista de listado de pedidos (`PedidosPage`). Permite a los usuarios consultar sus compras
+ * (en el caso de compradores/negocios) o los pedidos recibidos (en el caso de los agricultores).
+ */
+
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ErrorApi } from '../auth-api';
@@ -15,6 +20,7 @@ import {
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
 
+/** Estructura que agrupa los pedidos, ofertas y productos necesarios para la vista. */
 type DatosPedidos = {
   pedidos: Pedido[];
   ofertas: Oferta[];
@@ -23,6 +29,7 @@ type DatosPedidos = {
 
 const ERROR_CARGA = 'No pudimos cargar tus pedidos. Intenta de nuevo.';
 
+/** Configuración de iconos y estilos según el estado actual del pedido. */
 const INSIGNIAS: Record<EstadoPedido, { icono: string; tono: string }> = {
   Solicitado: { icono: 'schedule', tono: 'bg-amber-100 text-amber-800' },
   Aceptado: { icono: 'check_circle', tono: 'bg-green-100 text-[#15803d]' },
@@ -31,8 +38,10 @@ const INSIGNIAS: Record<EstadoPedido, { icono: string; tono: string }> = {
   Cancelado: { icono: 'cancel', tono: 'bg-gray-200 text-gray-700' },
 };
 
+/** Formatea un número al estándar colombiano con separadores de miles. */
 const formatoNumero = (valor: number) => valor.toLocaleString('es-CO');
 
+/** Formatea una fecha ISO a cadena legible en español. */
 const formatoFecha = (fechaIso: string) =>
   new Date(fechaIso).toLocaleDateString('es-CO', {
     day: 'numeric',
@@ -40,12 +49,17 @@ const formatoFecha = (fechaIso: string) =>
     year: 'numeric',
   });
 
-/** Los primeros caracteres del id bastan para reconocer el pedido. */
+/** Extrae los primeros caracteres del ID para mostrarlos de forma abreviada. */
 const numeroPedido = (id: string) => id.slice(0, 8).toUpperCase();
 
+/** Determina si un pedido se encuentra en curso (Solicitado o Aceptado). */
 const esActivo = (pedido: Pedido) =>
   pedido.status === 'Solicitado' || pedido.status === 'Aceptado';
 
+/**
+ * Componente reutilizable para renderizar iconos de Google Material Symbols.
+ * @component
+ */
 function Icono({
   nombre,
   className = '',
@@ -60,6 +74,10 @@ function Icono({
   );
 }
 
+/**
+ * Componente para mostrar alertas de error.
+ * @component
+ */
 function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <p
@@ -71,6 +89,10 @@ function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
+/**
+ * Tarjeta individual de resumen para cada pedido en el listado.
+ * @component
+ */
 function TarjetaPedido({
   pedido,
   producto,
@@ -122,6 +144,10 @@ function TarjetaPedido({
   );
 }
 
+/**
+ * Componente que renderiza el listado de tarjetas de pedidos o un mensaje si está vacío.
+ * @component
+ */
 function ListaPedidos({ datos }: Readonly<{ datos: DatosPedidos }>) {
   const { pedidos, ofertas, productos } = datos;
   const activos = pedidos.filter(esActivo).length;
@@ -154,7 +180,11 @@ function ListaPedidos({ datos }: Readonly<{ datos: DatosPedidos }>) {
   );
 }
 
-/** Pedidos del usuario: las compras del comprador o los pedidos que recibió el agricultor. */
+/**
+ * Página principal de la ruta `/pedidos` (`PedidosPage`). Carga y muestra los pedidos del usuario
+ * diferenciando entre compradores y agricultores.
+ * @component
+ */
 export function PedidosPage() {
   const { usuario, salir } = useSesion();
   const [datos, setDatos] = useState<DatosPedidos | null>(null);
