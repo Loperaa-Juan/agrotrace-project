@@ -1,3 +1,8 @@
+/**
+ * @file Vista detallada de una oferta agrícola (`DetalleProductoPage`). Permite a los usuarios consultar
+ * la información completa de la cosecha, verificar la certificación de calidad por IA y realizar pedidos interactivos.
+ */
+
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { Usuario } from '../auth-api';
@@ -14,12 +19,13 @@ import { Icono } from './explore';
 
 const ERROR_CARGA = 'No pudimos cargar la cosecha. Intenta de nuevo.';
 
-/** Cantidad máxima por pedido para quien no compra como negocio. */
+/** Cantidad máxima permitida por pedido para usuarios que no compran como negocio (límite para hogares). */
 const LIMITE_PERSONA = 50;
 
+/** Formatea un valor numérico al estándar colombiano. */
 const formatoNumero = (valor: number) => valor.toLocaleString('es-CO');
 
-// Se lee como fecha local para que no cambie de día por la zona horaria
+/** Formatea una fecha local evitando desfases por zona horaria. */
 const formatoFecha = (fecha: string) =>
   new Date(`${fecha}T00:00:00`).toLocaleDateString('es-CO', {
     day: 'numeric',
@@ -30,6 +36,10 @@ const formatoFecha = (fecha: string) =>
 const BOTON_CANTIDAD =
   'w-12 h-12 shrink-0 rounded-xl bg-white text-gray-900 flex items-center justify-center shadow-sm text-2xl font-bold transition-all hover:bg-gray-100 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:active:scale-100';
 
+/**
+ * Componente interno para mostrar pares de datos descriptivos con icono.
+ * @component
+ */
 function Dato({
   icono,
   etiqueta,
@@ -50,6 +60,10 @@ function Dato({
   );
 }
 
+/**
+ * Componente principal de presentación para el detalle de la cosecha y selector de cantidades (`ProductDetail`).
+ * @component
+ */
 function ProductDetail({
   oferta,
   producto,
@@ -277,6 +291,10 @@ type DatosDetalle = {
   producto: Producto | undefined;
 };
 
+/**
+ * Componente contenedor para mensajes de error o estados vacíos.
+ * @component
+ */
 function Aviso({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-8 py-10 space-y-4">
@@ -285,7 +303,11 @@ function Aviso({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
-/** Página de la ruta `/explorar/:offertId`: busca la oferta y su producto y muestra el detalle. */
+/**
+ * Página principal de la ruta `/explorar/:offertId` (`DetalleProductoPage`). Busca la oferta
+ * y su producto correspondiente para mostrar el detalle y gestionar la creación de pedidos.
+ * @component
+ */
 export function DetalleProductoPage() {
   const { offertId } = useParams();
   const navigate = useNavigate();
@@ -354,6 +376,8 @@ export function DetalleProductoPage() {
   }
 
   const { OffertId } = datos.oferta;
+
+  /** Envía la orden de compra al backend y redirige al detalle del nuevo pedido. */
   const ordenar = (cantidad: number) => {
     crearPedido(OffertId, cantidad)
       .then((pedido) => navigate(`${routes.pedidos}/${pedido.OrderId}`))
