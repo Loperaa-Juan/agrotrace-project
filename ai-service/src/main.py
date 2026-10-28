@@ -1,4 +1,3 @@
-import base64
 from contextlib import asynccontextmanager
 from io import BytesIO
 from pathlib import Path
@@ -109,7 +108,6 @@ async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
     return {
         "class": result.predicted_class,
         "confidence": result.trust_score,
-        "annotated_image": base64.b64encode(annotated_jpeg).decode(),
         "original_key": original_key,
         "annotated_key": annotated_key,
     }

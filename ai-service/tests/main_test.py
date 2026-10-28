@@ -1,4 +1,3 @@
-import base64
 import re
 from io import BytesIO
 from pathlib import Path
@@ -137,8 +136,8 @@ def test_predict_without_fruit_returns_422():
     )
 
 
-def decode_image(encoded):
-    return Image.open(BytesIO(base64.b64decode(encoded)))
+def open_image(data):
+    return Image.open(BytesIO(data))
 
 
 def count_green_pixels(image):
@@ -149,21 +148,26 @@ def count_green_pixels(image):
     )
 
 
-# La respuesta debe incluir la foto completa (no el recorte) como JPEG en base64
-def test_predict_returns_annotated_photo():
-    response = post_image(BANANA_PATH.read_bytes())
-
-    annotated = decode_image(response.json()["annotated_image"])
-
-    assert (annotated.format, annotated.size) == ("JPEG", (512, 512))
+def uploaded_objects(s3_client):
+    # Lo que se guardó en S3, indexado por key
+    return {
+        call.kwargs["Key"]: call.kwargs for call in s3_client.put_object.call_args_list
+    }
 
 
-# La foto devuelta debe tener dibujado el recuadro verde alrededor de la fruta.
+# La respuesta no debe incluir las imágenes en base64, solo las keys de S3
+def test_predict_does_not_return_base64_image():
+    body = post_image(BANANA_PATH.read_bytes()).json()
+
+    assert set(body) == {"class", "confidence", "original_key", "annotated_key"}
+
+
+# La foto guardada como anotada debe tener dibujado el recuadro verde alrededor de la fruta.
 # La foto original no tiene píxeles verde puro; un recuadro de 3 px alrededor del banano deja unos 4000
-def test_predict_draws_bounding_box_on_photo():
-    response = post_image(BANANA_PATH.read_bytes())
+def test_predict_draws_bounding_box_on_photo(s3_client):
+    body = post_image(BANANA_PATH.read_bytes()).json()
 
-    annotated = decode_image(response.json()["annotated_image"])
+    annotated = open_image(uploaded_objects(s3_client)[body["annotated_key"]]["Body"])
 
     assert count_green_pixels(annotated) > 2000
 
@@ -172,11 +176,6 @@ def test_predict_draws_bounding_box_on_photo():
 def key_pattern(folder):
     uuid4 = r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"
     return rf"{folder}/{uuid4}\.jpeg"
-
-
-def uploaded_objects(s3_client):
-    # Lo que se guardó en S3, indexado por key
-    return {call.kwargs["Key"]: call.kwargs for call in s3_client.put_object.call_args_list}
 
 
 # La respuesta debe incluir la key de la foto original y la de la foto con el recuadro, cada una en su carpeta
@@ -197,12 +196,12 @@ def test_predict_uploads_original_photo(s3_client):
     assert (uploaded["Body"], uploaded["ContentType"]) == (content, "image/jpeg")
 
 
-# La foto con el recuadro se guarda igual a la que se devuelve en la respuesta
+# La foto con el recuadro se guarda en S3 como un JPEG
 def test_predict_uploads_annotated_photo(s3_client):
     body = post_image(BANANA_PATH.read_bytes()).json()
 
     uploaded = uploaded_objects(s3_client)[body["annotated_key"]]
-    assert uploaded["Body"] == base64.b64decode(body["annotated_image"])
+    assert open_image(uploaded["Body"]).format == "JPEG"
     assert uploaded["ContentType"] == "image/jpeg"
 
 
