@@ -1,5 +1,10 @@
+/**
+ * @file Estilos globales de la aplicación y configuración del tema de Tailwind CSS (`index.css`).
+ */
+
 @import "tailwindcss";
 
 @theme {
+  /* Configuración de la tipografía sans-serif principal de la interfaz */
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 }
