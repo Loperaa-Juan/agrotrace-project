@@ -78,4 +78,6 @@ def test_build_key_uses_uuid4_in_folder():
 
 # Dos imágenes nunca deben quedar con la misma key
 def test_build_key_is_unique():
-    assert build_key("original", "jpeg") != build_key("original", "jpeg")
+    keys = {build_key("original", "jpeg") for _ in range(2)}
+
+    assert len(keys) == 2
