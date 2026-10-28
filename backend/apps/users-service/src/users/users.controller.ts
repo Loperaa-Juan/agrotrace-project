@@ -1,4 +1,5 @@
 import {
+  applyDecorators,
   Controller,
   Delete,
   Get,
@@ -9,13 +10,31 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
+import {
+  ApiBearerAuth,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '@app/shared';
+import { AuthUserDto } from '../auth/dto/auth-response.dto';
+
+/** Documentación común de las rutas de la cuenta propia: piden token y pueden responder 401. */
+const ownAccountDocs = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiUnauthorizedResponse({ description: 'Falta el token o no es válido' }),
+  );
 
 /**
  * Controlador encargado de gestionar las rutas HTTP y los mensajes RPC (microservicios)
  * relacionados con las operaciones de consulta y administración de usuarios.
  */
+@ApiTags('users')
 @Controller('users')
 export class UsersController {
   /**
@@ -30,6 +49,13 @@ export class UsersController {
    * @returns La entidad del usuario encontrado.
    * @throws `NotFoundException` Si el usuario no existe en la base de datos.
    */
+  @ApiOperation({ summary: 'Consulta el perfil del usuario autenticado' })
+  @ownAccountDocs()
+  @ApiOkResponse({
+    description: 'Datos públicos del usuario',
+    type: AuthUserDto,
+  })
+  @ApiNotFoundResponse({ description: 'El usuario ya no existe' })
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMe(@Req() request) {
@@ -44,6 +70,9 @@ export class UsersController {
    * Endpoint HTTP protegido para eliminar la cuenta del usuario autenticado actual.
    * @param request - Objeto de petición HTTP con los datos del usuario logueado.
    * @returns   */
+  @ApiOperation({ summary: 'Elimina la cuenta del usuario autenticado' })
+  @ownAccountDocs()
+  @ApiNoContentResponse({ description: 'Cuenta eliminada' })
   @Delete('me')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
