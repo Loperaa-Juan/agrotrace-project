@@ -1,3 +1,8 @@
+/**
+ * @file Vista de perfil de usuario (`PerfilPage`). Muestra los datos personales, roles (Agricultor, Comprador,
+ * Negocio o Administrador), estadísticas financieras para productores, inventario de fincas y accesos directos.
+ */
+
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ErrorApi, type RolUsuario } from '../auth-api';
@@ -21,6 +26,7 @@ import { useSesion } from '../session-context';
 
 type Ventas = PerfilAgricultor['sales'];
 
+/** Estructura que agrupa todos los datos cargados para renderizar el perfil según el rol. */
 type DatosPerfil = {
   perfil: PerfilUsuario;
   /** Solo el agricultor tiene ventas; las calcula orders-service. */
@@ -33,6 +39,7 @@ type DatosPerfil = {
 const ERROR_CARGA = 'No pudimos cargar tu perfil. Intenta de nuevo.';
 const ERROR_RETIRO = 'No pudimos retirar la oferta. Intenta de nuevo.';
 
+/** Configuración de etiquetas e iconos para cada rol de usuario dentro de la plataforma. */
 const ROLES: Record<RolUsuario, { etiqueta: string; icono: string }> = {
   Agricultor: { etiqueta: 'Agricultor', icono: 'agriculture' },
   Persona: { etiqueta: 'Comprador', icono: 'shopping_basket' },
@@ -45,11 +52,17 @@ const BOTON_PRIMARIO =
 const BOTON_SECUNDARIO =
   'inline-flex items-center justify-center gap-2 px-5 h-12 rounded-xl bg-white hover:bg-gray-100 text-[#15803d] text-sm font-semibold border border-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2';
 
+/** Formatea un número a moneda colombiana (COP). */
 const formatoCOP = (valor: number) => `$ ${valor.toLocaleString('es-CO')}`;
 
+/** Genera la cadena de texto descriptiva para el total de ventas entregadas. */
 const ventasEntregadas = ({ count }: ResumenVentas) =>
   `${count} ${count === 1 ? 'venta entregada' : 'ventas entregadas'}`;
 
+/**
+ * Componente reutilizable para renderizar iconos de Google Material Symbols.
+ * @component
+ */
 function Icono({
   nombre,
   className = '',
@@ -64,6 +77,10 @@ function Icono({
   );
 }
 
+/**
+ * Tarjeta de resumen estadístico reutilizable.
+ * @component
+ */
 function Resumen({
   titulo,
   icono,
@@ -96,6 +113,10 @@ function Resumen({
   );
 }
 
+/**
+ * Panel de métricas financieras y operativas exclusivo para agricultores.
+ * @component
+ */
 function ResumenAgricultor({
   ventas,
   pedidos,
@@ -136,6 +157,10 @@ function ResumenAgricultor({
   );
 }
 
+/**
+ * Panel de métricas y accesos rápidos para compradores o negocios.
+ * @component
+ */
 function ResumenComprador({ pedidos }: Readonly<{ pedidos: Pedido[] }>) {
   const activos = pedidos.filter(
     (pedido) => pedido.status === 'Solicitado' || pedido.status === 'Aceptado',
@@ -176,6 +201,10 @@ function ResumenComprador({ pedidos }: Readonly<{ pedidos: Pedido[] }>) {
   );
 }
 
+/**
+ * Listado del inventario de cosechas publicadas por el agricultor con opción de retiro.
+ * @component
+ */
 function Inventario({
   ofertas,
   productos,
@@ -267,6 +296,10 @@ function Inventario({
   );
 }
 
+/**
+ * Componente de alerta visual para errores.
+ * @component
+ */
 function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <p
@@ -278,6 +311,10 @@ function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
+/**
+ * Página principal de la ruta `/perfil` (`PerfilPage`). Carga y gestiona los datos de perfil y métricas según el rol.
+ * @component
+ */
 export function PerfilPage() {
   const { usuario, salir } = useSesion();
   const [datos, setDatos] = useState<DatosPerfil | null>(null);
@@ -320,6 +357,7 @@ export function PerfilPage() {
 
   if (!usuario) return <Navigate replace to={routes.login} />;
 
+  /** Retira una oferta activa del inventario del agricultor. */
   const retirar = async (id: string) => {
     setError(null);
     try {
@@ -352,6 +390,10 @@ export function PerfilPage() {
   );
 }
 
+/**
+ * Componente principal de presentación para el contenido del perfil (`ContenidoPerfil`).
+ * @component
+ */
 function ContenidoPerfil({
   datos,
   onRetirar,
