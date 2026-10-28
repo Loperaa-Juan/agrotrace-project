@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -6,7 +8,14 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     models_dir: str = "models"
-    max_image_mb: int = 5
+
+    max_image_mb: int = 5 * 1024 * 1024
+
+    supported_file_types: ClassVar[dict[str, str]] = {
+        "image/png": "png",
+        "image/jpg": "jpg",
+        "image/webp": "webp",
+    }
 
 
 settings = Settings()
