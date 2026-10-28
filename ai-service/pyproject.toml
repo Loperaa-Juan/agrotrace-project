@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "boto3>=1.43.120",
     "fastapi[standard]>=0.161.1",
     "onnxruntime>=1.31.0",
     "pillow>=13.0.0",
@@ -12,6 +13,7 @@ dependencies = [
     "pysonar>=1.10.0.5888",
     "pytest>=9.1.1",
     "python-dotenv>=1.2.4",
+    "python-magic>=0.4.27",
     "ultralytics>=8.4.184",
 ]
 [tool.pytest.ini_options]

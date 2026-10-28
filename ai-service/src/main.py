@@ -48,6 +48,7 @@ async def root():
 async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
     """Endpoint to predict the class of an image."""
     
+    # Validate that the request contains the image
     if not image:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
