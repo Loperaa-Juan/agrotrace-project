@@ -3,7 +3,7 @@
  * de un flujo de dos pasos para registrar productos, definir cantidades, precios en COP y fechas de recolección.
  */
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ErrorApi } from '../auth-api';
 import {
@@ -31,6 +31,7 @@ type Errores = {
   producto: string | null;
   cantidad: string | null;
   precio: string | null;
+  foto: string | null;
 };
 
 const FORMULARIO_VACIO: Formulario = {
@@ -52,6 +53,13 @@ const ERROR_PRODUCTO = 'Elija un producto del catálogo para continuar.';
 const ERROR_CANTIDAD = 'La cantidad debe ser un número entero mayor que cero.';
 const ERROR_PRECIO =
   'El precio debe ser un valor en pesos mayor que cero, sin decimales.';
+
+const ERROR_FOTO = 'Agregue una foto de la cosecha para continuar.';
+const ERROR_FOTO_TIPO = 'La foto debe ser JPG, PNG o WEBP.';
+const ERROR_FOTO_PESO = 'La foto no puede pesar más de 6 MB.';
+
+const TIPOS_FOTO = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_FOTO_BYTES = 6 * 1024 * 1024;
 
 const BOTON_PRIMARIO =
   'inline-flex items-center justify-center gap-2 px-5 h-12 rounded-xl bg-[#15803d] hover:bg-[#166534] disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2';
@@ -77,12 +85,21 @@ const hoy = () => new Date().toLocaleDateString('en-CA');
 function validar(
   formulario: Formulario,
   producto: Producto | undefined,
+  foto: File | null,
 ): Errores {
   return {
     producto: producto ? null : ERROR_PRODUCTO,
     cantidad: esEnteroPositivo(formulario.cantidad) ? null : ERROR_CANTIDAD,
     precio: esEnteroPositivo(formulario.precio) ? null : ERROR_PRECIO,
+    foto: foto ? null : ERROR_FOTO,
   };
+}
+
+/** Comprueba que el archivo sea JPG, PNG o WEBP de máximo 6 MB; devuelve el error o `null`. */
+function errorDeFoto(archivo: File): string | null {
+  if (!TIPOS_FOTO.includes(archivo.type)) return ERROR_FOTO_TIPO;
+  if (archivo.size > MAX_FOTO_BYTES) return ERROR_FOTO_PESO;
+  return null;
 }
 
 /** Prepara el objeto de la nueva oferta omitiendo campos opcionales vacíos. */
@@ -231,6 +248,92 @@ function CampoNumero({
 }
 
 /**
+ * Zona para arrastrar y soltar (o elegir con clic) la foto de la cosecha, con vista previa.
+ * @component
+ */
+function CampoFoto({
+  foto,
+  error,
+  onFoto,
+}: Readonly<{
+  foto: File | null;
+  error: string | null;
+  onFoto: (foto: File) => void;
+}>) {
+  const [arrastrando, setArrastrando] = useState(false);
+  const [errorLocal, setErrorLocal] = useState<string | null>(null);
+  const vistaPrevia = useMemo(
+    () => (foto ? URL.createObjectURL(foto) : null),
+    [foto],
+  );
+  const mostrado = errorLocal ?? error;
+
+  useEffect(() => {
+    if (!vistaPrevia) return;
+    return () => URL.revokeObjectURL(vistaPrevia);
+  }, [vistaPrevia]);
+
+  const recibir = (archivo: File | undefined) => {
+    if (!archivo) return;
+    const invalido = errorDeFoto(archivo);
+    setErrorLocal(invalido);
+    if (!invalido) onFoto(archivo);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className={ETIQUETA} htmlFor="foto">
+        Foto de la cosecha
+      </label>
+      <div
+        className={`flex flex-col items-center justify-center gap-2 p-6 rounded-xl border-2 border-dashed text-center transition-colors ${
+          arrastrando
+            ? 'border-[#15803d] bg-green-50'
+            : 'border-gray-300 bg-gray-50'
+        }`}
+        data-testid="zona-foto"
+        onDragLeave={() => setArrastrando(false)}
+        onDragOver={(evento) => {
+          evento.preventDefault();
+          setArrastrando(true);
+        }}
+        onDrop={(evento) => {
+          evento.preventDefault();
+          setArrastrando(false);
+          recibir(evento.dataTransfer.files[0]);
+        }}
+      >
+        {foto && vistaPrevia && !errorLocal ? (
+          <>
+            <img
+              alt="Vista previa de la foto"
+              className="max-h-48 rounded-xl object-contain"
+              src={vistaPrevia}
+            />
+            <span className="text-sm text-gray-700">{foto.name}</span>
+          </>
+        ) : (
+          <Icono className="text-4xl text-gray-500" nombre="add_a_photo" />
+        )}
+        <span className="text-sm text-gray-700">
+          Arrastre la foto aquí o haga clic para elegirla
+        </span>
+        <input
+          accept={TIPOS_FOTO.join(',')}
+          aria-describedby={mostrado ? 'foto-error' : undefined}
+          aria-invalid={Boolean(mostrado)}
+          className="text-sm text-gray-600"
+          id="foto"
+          onChange={(evento) => recibir(evento.target.files?.[0])}
+          type="file"
+        />
+      </div>
+      {mostrado && <ErrorCampo id="foto-error">{mostrado}</ErrorCampo>}
+    </div>
+  );
+}
+
+/**
  * Indicador visual del progreso del formulario de múltiples pasos.
  * @component
  */
@@ -282,11 +385,15 @@ function PasoDatos({
   productos,
   formulario,
   cambiar,
+  foto,
+  onFoto,
   onAvanzar,
 }: Readonly<{
   productos: Producto[];
   formulario: Formulario;
   cambiar: CambiarCampo;
+  foto: File | null;
+  onFoto: (foto: File) => void;
   onAvanzar: () => void;
 }>) {
   /** Los errores de los campos aparecen después del primer intento de avanzar. */
@@ -295,15 +402,15 @@ function PasoDatos({
     (item) => item.ProductId === formulario.productoId,
   );
   const unidad = producto?.unitOfMeasure ?? 'unidad';
-  const errores = validar(formulario, producto);
+  const errores = validar(formulario, producto, foto);
   const visibles: Errores = intento
     ? errores
-    : { producto: null, cantidad: null, precio: null };
+    : { producto: null, cantidad: null, precio: null, foto: null };
   const montosValidos = !errores.cantidad && !errores.precio;
 
   const avanzar = () => {
     setIntento(true);
-    if (!errores.producto && montosValidos) onAvanzar();
+    if (!errores.producto && !errores.foto && montosValidos) onAvanzar();
   };
 
   return (
@@ -357,6 +464,8 @@ function PasoDatos({
         step="50"
         valor={formulario.precio}
       />
+
+      <CampoFoto error={visibles.foto} foto={foto} onFoto={onFoto} />
 
       <div className="space-y-2">
         <label className={ETIQUETA} htmlFor="descripcion">
@@ -492,6 +601,7 @@ export function PublicarPage() {
   );
   const [paso, setPaso] = useState<Paso>(1);
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
+  const [foto, setFoto] = useState<File | null>(null);
   const [publicando, setPublicando] = useState(false);
   const [errorPublicar, setErrorPublicar] = useState<string | null>(null);
   const [publicada, setPublicada] = useState(false);
@@ -503,10 +613,11 @@ export function PublicarPage() {
     setFormulario((previo) => ({ ...previo, [campo]: valor }));
 
   const publicar = async () => {
+    if (!foto) return;
     setPublicando(true);
     setErrorPublicar(null);
     try {
-      await crearOferta(aOferta(formulario));
+      await crearOferta(aOferta(formulario), foto);
       setPublicada(true);
     } catch (err) {
       if (esSesionVencida(err)) salir();
@@ -531,7 +642,9 @@ export function PublicarPage() {
         <PasoDatos
           cambiar={cambiar}
           formulario={formulario}
+          foto={foto}
           onAvanzar={() => setPaso(2)}
+          onFoto={setFoto}
           productos={productos}
         />
       );

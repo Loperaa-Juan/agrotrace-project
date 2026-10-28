@@ -106,9 +106,14 @@ async function pedir<T>(url: string, method = 'GET', cuerpo?: unknown): Promise<
     method,
     headers: {
       ...(token && { Authorization: `Bearer ${token}` }),
-      ...(cuerpo !== undefined && { 'Content-Type': 'application/json' }),
+      ...(cuerpo !== undefined &&
+        !(cuerpo instanceof FormData) && {
+          'Content-Type': 'application/json',
+        }),
     },
-    ...(cuerpo !== undefined && { body: JSON.stringify(cuerpo) }),
+    ...(cuerpo !== undefined && {
+      body: cuerpo instanceof FormData ? cuerpo : JSON.stringify(cuerpo),
+    }),
   });
   const datos = await respuesta.json();
   if (!respuesta.ok) throw new ErrorApi(respuesta.status, String(datos.message));
@@ -128,11 +133,18 @@ export const obtenerOfertas = () => pedir<Oferta[]>(`${CATALOG_URL}/offerts`);
 export const obtenerMisOfertas = () => pedir<Oferta[]>(`${CATALOG_URL}/offerts/me`);
 
 /**
- * Crea una nueva oferta de productos agrícolas.
+ * Crea una nueva oferta de productos agrícolas enviándola como `multipart/form-data`
+ * junto con la foto de la fruta (campo `image`).
  * @param {NuevaOferta} oferta Datos de la oferta a crear.
+ * @param {File} foto Foto de la fruta (jpeg, png o webp, máximo 6 MB).
  */
-export const crearOferta = (oferta: NuevaOferta) =>
-  pedir<Oferta>(`${CATALOG_URL}/offerts`, 'POST', oferta);
+export const crearOferta = (oferta: NuevaOferta, foto: File) => {
+  const datos = new FormData();
+  for (const [campo, valor] of Object.entries(oferta))
+    datos.append(campo, String(valor));
+  datos.append('image', foto);
+  return pedir<Oferta>(`${CATALOG_URL}/offerts`, 'POST', datos);
+};
 
 /**
  * Retira (elimina/desactiva) una oferta propia por su ID.
