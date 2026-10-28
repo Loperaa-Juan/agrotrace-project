@@ -47,16 +47,17 @@ async def root():
 )
 async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
     """Endpoint to predict the class of an image."""
-    
+
     # Validate that the request contains the image
-    if not image:
+    content = await image.read()
+    if not content:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No se encontró el archivo"
         )
 
     # Open the uploaded file as a PIL image
-    img = Image.open(BytesIO(await image.read()))
+    img = Image.open(BytesIO(content))
 
     # Detect the fruit once, then classify its crop and mark it on the photo
     result = analyze_fruit(app.state.detector, app.state.model, img)

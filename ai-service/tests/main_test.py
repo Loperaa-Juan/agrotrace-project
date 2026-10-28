@@ -43,6 +43,17 @@ def post_image(content, filename="fruta.jpeg", content_type="image/jpeg"):
         )
 
 
+# El endpoint debe arrojar un error 400 si la request no contiene una imagen
+def test_predict_fails_without_image():
+    contenido_vacio = b""
+
+    # Ejecutamos tu función helper
+    respuesta = post_image(content=contenido_vacio, filename="vacio.jpeg")
+
+    # Validamos que el endpoint responda con el código de error configurado (ej. 400)
+    assert respuesta.status_code == 400
+
+
 # El endpoint /predict debe recibir la foto como archivo y devolver la clase de la fruta
 def test_predict_classifies_fruit_photo():
     response = post_image(BANANA_PATH.read_bytes())
