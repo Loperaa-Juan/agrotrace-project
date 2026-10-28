@@ -130,9 +130,43 @@ Repite el procedimiento para `catalog-service` y `orders-service`.
 
 ---
 
+## Documentación de la API (Swagger)
+
+Cada microservicio publica su propia documentación OpenAPI con las rutas HTTP, los cuerpos que recibe, las respuestas posibles y qué rutas piden token. Los mensajes TCP internos entre servicios no aparecen ahí.
+
+1. Levanta el servicio que quieras consultar (ver [Ejecución](#ejecución)). Necesita su `.env` y la base de datos, igual que para usarlo.
+2. Abre su documentación en el navegador:
+
+| Servicio | Interfaz Swagger | Documento OpenAPI (JSON) |
+|---|---|---|
+| `users-service` | http://localhost:3000/docs | http://localhost:3000/docs-json |
+| `catalog-service` | http://localhost:3002/docs | http://localhost:3002/docs-json |
+| `orders-service` | http://localhost:3004/docs | http://localhost:3004/docs-json |
+
+> Los puertos son los de `HTTP_PORT` en cada `.env`; los de la tabla son los valores por defecto.
+
+### Probar rutas protegidas
+
+Las rutas marcadas con un candado piden un token JWT:
+
+1. En `http://localhost:3000/docs`, ejecuta `POST /auth/login` (o `POST /auth/register`) y copia el `accessToken` de la respuesta.
+2. En la documentación del servicio que vas a probar, pulsa **Authorize**, pega el token (sin escribir `Bearer`) y confirma.
+
+Como `JWT_SECRET` es el mismo en los tres servicios, el mismo token sirve en todos. Dura lo que indique `JWT_EXPIRES_IN`; cuando expire, vuelve a iniciar sesión o usa `POST /auth/refresh`.
+
+---
+
 ## Documentación del código
 
-Todo el código fuente cuenta con anotaciones JSDoc detalladas en clases, métodos, DTOs y entidades, para facilitar el mantenimiento y las herramientas de autocompletado.
+Todo el código fuente cuenta con comentarios TSDoc en clases, métodos, DTOs y entidades, para facilitar el mantenimiento y las herramientas de autocompletado.
+
+Para generar la referencia en HTML con TypeDoc:
+
+```bash
+pnpm docs:build
+```
+
+El resultado queda en `docs/` (carpeta ignorada por git); abre `docs/index.html` en el navegador.
 
 ---
 
