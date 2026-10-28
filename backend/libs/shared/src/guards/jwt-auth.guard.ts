@@ -8,20 +8,19 @@ import { JwtService } from '@nestjs/jwt';
 
 /**
  * Guard que valida el access token (`Authorization: Bearer <token>`) y deja su payload en `request.user`.
- * @implements {CanActivate}
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   /**
-   * @param {JwtService} jwtService Servicio de Nest para verificar la firma y expiración del JWT.
+   * @param jwtService - Servicio de Nest para verificar la firma y expiración del JWT.
    */
   constructor(private readonly jwtService: JwtService) {}
 
   /**
    * Verifica el token de la petición HTTP y guarda su payload en `request.user`.
-   * @param {ExecutionContext} context Contexto de ejecución de la petición actual.
-   * @returns {Promise<boolean>} `true` si el token es válido.
-   * @throws {UnauthorizedException} Si falta el header, no es de tipo Bearer, o el token es inválido o expiró.
+   * @param context - Contexto de ejecución de la petición actual.
+   * @returns `true` si el token es válido.
+   * @throws {@link UnauthorizedException} Si falta el header, no es de tipo Bearer, o el token es inválido o expiró.
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();

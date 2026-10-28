@@ -14,7 +14,7 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class ValidationService {
   /**
-   * @param {ClientProxy} usersClient Cliente TCP de users-service (token `USERS_SERVICE`).
+   * @param usersClient - Cliente TCP de users-service (token `USERS_SERVICE`).
    */
   constructor(
     @Inject('USERS_SERVICE') private readonly usersClient: ClientProxy,
@@ -22,11 +22,11 @@ export class ValidationService {
 
   /**
    * Verifica en users-service (patrón `user_exists`) que el usuario exista antes de operar con él.
-   * @param {string} userId UUID del usuario a validar.
-   * @returns {Promise<void>} Se resuelve si el usuario existe.
-   * @throws {BadRequestException} Si no se envía `userId`.
-   * @throws {ServiceUnavailableException} Si users-service no responde.
-   * @throws {NotFoundException} Si el usuario no existe.
+   * @param userId - UUID del usuario a validar.
+   * @returns Se resuelve si el usuario existe.
+   * @throws {@link BadRequestException} Si no se envía `userId`.
+   * @throws {@link ServiceUnavailableException} Si users-service no responde.
+   * @throws {@link NotFoundException} Si el usuario no existe.
    */
   async validateUserExists(userId: string): Promise<void> {
     if (!userId) {
