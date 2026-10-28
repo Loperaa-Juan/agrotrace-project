@@ -166,6 +166,7 @@ describe('Documentación Swagger de /offerts', () => {
         'isActive',
         'createdAt',
         'updatedAt',
+        'imageKey',
       ]);
     });
 
@@ -203,6 +204,16 @@ describe('Documentación Swagger de /offerts', () => {
         'pricePerUnit',
         'availableQuantity',
       ]);
+    });
+
+    it('recibe la foto de la fruta como archivo obligatorio en un multipart', async () => {
+      const documento = await obtenerDocumento();
+
+      const cuerpo = documento.paths['/offerts'].post.requestBody.content;
+
+      expect(JSON.stringify(cuerpo['multipart/form-data'].schema)).toContain(
+        '"image":{"type":"string","format":"binary"',
+      );
     });
 
     it('documenta el producto como UUID', async () => {

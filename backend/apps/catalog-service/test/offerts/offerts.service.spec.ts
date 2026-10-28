@@ -7,6 +7,7 @@ describe('OffertsService', () => {
   let offertRepository: any;
   let validationService: any;
   let catalogService: any;
+  let aiClient: any;
 
   // Oferta de prueba que simula lo que hay en la BD
   const offert = {
@@ -27,6 +28,9 @@ describe('OffertsService', () => {
     availableQuantity: 120,
   };
 
+  // Foto de la fruta que sube el agricultor
+  const image: any = { buffer: Buffer.from('foto'), mimetype: 'image/jpeg' };
+
   beforeEach(() => {
     offertRepository = {
       create: jest.fn((data) => data),
@@ -46,10 +50,21 @@ describe('OffertsService', () => {
       productExists: jest.fn().mockResolvedValue(true),
     };
 
+    // El ai-service clasifica la foto y la guarda en S3
+    aiClient = {
+      classify: jest.fn().mockResolvedValue({
+        class: 'Fresh',
+        confidence: 0.98,
+        original_key: 'original/foto.jpeg',
+        annotated_key: 'annotated/foto.jpeg',
+      }),
+    };
+
     service = new OffertsService(
       offertRepository,
       validationService,
       catalogService,
+      aiClient,
     );
   });
 
@@ -59,10 +74,49 @@ describe('OffertsService', () => {
       const farmerId = 'farmer-1';
 
       // Act
-      const result = await service.create(farmerId, dto);
+      const result = await service.create(farmerId, dto, image);
 
       // Assert
-      expect(result).toEqual({ ...dto, farmerId });
+      expect(result).toMatchObject({ ...dto, farmerId });
+    });
+
+    it('Debe guardar la calidad y la llave de la foto que devuelve la IA', async () => {
+      // Arrange
+      const farmerId = 'farmer-1';
+
+      // Act
+      const result = await service.create(farmerId, dto, image);
+
+      // Assert
+      expect(result).toMatchObject({
+        aiQuality: 'Buena',
+        imageKey: 'original/foto.jpeg',
+      });
+    });
+
+    it('No debe guardar la oferta si la IA clasifica la fruta como podrida', async () => {
+      // Arrange
+      aiClient.classify.mockResolvedValue({
+        class: 'Rotten',
+        original_key: 'original/foto.jpeg',
+      });
+
+      // Act
+      await service.create('farmer-1', dto, image).catch(() => undefined);
+
+      // Assert
+      expect(offertRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('No debe llamar a la IA si el producto no existe', async () => {
+      // Arrange
+      catalogService.productExists.mockResolvedValue(false);
+
+      // Act
+      await service.create('farmer-1', dto, image).catch(() => undefined);
+
+      // Assert
+      expect(aiClient.classify).not.toHaveBeenCalled();
     });
 
     it('No debe guardar la oferta si el agricultor no existe', async () => {
@@ -72,7 +126,7 @@ describe('OffertsService', () => {
       );
 
       // Act
-      await service.create('no-existe', dto).catch(() => undefined);
+      await service.create('no-existe', dto, image).catch(() => undefined);
 
       // Assert
       expect(offertRepository.save).not.toHaveBeenCalled();
@@ -83,7 +137,7 @@ describe('OffertsService', () => {
       catalogService.productExists.mockResolvedValue(false);
 
       // Act
-      const action = service.create('farmer-1', dto);
+      const action = service.create('farmer-1', dto, image);
 
       // Assert
       await expect(action).rejects.toThrow(NotFoundException);

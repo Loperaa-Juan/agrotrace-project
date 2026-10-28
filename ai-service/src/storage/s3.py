@@ -15,9 +15,9 @@ def create_s3_client():
     )
 
 
-def build_key(folder: str, extension: str) -> str:
+def build_key(folder: str, uuid: uuid.UUID, extension: str) -> str:
     """Build a unique object key: <folder>/<uuid4>.<extension>."""
-    return f"{folder}/{uuid.uuid4()}.{extension}"
+    return f"{folder}/{uuid}.{extension}"
 
 
 def upload_image(client, content: bytes, key: str, content_type: str) -> str:

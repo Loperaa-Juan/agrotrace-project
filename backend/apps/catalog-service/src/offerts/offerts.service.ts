@@ -10,6 +10,8 @@ import { Offert } from '../entities/offert.entity';
 import { CatalogService } from '../catalog/catalog.service';
 import { CreateOffertDto } from './dto/create-offert.dto';
 import { UpdateOffertDto } from './dto/update-offert.dto';
+import { AiClient } from './ai.client';
+import { qualityToStore } from './ai-quality';
 
 /**
  * Interfaz que define los datos esenciales de una oferta requeridos por orders-service para procesar un pedido.
@@ -32,24 +34,40 @@ export class OffertsService {
     private readonly offertRepository: Repository<Offert>,
     private readonly validationService: ValidationService,
     private readonly catalogService: CatalogService,
+    private readonly aiClient: AiClient,
   ) {}
 
   /**
    * Crea una nueva oferta validando la existencia del agricultor vía TCP (users-service)
    * y que el producto pertenezca al catálogo activo de este servicio.
    * @param farmerId - Identificador del agricultor que publica.
+   * Luego clasifica la foto con el ai-service y guarda la calidad y la llave de la imagen.
    * @param dto - Datos de la oferta.
+   * @param image - Foto de la fruta.
    * @returns La oferta creada.
    * @throws `NotFoundException` Si el producto asociado no existe o está inactivo.
+   * @throws `BadRequestException` Si la fruta se clasifica en mal estado o la imagen no es válida.
    */
-  async create(farmerId: string, dto: CreateOffertDto): Promise<Offert> {
+  async create(
+    farmerId: string,
+    dto: CreateOffertDto,
+    image: Express.Multer.File,
+  ): Promise<Offert> {
     await this.validationService.validateUserExists(farmerId);
     if (!(await this.catalogService.productExists(dto.productId))) {
       throw new NotFoundException('Product not found or inactive');
     }
 
+    const prediction = await this.aiClient.classify(image);
+    const aiQuality = qualityToStore(prediction.class);
+
     return this.offertRepository.save(
-      this.offertRepository.create({ ...dto, farmerId }),
+      this.offertRepository.create({
+        ...dto,
+        farmerId,
+        aiQuality,
+        imageKey: prediction.original_key,
+      }),
     );
   }
 

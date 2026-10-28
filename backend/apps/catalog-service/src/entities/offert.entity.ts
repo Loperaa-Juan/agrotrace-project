@@ -105,13 +105,6 @@ export class Offert {
   harvestDate: string | null;
 
   /**
-   * URL de la fotografía del producto ofertado.
-   * (Pendiente de activación al integrar almacenamiento S3 y el microservicio de IA).
-   */
-  // @Column({ type: 'varchar', nullable: true })
-  // imageUrl: string | null;
-
-  /**
    * Calidad evaluada por el modelo de visión artificial (ai-service).
    * Es null hasta que la foto es clasificada automáticamente.
    */
@@ -138,4 +131,13 @@ export class Offert {
   @ApiProperty()
   @UpdateDateColumn()
   updatedAt: Date;
+
+  /** Llave en S3 de la fotografía original del producto ofertado. */
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: 'original/6f1c2a52-3b0e-4c53-9d57-0a4f2f6d1c11.jpeg',
+  })
+  @Column({ type: 'varchar', nullable: true })
+  imageKey: string | null;
 }

@@ -1,3 +1,4 @@
+import uuid
 from contextlib import asynccontextmanager
 from io import BytesIO
 from pathlib import Path
@@ -88,20 +89,21 @@ async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
         raise HTTPException(422, "No se detectó ninguna fruta en la imagen")
 
     annotated_jpeg = to_jpeg_bytes(result.annotated_image)
+    uuid_key = uuid.uuid4()
 
     # Store both photos, each one in its own folder (boto3 is blocking, so run it in a thread)
     original_key = await run_in_threadpool(
         upload_image,
         app.state.s3,
         content,
-        build_key(ORIGINAL_FOLDER, settings.supported_file_types[file_type]),
+        build_key(ORIGINAL_FOLDER, uuid_key, settings.supported_file_types[file_type]),
         file_type,
     )
     annotated_key = await run_in_threadpool(
         upload_image,
         app.state.s3,
         annotated_jpeg,
-        build_key(ANNOTATED_FOLDER, "jpeg"),
+        build_key(ANNOTATED_FOLDER, uuid_key, "jpeg"),
         "image/jpeg",
     )
 

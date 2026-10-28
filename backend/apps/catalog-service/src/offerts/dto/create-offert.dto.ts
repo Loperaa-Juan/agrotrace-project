@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsDateString,
   IsOptional,
@@ -29,11 +30,13 @@ export class CreateOffertDto {
 
   /** Precio monetario establecido por cada unidad de medida (debe ser mayor a cero). */
   @ApiProperty({ minimum: 0, exclusiveMinimum: true, example: 2500 })
+  @Type(() => Number)
   @IsPositive({ message: 'El precio por unidad debe ser mayor a 0' })
   pricePerUnit: number;
 
   /** Cantidad total disponible del producto para la oferta (debe ser mayor a cero). */
   @ApiProperty({ minimum: 0, exclusiveMinimum: true, example: 100 })
+  @Type(() => Number)
   @IsPositive({ message: 'La cantidad disponible debe ser mayor a 0' })
   availableQuantity: number;
 

@@ -17,6 +17,7 @@ describe('Rutas de /offerts con ids', () => {
         {
           provide: OffertsService,
           useValue: {
+            create: jest.fn().mockResolvedValue({}),
             findAll: jest.fn().mockResolvedValue([]),
             update: jest.fn(),
             remove: jest.fn(),
@@ -25,7 +26,13 @@ describe('Rutas de /offerts con ids', () => {
       ],
     })
       .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
+      .useValue({
+        // Deja pasar y simula el payload del token que el guard real pone en request.user
+        canActivate: (context) => {
+          context.switchToHttp().getRequest().user = { sub: 'farmer-1' };
+          return true;
+        },
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -36,6 +43,54 @@ describe('Rutas de /offerts con ids', () => {
 
   afterEach(async () => {
     await app.close();
+  });
+
+  it('POST /offerts responde 400 si no se envía la foto de la fruta', async () => {
+    // Arrange
+    const ruta = '/offerts';
+
+    // Act
+    const response = await request(app.getHttpServer())
+      .post(ruta)
+      .field('productId', '3f2b8c1e-5d4a-4e6b-9c7d-1a2b3c4d5e6f');
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+
+  it('POST /offerts responde 400 si el archivo no es una imagen', async () => {
+    // Arrange
+    const ruta = '/offerts';
+
+    // Act
+    const response = await request(app.getHttpServer())
+      .post(ruta)
+      .attach('image', Buffer.from('hola'), {
+        filename: 'nota.txt',
+        contentType: 'text/plain',
+      });
+
+    // Assert
+    expect(response.status).toBe(400);
+  });
+
+  it('POST /offerts responde 201 si se envía una imagen', async () => {
+    // Arrange
+    const ruta = '/offerts';
+
+    // Act
+    const response = await request(app.getHttpServer())
+      .post(ruta)
+      .field('productId', '3f2b8c1e-5d4a-4e6b-9c7d-1a2b3c4d5e6f')
+      .field('pricePerUnit', '3500')
+      .field('availableQuantity', '120')
+      .attach('image', Buffer.from('foto'), {
+        filename: 'tomate.jpg',
+        contentType: 'image/jpeg',
+      });
+
+    // Assert
+    expect(response.status).toBe(201);
   });
 
   it('GET /offerts sin productId debe seguir funcionando', async () => {
