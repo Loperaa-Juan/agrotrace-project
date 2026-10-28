@@ -23,7 +23,7 @@ export class CatalogService {
    * Crea un nuevo producto en el catálogo maestro validando la unicidad de su nombre.
    * @param dto - Datos necesarios para la creación del producto.
    * @returns El producto creado y almacenado.
-   * @throws {@link ConflictException} Si ya existe un producto registrado con el mismo nombre.
+   * @throws `ConflictException` Si ya existe un producto registrado con el mismo nombre.
    */
   async create(dto: CreateProductDto): Promise<Product> {
     // El nombre es único en el catálogo maestro
@@ -50,7 +50,7 @@ export class CatalogService {
    * Busca un producto específico del catálogo utilizando su identificador único.
    * @param productId - Identificador único del producto en formato UUID.
    * @returns La entidad del producto encontrado.
-   * @throws {@link NotFoundException} Si el producto no es encontrado.
+   * @throws `NotFoundException` Si el producto no es encontrado.
    */
   async findOne(productId: string): Promise<Product> {
     const product = await this.productRepository.findOne({

@@ -69,7 +69,7 @@ export class UsersService {
    * Realiza un borrado físico de un usuario de la base de datos por su ID.
    * Los refresh tokens asociados se eliminan en cascada.
    * @param id - Identificador único del usuario que se va a eliminar.
-   * @returns   * @throws {@link NotFoundException} Si no se encuentra ningún usuario con el ID especificado.
+   * @returns   * @throws `NotFoundException` Si no se encuentra ningún usuario con el ID especificado.
    */
   // Borrado físico: los refresh tokens del usuario se eliminan en cascada
   async deleteUser(id: string): Promise<void> {

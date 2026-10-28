@@ -28,7 +28,7 @@ export class UsersController {
    * Endpoint HTTP protegido para obtener el perfil del usuario autenticado actual.
    * @param request - Objeto de petición HTTP que contiene la información del usuario decodificada por el guard.
    * @returns La entidad del usuario encontrado.
-   * @throws {@link NotFoundException} Si el usuario no existe en la base de datos.
+   * @throws `NotFoundException` Si el usuario no existe en la base de datos.
    */
   @Get('me')
   @UseGuards(JwtAuthGuard)

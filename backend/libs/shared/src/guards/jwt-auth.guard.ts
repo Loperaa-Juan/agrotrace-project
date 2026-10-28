@@ -20,7 +20,7 @@ export class JwtAuthGuard implements CanActivate {
    * Verifica el token de la petición HTTP y guarda su payload en `request.user`.
    * @param context - Contexto de ejecución de la petición actual.
    * @returns `true` si el token es válido.
-   * @throws {@link UnauthorizedException} Si falta el header, no es de tipo Bearer, o el token es inválido o expiró.
+   * @throws `UnauthorizedException` Si falta el header, no es de tipo Bearer, o el token es inválido o expiró.
    */
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();

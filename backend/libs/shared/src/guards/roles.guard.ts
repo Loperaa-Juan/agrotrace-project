@@ -10,7 +10,7 @@ import { ROLES_KEY } from '../roles/roles.decorator';
 
 /**
  * Guard que verifica que el rol del token (`request.user.role`) sea uno de los que exige
- * la ruta con {@link Roles}. Debe ejecutarse después de {@link JwtAuthGuard}.
+ * la ruta con `Roles`. Debe ejecutarse después de `JwtAuthGuard`.
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -21,10 +21,10 @@ export class RolesGuard implements CanActivate {
 
   /**
    * Compara el rol del usuario autenticado con los roles permitidos de la ruta.
-   * Si la ruta no usa {@link Roles}, deja pasar la petición.
+   * Si la ruta no usa `Roles`, deja pasar la petición.
    * @param context - Contexto de ejecución de la petición actual.
    * @returns `true` si la ruta no exige roles o el usuario tiene uno de ellos.
-   * @throws {@link ForbiddenException} Si el rol del usuario no está entre los permitidos.
+   * @throws `ForbiddenException` Si el rol del usuario no está entre los permitidos.
    */
   canActivate(context: ExecutionContext): boolean {
     const roles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [

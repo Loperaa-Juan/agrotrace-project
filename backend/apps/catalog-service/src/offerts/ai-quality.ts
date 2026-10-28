@@ -16,7 +16,7 @@ export enum AiClassification {
  * impidiendo su registro en la base de datos.
  * @param classification - Resultado emitido por el modelo de visión artificial.
  * @returns Calidad válida para guardar en la entidad (Buena o Regular).
- * @throws {@link BadRequestException} Si el producto es clasificado en estado 'Mala'.
+ * @throws `BadRequestException` Si el producto es clasificado en estado 'Mala'.
  */
 export function qualityToStore(classification: AiClassification): AiQuality {
   if (classification === AiClassification.MALA) {

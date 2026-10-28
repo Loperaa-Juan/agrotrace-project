@@ -32,7 +32,7 @@ export class CatalogClient {
    * Obtiene la información de una oferta específica a través de TCP.
    * @param offertId - Identificador único de la oferta.
    * @returns Resumen con los datos de la oferta.
-   * @throws {@link NotFoundException} Si la oferta no existe o está inactiva.
+   * @throws `NotFoundException` Si la oferta no existe o está inactiva.
    */
   async getOffert(offertId: string): Promise<OffertSummary> {
     const offert = await this.send<OffertSummary | null>(
@@ -49,7 +49,7 @@ export class CatalogClient {
    * Disminuye la cantidad disponible de una oferta en el catálogo (al aceptar un pedido).
    * @param offertId - Identificador de la oferta.
    * @param quantity - Cantidad a descontar.
-   * @returns   * @throws {@link BadRequestException} Si no hay suficiente cantidad disponible.
+   * @returns   * @throws `BadRequestException` Si no hay suficiente cantidad disponible.
    */
   async decreaseOffertQuantity(
     offertId: string,
@@ -70,7 +70,7 @@ export class CatalogClient {
    * @param pattern - Patrón del mensaje RPC.
    * @param payload - Datos de la petición.
    * @returns Respuesta del servicio.
-   * @throws {@link ServiceUnavailableException} Si catalog-service no responde.
+   * @throws `ServiceUnavailableException` Si catalog-service no responde.
    */
   private async send<T>(pattern: string, payload: unknown): Promise<T> {
     try {

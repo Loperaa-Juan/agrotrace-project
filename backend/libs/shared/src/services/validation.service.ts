@@ -24,9 +24,9 @@ export class ValidationService {
    * Verifica en users-service (patrón `user_exists`) que el usuario exista antes de operar con él.
    * @param userId - UUID del usuario a validar.
    * @returns Se resuelve si el usuario existe.
-   * @throws {@link BadRequestException} Si no se envía `userId`.
-   * @throws {@link ServiceUnavailableException} Si users-service no responde.
-   * @throws {@link NotFoundException} Si el usuario no existe.
+   * @throws `BadRequestException` Si no se envía `userId`.
+   * @throws `ServiceUnavailableException` Si users-service no responde.
+   * @throws `NotFoundException` Si el usuario no existe.
    */
   async validateUserExists(userId: string): Promise<void> {
     if (!userId) {

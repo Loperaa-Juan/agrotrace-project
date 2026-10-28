@@ -40,7 +40,7 @@ export class OffertsService {
    * @param farmerId - Identificador del agricultor que publica.
    * @param dto - Datos de la oferta.
    * @returns La oferta creada.
-   * @throws {@link NotFoundException} Si el producto asociado no existe o está inactivo.
+   * @throws `NotFoundException` Si el producto asociado no existe o está inactivo.
    */
   async create(farmerId: string, dto: CreateOffertDto): Promise<Offert> {
     await this.validationService.validateUserExists(farmerId);
@@ -110,8 +110,8 @@ export class OffertsService {
    * @param offertId - Identificador de la oferta.
    * @param farmerId - Identificador del agricultor.
    * @returns La entidad de la oferta encontrada.
-   * @throws {@link NotFoundException} Si la oferta no existe.
-   * @throws {@link ForbiddenException} Si la oferta pertenece a otro agricultor.
+   * @throws `NotFoundException` Si la oferta no existe.
+   * @throws `ForbiddenException` Si la oferta pertenece a otro agricultor.
    */
   private async findOwnOffert(
     offertId: string,

@@ -6,5 +6,6 @@
   "out": "docs",
   "tsconfig": "tsconfig.json",
   "readme": "README.md",
-  "excludePrivate": false
+  "excludePrivate": false,
+  "skipErrorChecking": true
 }
