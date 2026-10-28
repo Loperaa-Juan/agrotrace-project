@@ -54,6 +54,16 @@ def test_predict_fails_without_image():
     assert respuesta.status_code == 400
 
 
+# El endpoint debe validar que el archivo esté entre 0 y 5 MB
+def test_predict_fails_with_6MB_file():
+    contenido = b"0" * (6 * 1024 * 1024)
+
+    respuesta = post_image(content=contenido)
+
+    assert respuesta.status_code == 400
+    assert "La imagen excede el tamaño máximo permitido" in respuesta.json()["detail"]
+
+
 # El endpoint /predict debe recibir la foto como archivo y devolver la clase de la fruta
 def test_predict_classifies_fruit_photo():
     response = post_image(BANANA_PATH.read_bytes())

@@ -8,6 +8,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.responses import RedirectResponse
 from PIL import Image
 
+from core.config import settings
 from inference.detector import load_detector
 from inference.engine import load_model
 from inference.pipeline import analyze_fruit
@@ -52,8 +53,15 @@ async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
     content = await image.read()
     if not content:
         raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No se encontró el archivo"
+        )
+
+    # Validate the image's size is between 0 and 6 MB
+    file_size = len(content)
+    if not 0 < file_size <= settings.max_image_mb:
+        raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No se encontró el archivo"
+            detail="La imagen excede el tamaño máximo permitido",
         )
 
     # Open the uploaded file as a PIL image
