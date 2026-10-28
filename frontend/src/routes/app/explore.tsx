@@ -1,3 +1,8 @@
+/**
+ * @file Vista de exploración de cosechas (`ExplorarPage`). Permite a los compradores y negocios
+ * visualizar el catálogo de productos agrícolas activos y ofertas disponibles publicadas por los agricultores.
+ */
+
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -8,6 +13,7 @@ import {
 } from '../profile-api';
 import { detalleDe } from '../routes';
 
+/** Estructura que agrupa las ofertas y el catálogo de productos recuperados del backend. */
 type DatosCatalogo = {
   ofertas: Oferta[];
   productos: Producto[];
@@ -15,8 +21,13 @@ type DatosCatalogo = {
 
 const ERROR_CARGA = 'No pudimos cargar las cosechas. Intenta de nuevo.';
 
+/** Formatea un valor numérico utilizando separadores de miles estándar para Colombia. */
 const formatoNumero = (valor: number) => valor.toLocaleString('es-CO');
 
+/**
+ * Componente reutilizable para renderizar iconos de Google Material Symbols.
+ * @component
+ */
 export function Icono({
   nombre,
   className = '',
@@ -31,6 +42,10 @@ export function Icono({
   );
 }
 
+/**
+ * Componente para mostrar mensajes de alerta destacados.
+ * @component
+ */
 function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <p
@@ -42,6 +57,10 @@ function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
+/**
+ * Tarjeta individual que muestra la información detallada de una oferta agrícola específica.
+ * @component
+ */
 export function TarjetaCosecha({
   oferta,
   producto,
@@ -81,6 +100,10 @@ export function TarjetaCosecha({
   );
 }
 
+/**
+ * Componente que renderiza la cuadrícula de tarjetas de cosechas o un mensaje si el catálogo está vacío.
+ * @component
+ */
 function ListaCosechas({ datos }: Readonly<{ datos: DatosCatalogo }>) {
   const { ofertas, productos } = datos;
   const productoDe = (id: string) =>
@@ -107,6 +130,11 @@ function ListaCosechas({ datos }: Readonly<{ datos: DatosCatalogo }>) {
   );
 }
 
+/**
+ * Componente principal de la vista de exploración (`ExplorarPage`). Gestiona la carga asíncrona
+ * de las ofertas y productos disponibles en el sistema.
+ * @component
+ */
 export function ExplorarPage() {
   const [datos, setDatos] = useState<DatosCatalogo | null>(null);
   const [error, setError] = useState<string | null>(null);
