@@ -20,15 +20,15 @@ import { JwtAuthGuard } from '@app/shared';
 export class UsersController {
   /**
    * Inyecta el servicio de usuarios para procesar la lógica de negocio y consultas a la base de datos.
-   * @param {UsersService} usersService - Servicio que contiene la lógica para manejar los usuarios.
+   * @param usersService - Servicio que contiene la lógica para manejar los usuarios.
    */
   constructor(private readonly usersService: UsersService) {}
 
   /**
    * Endpoint HTTP protegido para obtener el perfil del usuario autenticado actual.
-   * @param {any} request - Objeto de petición HTTP que contiene la información del usuario decodificada por el guard.
-   * @returns {Promise<User>} La entidad del usuario encontrado.
-   * @throws {NotFoundException} Si el usuario no existe en la base de datos.
+   * @param request - Objeto de petición HTTP que contiene la información del usuario decodificada por el guard.
+   * @returns La entidad del usuario encontrado.
+   * @throws {@link NotFoundException} Si el usuario no existe en la base de datos.
    */
   @Get('me')
   @UseGuards(JwtAuthGuard)
@@ -42,9 +42,8 @@ export class UsersController {
 
   /**
    * Endpoint HTTP protegido para eliminar la cuenta del usuario autenticado actual.
-   * @param {any} request - Objeto de petición HTTP con los datos del usuario logueado.
-   * @returns {Promise<void>}
-   */
+   * @param request - Objeto de petición HTTP con los datos del usuario logueado.
+   * @returns   */
   @Delete('me')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -54,10 +53,8 @@ export class UsersController {
 
   /**
    * Patrón de mensaje RPC para obtener una lista paginada de usuarios.
-   * @param {Object} data - Datos de paginación opcionales.
-   * @param {number} [data.page=1] - Número de página actual.
-   * @param {number} [data.limit=10] - Cantidad de registros por página.
-   * @returns {Promise<User[]>} Lista de usuarios.
+   * @param data - Datos de paginación opcionales: `page` (número de página actual, por defecto `1`) y `limit` (registros por página, por defecto `10`).
+   * @returns Lista de usuarios.
    */
   @MessagePattern('get_users')
   async getAllUsers(@Payload() data: { page?: number; limit?: number }) {
@@ -68,9 +65,8 @@ export class UsersController {
 
   /**
    * Patrón de mensaje RPC para buscar un usuario específico por su identificador único.
-   * @param {Object} data - Objeto con el ID del usuario.
-   * @param {string} data.userId - Identificador único del usuario.
-   * @returns {Promise<User>} La entidad del usuario encontrado.
+   * @param data - Objeto con el ID del usuario (`userId`).
+   * @returns La entidad del usuario encontrado.
    */
   @MessagePattern('get_user_by_id')
   async getUserById(@Payload() data: { userId: string }) {
@@ -79,9 +75,8 @@ export class UsersController {
 
   /**
    * Patrón de mensaje RPC para obtener los detalles del usuario actual mediante su ID.
-   * @param {Object} data - Objeto con el ID del usuario.
-   * @param {string} data.userId - Identificador único del usuario actual.
-   * @returns {Promise<User>} La entidad del usuario.
+   * @param data - Objeto con el ID del usuario actual (`userId`).
+   * @returns La entidad del usuario.
    */
   @MessagePattern('get_current_user')
   async getCurrentUser(@Payload() data: { userId: string }) {
@@ -90,8 +85,8 @@ export class UsersController {
 
   /**
    * Patrón de mensaje RPC para verificar si un usuario existe en el sistema.
-   * @param {string} userId - Identificador único del usuario a verificar.
-   * @returns {Promise<boolean>} Verdadero si el usuario existe, falso en caso contrario.
+   * @param userId - Identificador único del usuario a verificar.
+   * @returns Verdadero si el usuario existe, falso en caso contrario.
    */
   @MessagePattern('user_exists')
   async userExists(@Payload() userId: string) {
