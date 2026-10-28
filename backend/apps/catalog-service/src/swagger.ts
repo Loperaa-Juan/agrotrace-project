@@ -4,7 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 /**
  * Configura la documentación OpenAPI (Swagger) de catalog-service.
  * Publica la interfaz en /docs y el documento JSON en /docs-json.
- * @param {INestApplication} app - Aplicación de Nest ya creada.
+ * @param app - Aplicación de Nest ya creada.
  */
 export function setupSwagger(app: INestApplication): void {
   const config = new DocumentBuilder()
