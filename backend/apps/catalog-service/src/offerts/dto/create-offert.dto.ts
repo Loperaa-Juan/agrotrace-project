@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  IsUrl,
   IsUUID,
 } from 'class-validator';
 
@@ -42,4 +43,12 @@ export class CreateOffertDto {
   @IsOptional()
   @IsDateString({}, { message: 'La fecha de cosecha no es válida' })
   harvestDate?: string;
+
+  /** URL de la imagen del producto ofertado. */
+  @ApiPropertyOptional({
+    format: 'uri',
+    example: 'https://bucket.s3.amazonaws.com/ofertas/tomate.jpg',
+  })
+  @IsUrl({}, { message: 'La imagen del producto no es válida' })
+  imageUrl?: string;
 }
