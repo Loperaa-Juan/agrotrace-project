@@ -1,5 +1,5 @@
 /**
- * Inicializador de entorno para orders-service. Carga el archivo .env específico 
+ * Inicializador de entorno para orders-service. Carga el archivo .env específico
  * antes de que los módulos intenten evaluar process.env.
  */
 import { existsSync } from 'node:fs';

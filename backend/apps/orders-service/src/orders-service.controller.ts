@@ -10,7 +10,7 @@ export class OrdersServiceController {
 
   /**
    * Endpoint de prueba para comprobar que el servicio está activo.
-   * @returns {string} Mensaje de saludo.
+   * @returns Mensaje de saludo.
    */
   @Get()
   getHello(): string {

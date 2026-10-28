@@ -24,7 +24,7 @@ export enum OrderStatus {
 }
 
 /**
- * Estructura de los datos públicos de contacto de cada parte (agricultor o comprador) 
+ * Estructura de los datos públicos de contacto de cada parte (agricultor o comprador)
  * que se copian al pedido en el momento de su creación.
  */
 export interface OrderContact {

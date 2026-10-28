@@ -7,7 +7,7 @@ import { Injectable } from '@nestjs/common';
 export class OrdersServiceService {
   /**
    * Retorna un saludo de prueba.
-   * @returns {string} Mensaje "Hello World!".
+   * @returns Mensaje "Hello World!".
    */
   getHello(): string {
     return 'Hello World!';
