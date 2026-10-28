@@ -65,11 +65,29 @@ function renderPublicar() {
   render(<App />);
 }
 
+const MB = 1024 * 1024;
+
+/** Crea un archivo de prueba; `peso` fuerza el tamaño sin generar el contenido. */
+function foto(nombre = 'aguacate.jpg', tipo = 'image/jpeg', peso?: number) {
+  const archivo = new File(['foto'], nombre, { type: tipo });
+  if (peso !== undefined)
+    Object.defineProperty(archivo, 'size', { value: peso });
+  return archivo;
+}
+
+/** Suelta un archivo sobre la zona de arrastrar y soltar de la foto. */
+function soltarFoto(archivo: File) {
+  fireEvent.drop(screen.getByTestId('zona-foto'), {
+    dataTransfer: { files: [archivo] },
+  });
+}
+
 /** Llena el paso 1 (120 lb de aguacate a $ 3.500 la libra) e intenta avanzar. */
-async function llenarDatos(precio = '3500') {
+async function llenarDatos(precio = '3500', archivo: File | null = foto()) {
   fireEvent.change(await screen.findByLabelText(/producto que vende/i), {
     target: { value: 'p-aguacate' },
   });
+  if (archivo) soltarFoto(archivo);
   fireEvent.change(screen.getByLabelText(/cantidad disponible/i), {
     target: { value: '120' },
   });
@@ -95,6 +113,8 @@ describe('Publicar cosecha', () => {
   beforeEach(() => {
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
+    URL.createObjectURL = vi.fn(() => 'blob:vista-previa');
+    URL.revokeObjectURL = vi.fn();
     localStorage.clear();
   });
 
@@ -184,12 +204,12 @@ describe('Publicar cosecha', () => {
     const [, opciones] = fetchMock.mock.calls.find(
       ([url]) => new URL(url).pathname === '/offerts',
     )!;
-    expect(JSON.parse(opciones.body)).toEqual({
-      productId: 'p-aguacate',
-      pricePerUnit: 3500,
-      availableQuantity: 120,
-      harvestDate: '2026-10-20',
-    });
+    const datos = opciones.body as FormData;
+    expect(datos.get('productId')).toBe('p-aguacate');
+    expect(datos.get('pricePerUnit')).toBe('3500');
+    expect(datos.get('availableQuantity')).toBe('120');
+    expect(datos.get('harvestDate')).toBe('2026-10-20');
+    expect((datos.get('image') as File).name).toBe('aguacate.jpg');
   });
 
   it('muestra el mensaje del servidor si rechaza la oferta', async () => {
@@ -234,9 +254,94 @@ describe('Publicar cosecha', () => {
     const [, opciones] = fetchMock.mock.calls.find(
       ([url]) => new URL(url).pathname === '/offerts',
     )!;
-    expect(JSON.parse(opciones.body).description).toBe(
+    expect((opciones.body as FormData).get('description')).toBe(
       'Recogido esta semana',
     );
+  });
+
+  describe('foto de la cosecha', () => {
+    beforeEach(() => {
+      iniciarSesion(AGRICULTOR);
+      simularApi(fetchMock, API);
+    });
+
+    it('muestra la zona para arrastrar y soltar la foto', async () => {
+      // Act
+      renderPublicar();
+
+      // Assert
+      expect(await screen.findByLabelText(/foto de la cosecha/i)).toBeInTheDocument();
+      expect(screen.getByTestId('zona-foto')).toHaveTextContent(
+        'Arrastre la foto aquí o haga clic para elegirla',
+      );
+    });
+
+    it('muestra la vista previa al soltar una foto', async () => {
+      // Arrange
+      renderPublicar();
+      await screen.findByTestId('zona-foto');
+
+      // Act
+      soltarFoto(foto('mi-cosecha.jpg'));
+
+      // Assert
+      expect(screen.getByAltText('Vista previa de la foto')).toBeInTheDocument();
+      expect(screen.getByText('mi-cosecha.jpg')).toBeInTheDocument();
+    });
+
+    it('muestra la vista previa al elegir la foto con el selector', async () => {
+      // Arrange
+      renderPublicar();
+      const campo = await screen.findByLabelText(/foto de la cosecha/i);
+
+      // Act
+      fireEvent.change(campo, { target: { files: [foto('elegida.png', 'image/png')] } });
+
+      // Assert
+      expect(screen.getByAltText('Vista previa de la foto')).toBeInTheDocument();
+    });
+
+    it('rechaza un archivo que no es una imagen', async () => {
+      // Arrange
+      renderPublicar();
+      await screen.findByTestId('zona-foto');
+
+      // Act
+      soltarFoto(foto('datos.pdf', 'application/pdf'));
+
+      // Assert
+      expect(screen.getByText('La foto debe ser JPG, PNG o WEBP.')).toBeInTheDocument();
+      expect(screen.queryByAltText('Vista previa de la foto')).toBeNull();
+    });
+
+    it('rechaza una foto de más de 6 MB', async () => {
+      // Arrange
+      renderPublicar();
+      await screen.findByTestId('zona-foto');
+
+      // Act
+      soltarFoto(foto('grande.jpg', 'image/jpeg', 6 * MB + 1));
+
+      // Assert
+      expect(screen.getByText('La foto no puede pesar más de 6 MB.')).toBeInTheDocument();
+      expect(screen.queryByAltText('Vista previa de la foto')).toBeNull();
+    });
+
+    it('no avanza al paso 2 sin una foto', async () => {
+      // Arrange
+      renderPublicar();
+
+      // Act
+      await llenarDatos('3500', null);
+
+      // Assert
+      expect(
+        screen.getByText('Agregue una foto de la cosecha para continuar.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Paso 2: Cuándo se recoge' }),
+      ).toBeNull();
+    });
   });
 
   it('muestra un error si no puede cargar el catálogo', async () => {
