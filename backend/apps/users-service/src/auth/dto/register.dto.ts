@@ -26,7 +26,7 @@ const ROLES_DE_REGISTRO = [
 ];
 
 /**
- * DTO que define, encapsula y valida los datos obligatorios y opcionales 
+ * DTO que define, encapsula y valida los datos obligatorios y opcionales
  * requeridos al momento del registro de un nuevo usuario en la plataforma.
  */
 export class RegisterDTO {

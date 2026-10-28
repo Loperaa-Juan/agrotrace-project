@@ -22,9 +22,9 @@ import { LoginDTO } from './dto/login.dto';
 export class AuthService {
   /**
    * Inyecta los repositorios de base de datos y servicios necesarios para la autenticación.
-   * @param {Repository<User>} userRepository - Repositorio para gestionar las entidades de usuario.
-   * @param {Repository<RefreshToken>} refreshTokenRepository - Repositorio para gestionar los tokens de refresco.
-   * @param {JwtService} jwtService - Servicio de NestJS para la firma y verificación de JSON Web Tokens.
+   * @param userRepository - Repositorio para gestionar las entidades de usuario.
+   * @param refreshTokenRepository - Repositorio para gestionar los tokens de refresco.
+   * @param jwtService - Servicio de NestJS para la firma y verificación de JSON Web Tokens.
    */
   constructor(
     // Inyectamos los repositorios (Entidades a ser guardadas en la BD)
@@ -41,8 +41,8 @@ export class AuthService {
   /**
    * Registra un nuevo usuario en la plataforma, validando que el correo no esté previamente registrado,
    * aplicando cifrado a la contraseña y generando su sesión inicial.
-   * @param {RegisterDTO} registerDto - Objeto con los datos obligatorios y opcionales del nuevo usuario.
-   * @returns {Promise<AuthResponseDto>} Retorna los tokens de acceso y los datos públicos del usuario registrado.
+   * @param registerDto - Objeto con los datos obligatorios y opcionales del nuevo usuario.
+   * @returns Retorna los tokens de acceso y los datos públicos del usuario registrado.
    */
   async registerUser(registerDto: RegisterDTO): Promise<AuthResponseDto> {
     const {
@@ -88,8 +88,8 @@ export class AuthService {
 
   /**
    * Autentica a un usuario validando sus credenciales de correo electrónico y contraseña.
-   * @param {LoginDTO} loginDto - Credenciales de acceso (email y contraseña).
-   * @returns {Promise<AuthResponseDto>} Retorna una nueva respuesta de autenticación con los tokens de sesión.
+   * @param loginDto - Credenciales de acceso (email y contraseña).
+   * @returns Retorna una nueva respuesta de autenticación con los tokens de sesión.
    */
   async loginUser(loginDto: LoginDTO): Promise<AuthResponseDto> {
     // Para el login solo se pide email y contraseña
@@ -123,10 +123,10 @@ export class AuthService {
   }
 
   /**
-   * Valida un refresh token, realiza la rotación del mismo (revoca el usado y emite uno nuevo) 
+   * Valida un refresh token, realiza la rotación del mismo (revoca el usado y emite uno nuevo)
    * y retorna una nueva respuesta de autenticación para el usuario.
-   * @param {string} token - Cadena del token de refresco actual.
-   * @returns {Promise<AuthResponseDto>} Nuevos tokens de acceso y refresco junto con los datos del usuario.
+   * @param token - Cadena del token de refresco actual.
+   * @returns Nuevos tokens de acceso y refresco junto con los datos del usuario.
    */
   async validateRefreshToken(token: string): Promise<AuthResponseDto> {
     // En la BD está guardado el hash, no el token
@@ -169,8 +169,8 @@ export class AuthService {
 
   /**
    * Valida la autenticidad y vigencia de un Access Token utilizando el servicio JWT.
-   * @param {string} token - El token de acceso en formato JWT enviado por el cliente.
-   * @returns {Promise<any>} El payload decodificado con la información interna del usuario (id, email, rol).
+   * @param token - El token de acceso en formato JWT enviado por el cliente.
+   * @returns El payload decodificado con la información interna del usuario (id, email, rol).
    */
   async validateAccessToken(token: string): Promise<any> {
     const payload = this.jwtService.verify(token);
@@ -179,8 +179,8 @@ export class AuthService {
 
   /**
    * Marca un refresh token específico como revocado en la base de datos.
-   * @param {string} token - El token de refresco que se quiere invalidar.
-   * @returns {Promise<any>} Objeto de confirmación de éxito.
+   * @param token - El token de refresco que se quiere invalidar.
+   * @returns Objeto de confirmación de éxito.
    */
   async revokeRefreshToken(token: string): Promise<any> {
     const isToken = await this.refreshTokenRepository.findOne({
@@ -199,9 +199,8 @@ export class AuthService {
 
   /**
    * Aplica un algoritmo de cifrado (hashing) a la contraseña del usuario por seguridad.
-   * @private
-   * @param {string} password - Contraseña en texto plano.
-   * @returns {Promise<string>} Contraseña cifrada con hash y sal.
+   * @param password - Contraseña en texto plano.
+   * @returns Contraseña cifrada con hash y sal.
    */
   private hashPassword(password: string): Promise<string> {
     const saltRounds = 10;
@@ -210,9 +209,8 @@ export class AuthService {
 
   /**
    * Genera la respuesta de autenticación estándar que incluye los tokens y los datos públicos.
-   * @private
-   * @param {User} user - Entidad del usuario autenticado.
-   * @returns {Promise<AuthResponseDto>} Objeto con access token, refresh token y perfil público.
+   * @param user - Entidad del usuario autenticado.
+   * @returns Objeto con access token, refresh token y perfil público.
    */
   private async generateAuthResponse(user: User): Promise<AuthResponseDto> {
     const accessToken = this.generateAccessToken(user);
@@ -236,9 +234,8 @@ export class AuthService {
 
   /**
    * Genera un nuevo Access Token en formato JWT con los datos principales del usuario.
-   * @private
-   * @param {User} user - Entidad del usuario.
-   * @returns {string} Token JWT firmado.
+   * @param user - Entidad del usuario.
+   * @returns Token JWT firmado.
    */
   private generateAccessToken(user: User): string {
     return this.jwtService.sign({
@@ -250,9 +247,8 @@ export class AuthService {
 
   /**
    * Crea un hash SHA-256 seguro para almacenar el refresh token de forma protegida en la base de datos.
-   * @private
-   * @param {string} token - Token de refresco en texto plano.
-   * @returns {string} Hash hexadecimal del token.
+   * @param token - Token de refresco en texto plano.
+   * @returns Hash hexadecimal del token.
    */
   private hashRefreshToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
@@ -260,8 +256,7 @@ export class AuthService {
 
   /**
    * Genera una cadena aleatoria criptográficamente segura para usar como refresh token.
-   * @private
-   * @returns {string} Token aleatorio en formato hexadecimal.
+   * @returns Token aleatorio en formato hexadecimal.
    */
   private generateRefreshToken(): string {
     return crypto.randomBytes(32).toString('hex');
