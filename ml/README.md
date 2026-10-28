@@ -79,3 +79,14 @@ Entrenamiento del clasificador de calidad (**Fresh**, **Mild**, **Rotten**) con 
 - **Exportación:** el modelo se exporta como SavedModel y se convierte a ONNX con `tf2onnx` (`tf_model_mobilenetv2.onnx`) para el microservicio `ai-service/`.
 
 Corre en una GPU A100 de Runpod conectada a VS Code como servidor Jupyter remoto.
+
+## **Del experimento a producción**
+
+El microservicio [`ai-service/`](../ai-service/README.md) no entrena nada: solo carga los modelos exportados desde esta carpeta. Para actualizarlos, copia los archivos a `ai-service/model/` con estos nombres exactos, porque así los busca el código:
+
+| Archivo | Se genera en | Uso en `ai-service` |
+| --- | --- | --- |
+| `yoloe-26s-seg-fruits.pt` | Pesos `yoloe-26s-seg.pt` con las clases de fruta definidas con `set_classes` (ver `segmentation_algorithm.ipynb`) | Detecta la fruta y la recorta |
+| `tf_model_mobilenetv2.onnx` | `classification_algorithm.ipynb` | Clasifica el recorte como Fresh, Mild o Rotten |
+
+Si el servicio no encuentra alguno de los dos archivos, falla al arrancar. El clasificador debe entrenarse con recortes del mismo detector que se despliega, porque en producción recibe el recorte de YOLOE, no la foto completa.
