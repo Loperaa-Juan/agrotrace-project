@@ -1,3 +1,8 @@
+/**
+ * @file Vista de publicación de nuevas cosechas (`PublicarPage`). Asiste al agricultor a través
+ * de un flujo de dos pasos para registrar productos, definir cantidades, precios en COP y fechas de recolección.
+ */
+
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { ErrorApi } from '../auth-api';
@@ -56,6 +61,7 @@ const CAMPO =
   'w-full h-12 px-4 rounded-xl bg-gray-50 border text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600 transition-colors';
 const ETIQUETA = 'block font-semibold text-gray-900';
 
+/** Formatea un número a moneda colombiana (COP). */
 const formatoCOP = (valor: number) => `$ ${valor.toLocaleString('es-CO')}`;
 
 /** RF-06: precio en COP y cantidad, enteros y estrictamente mayores que cero. */
@@ -64,9 +70,10 @@ const esEnteroPositivo = (valor: string) => {
   return Number.isInteger(numero) && numero > 0;
 };
 
-/** Fecha local de hoy en formato YYYY-MM-DD, el mínimo para la fecha de cosecha. */
+/** Obtiene la fecha local actual en formato YYYY-MM-DD para limitar fechas pasadas. */
 const hoy = () => new Date().toLocaleDateString('en-CA');
 
+/** Valida los campos obligatorios del formulario de publicación. */
 function validar(
   formulario: Formulario,
   producto: Producto | undefined,
@@ -78,7 +85,7 @@ function validar(
   };
 }
 
-/** Los campos opcionales vacíos no se envían. */
+/** Prepara el objeto de la nueva oferta omitiendo campos opcionales vacíos. */
 function aOferta(formulario: Formulario): NuevaOferta {
   const descripcion = formulario.descripcion.trim();
   return {
@@ -96,10 +103,11 @@ function mensajeErrorPublicar(err: unknown) {
     : ERROR_PUBLICAR;
 }
 
+/** Genera un mensaje de error personalizado para fallos en la publicación. */
 const esSesionVencida = (err: unknown) =>
   err instanceof ErrorApi && err.status === 401;
 
-/** Productos activos del catálogo: solo esos se pueden publicar. */
+/** Comprueba si el error corresponde a una sesión vencida (401). */
 function useCatalogoActivo(habilitado: boolean, salir: () => void) {
   const [productos, setProductos] = useState<Producto[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -125,6 +133,10 @@ function useCatalogoActivo(habilitado: boolean, salir: () => void) {
   return { productos, error };
 }
 
+/**
+ * Componente reutilizable para renderizar iconos de Google Material Symbols.
+ * @component
+ */
 function Icono({
   nombre,
   className = '',
@@ -139,6 +151,10 @@ function Icono({
   );
 }
 
+/**
+ * Componente para mostrar alertas de error.
+ * @component
+ */
 function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <p
@@ -150,6 +166,10 @@ function Alerta({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
+/**
+ * Componente para mostrar mensajes de error específicos debajo de un campo de formulario.
+ * @component
+ */
 function ErrorCampo({
   id,
   children,
@@ -162,7 +182,7 @@ function ErrorCampo({
   );
 }
 
-/** Atributos de un campo que puede mostrar un error debajo. */
+/** Genera los atributos de accesibilidad y estilo para campos con validación de error. */
 function conError(id: string, error: string | null) {
   return {
     id,
@@ -172,6 +192,10 @@ function conError(id: string, error: string | null) {
   };
 }
 
+/**
+ * Componente reutilizable para campos numéricos del formulario.
+ * @component
+ */
 function CampoNumero({
   id,
   etiqueta,
@@ -206,6 +230,10 @@ function CampoNumero({
   );
 }
 
+/**
+ * Indicador visual del progreso del formulario de múltiples pasos.
+ * @component
+ */
 function Progreso({ paso }: Readonly<{ paso: Paso }>) {
   return (
     <ol
@@ -246,6 +274,10 @@ function Progreso({ paso }: Readonly<{ paso: Paso }>) {
   );
 }
 
+/**
+ * Paso 1 del formulario: selección de producto, cantidad, precio y descripción opcional.
+ * @component
+ */
 function PasoDatos({
   productos,
   formulario,
@@ -353,6 +385,10 @@ function PasoDatos({
   );
 }
 
+/**
+ * Paso 2 del formulario: fecha de cosecha opcional y confirmación de envío al backend.
+ * @component
+ */
 function PasoFecha({
   producto,
   formulario,
@@ -418,6 +454,10 @@ function PasoFecha({
   );
 }
 
+/**
+ * Componente de éxito mostrado al finalizar con éxito la publicación de la cosecha.
+ * @component
+ */
 function Publicada() {
   return (
     <section className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm text-center space-y-4">
@@ -438,7 +478,11 @@ function Publicada() {
   );
 }
 
-/** El agricultor publica una cosecha en dos pasos: qué vende y a qué precio, y cuándo se recoge. */
+/**
+ * Página principal de la ruta `/publicar` (`PublicarPage`). Gestiona el estado completo de los pasos
+ * de publicación de ofertas agrícolas.
+ * @component
+ */
 export function PublicarPage() {
   const { usuario, salir } = useSesion();
   const esAgricultor = usuario?.role === 'Agricultor';
