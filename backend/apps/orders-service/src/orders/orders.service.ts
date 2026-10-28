@@ -50,10 +50,10 @@ export class OrdersService {
 
   /**
    * Crea una nueva orden validando la oferta, límites de compra por rol y obteniendo contactos vía TCP.
-   * @param {string} buyerId - ID del comprador.
-   * @param {Role} buyerRole - Rol del comprador.
-   * @param {CreateOrderDto} dto - DTO con datos del pedido.
-   * @returns {Promise<Order>} La orden creada y guardada.
+   * @param buyerId - ID del comprador.
+   * @param buyerRole - Rol del comprador.
+   * @param dto - DTO con datos del pedido.
+   * @returns La orden creada y guardada.
    */
   async create(
     buyerId: string,
@@ -101,8 +101,8 @@ export class OrdersService {
 
   /**
    * Consulta los pedidos realizados por un comprador.
-   * @param {string} buyerId - ID del comprador.
-   * @returns {Promise<Order[]>} Lista de pedidos ordenados por fecha descendente.
+   * @param buyerId - ID del comprador.
+   * @returns Lista de pedidos ordenados por fecha descendente.
    */
   async findByBuyer(buyerId: string): Promise<Order[]> {
     return this.orderRepository.find({
@@ -113,8 +113,8 @@ export class OrdersService {
 
   /**
    * Consulta los pedidos recibidos por un agricultor (excluyendo el código de entrega).
-   * @param {string} farmerId - ID del agricultor.
-   * @returns {Promise<FarmerOrder[]>} Lista de pedidos sin código de entrega.
+   * @param farmerId - ID del agricultor.
+   * @returns Lista de pedidos sin código de entrega.
    */
   async findByFarmer(farmerId: string): Promise<FarmerOrder[]> {
     const orders = await this.orderRepository.find({
@@ -126,10 +126,10 @@ export class OrdersService {
 
   /**
    * Marca un pedido como entregado validando permisos, estado aceptado y código correcto.
-   * @param {string} orderId - ID de la orden.
-   * @param {string} farmerId - ID del agricultor.
-   * @param {string} deliveryCode - Código de entrega.
-   * @returns {Promise<FarmerOrder>} La orden actualizada sin el código de entrega.
+   * @param orderId - ID de la orden.
+   * @param farmerId - ID del agricultor.
+   * @param deliveryCode - Código de entrega.
+   * @returns La orden actualizada sin el código de entrega.
    */
   async deliver(
     orderId: string,
@@ -153,10 +153,10 @@ export class OrdersService {
 
   /**
    * Cambia el estado de una orden (Aceptar, Rechazar o Cancelar).
-   * @param {string} orderId - ID de la orden.
-   * @param {string} userId - ID del usuario que realiza la acción.
-   * @param {OrderStatus} status - Nuevo estado.
-   * @returns {Promise<Order | FarmerOrder>} La orden con el estado actualizado.
+   * @param orderId - ID de la orden.
+   * @param userId - ID del usuario que realiza la acción.
+   * @param status - Nuevo estado.
+   * @returns La orden con el estado actualizado.
    */
   async changeStatus(
     orderId: string,
@@ -197,9 +197,8 @@ export class OrdersService {
 
   /**
    * Busca una orden por ID o lanza un error si no existe.
-   * @private
-   * @param {string} orderId - ID de la orden.
-   * @returns {Promise<Order>} La orden encontrada.
+   * @param orderId - ID de la orden.
+   * @returns La orden encontrada.
    */
   private async findOrder(orderId: string): Promise<Order> {
     const order = await this.orderRepository.findOne({
@@ -213,9 +212,8 @@ export class OrdersService {
 
   /**
    * Retorna una copia del pedido excluyendo el código de seguridad de entrega.
-   * @private
-   * @param {Order} order - Orden original.
-   * @returns {FarmerOrder} Orden sin el campo deliveryCode.
+   * @param order - Orden original.
+   * @returns Orden sin el campo deliveryCode.
    */
   private withoutDeliveryCode(order: Order): FarmerOrder {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -225,9 +223,8 @@ export class OrdersService {
 
   /**
    * Extrae únicamente los datos públicos de contacto de un usuario.
-   * @private
-   * @param {UserSummary} user - Datos completos del usuario.
-   * @returns {OrderContact} Datos de contacto resumidos.
+   * @param user - Datos completos del usuario.
+   * @returns Datos de contacto resumidos.
    */
   private toContact(user: UserSummary): OrderContact {
     return {
@@ -240,8 +237,7 @@ export class OrdersService {
 
   /**
    * Genera un código aleatorio de seguridad de 6 dígitos.
-   * @private
-   * @returns {string} Código numérico formateado como cadena.
+   * @returns Código numérico formateado como cadena.
    */
   private generateDeliveryCode(): string {
     return randomInt(0, 1_000_000).toString().padStart(6, '0');
