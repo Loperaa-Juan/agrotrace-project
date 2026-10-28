@@ -69,15 +69,9 @@ def test_get_presigned_url_expires(bucket):
 
 # El nombre del archivo es un uuid v4 dentro de la carpeta indicada, con su extensión
 def test_build_key_uses_uuid4_in_folder():
-    folder, filename = build_key("original", "jpeg").split("/")
+    key = uuid.uuid4()
+    folder, filename = build_key("original", key, "jpeg").split("/")
 
     name, extension = filename.rsplit(".", 1)
     assert (folder, extension) == ("original", "jpeg")
     assert str(uuid.UUID(name, version=4)) == name
-
-
-# Dos imágenes nunca deben quedar con la misma key
-def test_build_key_is_unique():
-    keys = {build_key("original", "jpeg") for _ in range(2)}
-
-    assert len(keys) == 2
