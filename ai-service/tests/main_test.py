@@ -6,7 +6,7 @@ import numpy as np
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
-
+from unittest.mock import patch
 from main import app
 
 BANANA_PATH = Path(__file__).resolve().parent / "fixtures" / "banana.jpeg"
@@ -63,6 +63,16 @@ def test_predict_fails_with_6MB_file():
     assert respuesta.status_code == 400
     assert "La imagen excede el tamaño máximo permitido" in respuesta.json()["detail"]
 
+# El endpoint debe rechazar tipos de archivos que no estén en supported_file_types
+@patch("main.magic.from_buffer")
+def test_reject_other_file_type(mock_magic):
+    # Simulamos que magic detecta que es un PDF legítimo
+    mock_magic.return_value = "application/pdf"
+
+    respuesta = post_image(content=b"%PDF-1.4 contenido")
+
+    assert respuesta.status_code == 400
+    assert "Tipo de archivo no soportado" in respuesta.json()["detail"]
 
 # El endpoint /predict debe recibir la foto como archivo y devolver la clase de la fruta
 def test_predict_classifies_fruit_photo():
@@ -84,7 +94,6 @@ def test_predict_classifies_cropped_fruit(monkeypatch):
     post_image(BANANA_PATH.read_bytes())
 
     assert received_sizes[0] != (512, 512)
-
 
 # YOLO debe correr una sola vez por foto: la misma detección sirve para recortar y para dibujar
 def test_predict_runs_detector_once(monkeypatch):
