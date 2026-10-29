@@ -1,9 +1,23 @@
+"""Application settings loaded from environment variables and the .env file."""
+
 from typing import ClassVar
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    """Service configuration, read from environment variables or the .env file.
+
+    Attributes:
+        models_dir: Models directory.
+        max_image_mb: Maximum accepted image size, expressed in bytes.
+        aws_access_key_id: AWS access key used by the S3 client.
+        aws_secret_access_key: AWS secret key used by the S3 client.
+        aws_region: AWS region of the bucket.
+        s3_bucket_name: Name of the bucket where the images are stored.
+        supported_file_types: Accepted MIME types mapped to their file extension.
+    """
+
     # .env may hold variables for other tools (e.g. SONAR_TOKEN), so ignore unknown keys
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
