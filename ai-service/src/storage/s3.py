@@ -1,3 +1,5 @@
+"""Image storage in AWS S3."""
+
 import uuid
 
 import boto3
@@ -6,7 +8,11 @@ from core.config import settings
 
 
 def create_s3_client():
-    """Create the S3 client with the credentials from the settings."""
+    """Create the S3 client with the credentials from the settings.
+
+    Returns:
+        A boto3 S3 client.
+    """
     return boto3.client(
         "s3",
         aws_access_key_id=settings.aws_access_key_id,
@@ -16,12 +22,31 @@ def create_s3_client():
 
 
 def build_key(folder: str, uuid: uuid.UUID, extension: str) -> str:
-    """Build a unique object key: <folder>/<uuid4>.<extension>."""
+    """Build an object key with the format ``<folder>/<uuid>.<extension>``.
+
+    Args:
+        folder: Folder (key prefix) where the object is stored.
+        uuid: Unique identifier of the object.
+        extension: File extension, without the dot.
+
+    Returns:
+        The object key.
+    """
     return f"{folder}/{uuid}.{extension}"
 
 
 def upload_image(client, content: bytes, key: str, content_type: str) -> str:
-    """Store the image in the bucket and return its key."""
+    """Store an image in the configured bucket.
+
+    Args:
+        client: boto3 S3 client.
+        content: Raw bytes of the image.
+        key: Object key under which the image is stored.
+        content_type: MIME type of the image.
+
+    Returns:
+        The key of the stored object.
+    """
     client.put_object(
         Bucket=settings.s3_bucket_name,
         Key=key,
@@ -32,7 +57,16 @@ def upload_image(client, content: bytes, key: str, content_type: str) -> str:
 
 
 def get_presigned_url(client, key: str, expires_in: int = 3600) -> str:
-    """Temporary URL to read a private object."""
+    """Generate a temporary URL to read a private object.
+
+    Args:
+        client: boto3 S3 client.
+        key: Key of the object to read.
+        expires_in: Validity of the URL, in seconds.
+
+    Returns:
+        The presigned URL.
+    """
     return client.generate_presigned_url(
         "get_object",
         Params={"Bucket": settings.s3_bucket_name, "Key": key},
