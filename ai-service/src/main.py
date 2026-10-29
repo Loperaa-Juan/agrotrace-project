@@ -1,3 +1,5 @@
+"""FastAPI application exposing the fruit quality prediction endpoint."""
+
 import uuid
 from contextlib import asynccontextmanager
 from io import BytesIO
@@ -26,6 +28,17 @@ ANNOTATED_FOLDER = "annotated"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Manage the application lifecycle.
+
+    On startup, loads the classifier and the detector and creates the S3 client, storing them in
+    ``app.state``.
+
+    Args:
+        app: The FastAPI application.
+
+    Raises:
+        FileNotFoundError: If a model file is missing, which prevents the service from starting.
+    """
     # Load the models and create the S3 client when the app starts
     app.state.model = load_model(MODEL_PATH)
     app.state.detector = load_detector(DETECTOR_PATH)
@@ -45,7 +58,7 @@ app = FastAPI(
 
 @app.get("/", include_in_schema=False)
 async def root():
-    """Redirect to the automatic documentation."""
+    """Redirect the root path to the interactive API documentation (``/docs``)."""
     return RedirectResponse(url="/docs")
 
 
@@ -54,7 +67,21 @@ async def root():
     responses={422: {"description": "No se detectó ninguna fruta en la imagen"}},
 )
 async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
-    """Endpoint to predict the class of an image."""
+    """Classify the quality of the fruit in an uploaded photo.
+
+    Validates the image, detects and classifies the fruit, and stores both the original and the
+    annotated photo in S3 under the same UUID.
+
+    Args:
+        image: Uploaded photo (PNG, JPG, JPEG or WEBP).
+
+    Returns:
+        The predicted class, its confidence and the S3 keys of the original and annotated images.
+
+    Raises:
+        HTTPException: 400 if the file is missing or empty, exceeds the maximum size or has an
+            unsupported type. 422 if no fruit is detected in the image.
+    """
 
     # Validate that the request contains the image
     content = await image.read()
@@ -116,7 +143,14 @@ async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
 
 
 def to_jpeg_bytes(image: Image.Image) -> bytes:
-    """Encode an image as JPEG."""
+    """Encode an image as JPEG.
+
+    Args:
+        image: Image to encode.
+
+    Returns:
+        The JPEG bytes.
+    """
     buffer = BytesIO()
     image.save(buffer, format="JPEG")
     return buffer.getvalue()
