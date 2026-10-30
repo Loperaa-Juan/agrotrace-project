@@ -13,6 +13,7 @@ def env(monkeypatch, tmp_path):
         "AWS_SECRET_ACCESS_KEY",
         "AWS_REGION",
         "S3_BUCKET_NAME",
+        "ASSETS_BASE_URL",
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.chdir(tmp_path)
@@ -28,6 +29,7 @@ def test_default_values(env):
         "aws_secret_access_key": "",
         "aws_region": "us-east-1",
         "s3_bucket_name": "",
+        "assets_base_url": "",
     }
 
 

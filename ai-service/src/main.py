@@ -16,7 +16,7 @@ from core.config import settings
 from inference.detector import load_detector
 from inference.engine import load_model
 from inference.pipeline import analyze_fruit
-from storage.s3 import build_key, create_s3_client, upload_image
+from storage.s3 import build_key, build_public_url, create_s3_client, upload_image
 
 MODEL_DIR = Path(__file__).resolve().parents[1] / "model"
 MODEL_PATH = MODEL_DIR / "tf_model_mobilenetv2.onnx"
@@ -76,7 +76,8 @@ async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
         image: Uploaded photo (PNG, JPG, JPEG or WEBP).
 
     Returns:
-        The predicted class, its confidence and the S3 keys of the original and annotated images.
+        The predicted class, its confidence and the public URLs of the original and annotated
+        images.
 
     Raises:
         HTTPException: 400 if the file is missing or empty, exceeds the maximum size or has an
@@ -137,8 +138,8 @@ async def predict_image(image: Annotated[UploadFile, File(...)]) -> dict:
     return {
         "class": result.predicted_class,
         "confidence": result.trust_score,
-        "original_key": original_key,
-        "annotated_key": annotated_key,
+        "original_url": build_public_url(original_key),
+        "annotated_url": build_public_url(annotated_key),
     }
 
 

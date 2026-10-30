@@ -15,6 +15,8 @@ class Settings(BaseSettings):
         aws_secret_access_key: AWS secret key used by the S3 client.
         aws_region: AWS region of the bucket.
         s3_bucket_name: Name of the bucket where the images are stored.
+        assets_base_url: Public base URL of the stored images (e.g. a CloudFront domain). When empty,
+            the bucket's own S3 URL is used.
         supported_file_types: Accepted MIME types mapped to their file extension.
     """
 
@@ -30,6 +32,7 @@ class Settings(BaseSettings):
     aws_secret_access_key: str = ""
     aws_region: str = "us-east-1"
     s3_bucket_name: str = ""
+    assets_base_url: str = ""
 
     supported_file_types: ClassVar[dict[str, str]] = {
         "image/png": "png",

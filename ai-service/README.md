@@ -99,6 +99,7 @@ ai-service/
 | `AWS_SECRET_ACCESS_KEY` | Clave secreta de AWS | `tu_clave_secreta` |
 | `AWS_REGION` | Región del bucket | `us-east-1` |
 | `S3_BUCKET_NAME` | Bucket donde se guardan las imágenes | `agrotrace-images` |
+| `ASSETS_BASE_URL` | (Opcional) Dominio público de las imágenes, p. ej. CloudFront. Si se omite se usa la URL del bucket | `https://dxxxx.cloudfront.net` |
 | `SONAR_TOKEN` | Token de SonarQube (solo para análisis de calidad, el servicio no lo usa) | `tu_token` |
 
 > Los archivos de `model/` deben existir al arrancar; si falta alguno, el servicio falla de inmediato en lugar de descargar pesos oficiales.
@@ -141,8 +142,8 @@ curl -X POST http://localhost:8000/predict -F "image=@tests/fixtures/banana.jpeg
 {
   "class": "Fresh",
   "confidence": 0.97,
-  "original_key": "original/3f2b8c1e-....jpeg",
-  "annotated_key": "annotated/3f2b8c1e-....jpeg"
+  "original_url": "https://agrotrace-images.s3.us-east-2.amazonaws.com/original/3f2b8c1e-....jpeg",
+  "annotated_url": "https://agrotrace-images.s3.us-east-2.amazonaws.com/annotated/3f2b8c1e-....jpeg"
 }
 ```
 
@@ -150,8 +151,10 @@ curl -X POST http://localhost:8000/predict -F "image=@tests/fixtures/banana.jpeg
 |---|---|
 | `class` | `Fresh`, `Mild` o `Rotten` |
 | `confidence` | Probabilidad de la clase predicha (0–1) |
-| `original_key` | Llave en S3 de la foto original (`original/<uuid>.<ext>`) |
-| `annotated_key` | Llave en S3 de la foto con el recuadro de la fruta (`annotated/<uuid>.jpeg`) |
+| `original_url` | URL pública de la foto original (`original/<uuid>.<ext>`) |
+| `annotated_url` | URL pública de la foto con el recuadro de la fruta (`annotated/<uuid>.jpeg`) |
+
+> Las URLs son públicas, así que el bucket debe permitir lectura pública (`s3:GetObject`).
 
 **Errores:**
 

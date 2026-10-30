@@ -155,11 +155,16 @@ def uploaded_objects(s3_client):
     }
 
 
-# La respuesta no debe incluir las imágenes en base64, solo las keys de S3
+# La key de S3 es lo que sigue al dominio en la URL pública
+def key_from_url(url):
+    return url.split(".amazonaws.com/", 1)[1]
+
+
+# La respuesta no debe incluir las imágenes en base64, solo las URLs de S3
 def test_predict_does_not_return_base64_image():
     body = post_image(BANANA_PATH.read_bytes()).json()
 
-    assert set(body) == {"class", "confidence", "original_key", "annotated_key"}
+    assert set(body) == {"class", "confidence", "original_url", "annotated_url"}
 
 
 # La foto guardada como anotada debe tener dibujado el recuadro verde alrededor de la fruta.
@@ -167,23 +172,37 @@ def test_predict_does_not_return_base64_image():
 def test_predict_draws_bounding_box_on_photo(s3_client):
     body = post_image(BANANA_PATH.read_bytes()).json()
 
-    annotated = open_image(uploaded_objects(s3_client)[body["annotated_key"]]["Body"])
+    key = key_from_url(body["annotated_url"])
+    annotated = open_image(uploaded_objects(s3_client)[key]["Body"])
 
     assert count_green_pixels(annotated) > 2000
 
 
-# Una key de S3 es la carpeta, un uuid v4 y la extensión de la imagen
-def key_pattern(folder):
+# Una URL pública es el dominio de S3, la carpeta, un uuid v4 y la extensión de la imagen
+def url_pattern(folder):
     uuid4 = r"[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"
-    return rf"{folder}/{uuid4}\.jpeg"
+    domain = re.escape(
+        f"https://{settings.s3_bucket_name}.s3.{settings.aws_region}.amazonaws.com"
+    )
+    return rf"{domain}/{folder}/{uuid4}\.jpeg"
 
 
-# La respuesta debe incluir la key de la foto original y la de la foto con el recuadro, cada una en su carpeta
-def test_predict_returns_storage_keys():
+# La respuesta debe incluir la URL de la foto original y la de la foto con el recuadro, cada una en su carpeta
+def test_predict_returns_public_urls():
     body = post_image(BANANA_PATH.read_bytes()).json()
 
-    assert re.fullmatch(key_pattern("original"), body["original_key"])
-    assert re.fullmatch(key_pattern("annotated"), body["annotated_key"])
+    assert re.fullmatch(url_pattern("original"), body["original_url"])
+    assert re.fullmatch(url_pattern("annotated"), body["annotated_url"])
+
+
+# Con ASSETS_BASE_URL (p. ej. CloudFront) las URLs usan ese dominio
+def test_predict_uses_assets_base_url(monkeypatch):
+    monkeypatch.setattr(settings, "assets_base_url", "https://cdn.example.com/")
+
+    body = post_image(BANANA_PATH.read_bytes()).json()
+
+    assert body["original_url"].startswith("https://cdn.example.com/original/")
+    assert body["annotated_url"].startswith("https://cdn.example.com/annotated/")
 
 
 # La foto original se guarda tal cual la subió el usuario
@@ -192,7 +211,7 @@ def test_predict_uploads_original_photo(s3_client):
 
     body = post_image(content).json()
 
-    uploaded = uploaded_objects(s3_client)[body["original_key"]]
+    uploaded = uploaded_objects(s3_client)[key_from_url(body["original_url"])]
     assert (uploaded["Body"], uploaded["ContentType"]) == (content, "image/jpeg")
 
 
@@ -200,7 +219,7 @@ def test_predict_uploads_original_photo(s3_client):
 def test_predict_uploads_annotated_photo(s3_client):
     body = post_image(BANANA_PATH.read_bytes()).json()
 
-    uploaded = uploaded_objects(s3_client)[body["annotated_key"]]
+    uploaded = uploaded_objects(s3_client)[key_from_url(body["annotated_url"])]
     assert open_image(uploaded["Body"]).format == "JPEG"
     assert uploaded["ContentType"] == "image/jpeg"
 

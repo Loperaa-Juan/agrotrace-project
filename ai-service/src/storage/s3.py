@@ -56,6 +56,24 @@ def upload_image(client, content: bytes, key: str, content_type: str) -> str:
     return key
 
 
+def build_public_url(key: str) -> str:
+    """Build the public URL of a stored object.
+
+    Uses ``assets_base_url`` when set (e.g. a CloudFront domain); otherwise the bucket's S3 URL.
+
+    Args:
+        key: Key of the object.
+
+    Returns:
+        The public URL of the object.
+    """
+    base = (
+        settings.assets_base_url
+        or f"https://{settings.s3_bucket_name}.s3.{settings.aws_region}.amazonaws.com"
+    )
+    return f"{base.rstrip('/')}/{key}"
+
+
 def get_presigned_url(client, key: str, expires_in: int = 3600) -> str:
     """Generate a temporary URL to read a private object.
 
