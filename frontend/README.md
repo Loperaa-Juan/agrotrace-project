@@ -1,6 +1,6 @@
 # AgroTrace Frontend
 
-Aplicación web oficial del sistema **AgroTrace**, una plataforma que conecta de manera segura y transparente a compradores (personas y negocios) con agricultores locales. Desde ella los usuarios se registran, exploran el catálogo de cosechas, publican ofertas y gestionan sus pedidos.
+Aplicación web del sistema **AgroTrace**, una plataforma que conecta de manera segura y transparente a compradores (personas y negocios) con agricultores locales. Desde ella los usuarios se registran, exploran el catálogo de cosechas, publican ofertas validadas por inteligencia artificial y gestionan sus pedidos.
 
 ---
 
@@ -8,10 +8,19 @@ Aplicación web oficial del sistema **AgroTrace**, una plataforma que conecta de
 
 El frontend es una **SPA (Single Page Application)** hecha con React y TypeScript que consume por HTTP los microservicios del [backend](../backend/README.md). La interfaz se adapta al rol de quien inicia sesión:
 
-| Rol | Qué puede hacer |
-|---|---|
-| `Persona` / `Negocio` | Explorar y filtrar el catálogo, ver el detalle de una oferta, hacer pedidos y consultar sus compras. |
-| `Agricultor` | Publicar cosechas (producto, cantidad, precio en COP, fecha de recolección y foto), ver sus ofertas y los pedidos recibidos. |
+| Rol | Página de inicio | Qué puede hacer |
+|---|---|---|
+| `Persona` / `Negocio` | `/explorar` | Explorar y filtrar el catálogo, ver el detalle de una oferta, hacer pedidos y consultar sus compras. |
+| `Agricultor` | `/perfil` | Publicar cosechas, ver sus ofertas y los pedidos recibidos. |
+| `Admin` | `/catalogo-maestro` | Gestionar el catálogo maestro: ver los productos por categoría y agregar categorías y productos. No tiene perfil comercial ni pedidos, así que esas opciones se ocultan en el menú. |
+
+### Publicación con validación de calidad
+
+El agricultor publica una cosecha en **tres pasos**:
+
+1. **Datos de la cosecha:** producto, cantidad, precio en COP y descripción opcional.
+2. **Cuándo se recoge:** fecha de recolección opcional.
+3. **Revisar y publicar:** el `catalog-service` envía la foto al `ai-service` y la pantalla muestra la calidad asignada y la foto con el recuadro de la fruta detectada. Si la fruta se clasifica como podrida, la oferta no se puede crear.
 
 ### Arquitectura
 
@@ -35,11 +44,16 @@ El frontend no se comunica con el `ai-service` directamente: la validación de c
 | `/explorar` | `ExplorarPage` | Catálogo de ofertas. Es la página de inicio de los compradores. |
 | `/explorar/:offertId` | `DetalleProductoPage` | Detalle de una oferta. |
 | `/filtros` | `FilterPage` | Filtros del catálogo. |
-| `/publicar` | `PublicarPage` | Publicación de cosechas en dos pasos (agricultor). |
+| `/publicar` | `PublicarPage` | Publicación de cosechas en tres pasos, con revisión de la IA (agricultor). |
+| `/catalogo-maestro` | `CatalogoMaestroPage` | Gestión del catálogo maestro de productos (administrador). |
 | `/pedidos` | `PedidosPage` | Listado de compras o de pedidos recibidos, según el rol. |
 | `/pedidos/:orderId` | `DetallePedidoPage` | Detalle de un pedido. |
 
 Las rutas de la aplicación (todas menos `/`, `/login` y `/register`) comparten `AppLayout` y requieren una sesión activa gestionada por `SesionProvider`.
+
+### Sesión
+
+Al iniciar sesión, `SesionProvider` guarda en `localStorage` el `accessToken`, el `refreshToken` y los datos del usuario. Al cerrar sesión se borran y se revoca el refresh token en el `users-service`. Si una petición responde `401` (token vencido), la sesión se cierra y el usuario vuelve a `/login`.
 
 ---
 
@@ -73,9 +87,10 @@ frontend/
 │       ├── session-context.tsx  # Contexto de sesión
 │       ├── auth-api.ts    # Cliente de users-service (login y registro)
 │       ├── profile-api.ts # Cliente de catálogo, ofertas y pedidos
+│       ├── formato.ts     # Utilidades de formato
 │       ├── Landing.tsx
 │       ├── auth/          # Inicio de sesión y registro
-│       └── app/           # Vistas autenticadas (explorar, publicar, pedidos...)
+│       └── app/           # Vistas autenticadas (explorar, publicar, pedidos, catálogo maestro...)
 ├── test/                  # Pruebas unitarias (reflejan la estructura de src/)
 ├── Dockerfile             # Build multi-etapa con Nginx
 └── nginx.conf             # Configuración de Nginx para la SPA
@@ -100,7 +115,7 @@ frontend/
    pnpm install
    ```
 
-2. **Configurar las variables de entorno:** copia `.env.example` a `.env` y completa los valores.
+2. **Configurar las variables de entorno:** copia `.env.example` a `.env`. Los valores por defecto ya apuntan a los puertos locales del backend.
 
    ```bash
    cp .env.example .env
@@ -118,7 +133,7 @@ frontend/
 
 > Las tres variables `VITE_*` son obligatorias: si falta alguna, la aplicación falla al arrancar con un mensaje que indica cuál. Vite las **incrusta al compilar**, así que cambiarlas exige volver a hacer el build.
 
-> Además, el backend debe permitir el origen del frontend en su variable `CORS_ORIGIN` (por ejemplo `http://localhost:5173`).
+> En desarrollo, si `CORS_ORIGIN` está comentado en el backend, se acepta cualquier origen. Si está definido, debe incluir la URL del frontend (por ejemplo `http://localhost:5173`).
 
 ---
 

@@ -1,19 +1,37 @@
 # AgroTrace
 
-## Descripción
-
 **AgroTrace** es una plataforma que conecta de manera segura y transparente a compradores (personas y negocios) con agricultores locales. Los agricultores publican sus cosechas y los compradores las exploran, hacen pedidos y los reciben con un código de entrega seguro.
 
-La calidad de lo que se vende es verificable: a partir de una foto tomada con el celular, un modelo de visión artificial clasifica la fruta como **fresca**, en **estado intermedio** o **podrida**. Así, el agricultor respalda su producto al publicar una oferta y el comprador recibe información más confiable sobre lo que adquiere.
+La calidad de lo que se vende es verificable: a partir de una foto tomada con el celular, un modelo de visión artificial clasifica la fruta como **fresca**, en **estado intermedio** o **podrida**. El agricultor ve la calificación antes de publicar, la fruta podrida no se puede vender y el comprador recibe información más confiable sobre lo que adquiere.
 
-El sistema se organiza como un monorepo con cuatro componentes:
+---
+
+## Arquitectura
+
+```mermaid
+graph LR
+    User[Navegador] --> FE[frontend :5173]
+    FE -->|HTTP| US[users-service :3000]
+    FE -->|HTTP| CS[catalog-service :3002]
+    FE -->|HTTP| OS[orders-service :3004]
+
+    CS -->|TCP| US
+    OS -->|TCP| US
+    OS -->|TCP| CS
+    CS -->|HTTP| AI[ai-service :8000]
+    AI --> S3[(AWS S3)]
+
+    US --> DB[(PostgreSQL :5434)]
+    CS --> DB
+    OS --> DB
+```
 
 | Carpeta | Componente | Descripción |
 |---|---|---|
-| [`frontend/`](frontend/README.md) | Aplicación web | Interfaz en React para compradores y agricultores. |
+| [`frontend/`](frontend/README.md) | Aplicación web | Interfaz en React para compradores, agricultores y administradores. |
 | [`backend/`](backend/README.md) | Microservicios | API en NestJS: usuarios, catálogo y ofertas, y pedidos. |
 | [`ai-service/`](ai-service/README.md) | Visión artificial | Servicio en FastAPI que detecta y clasifica la calidad de la fruta. |
-| [`ml/`](ml/README.md) | Experimentos de ML | Entrenamiento y evaluación de los modelos que usa el `ai-service`. |
+| [`ml/`](ml/README.md) | Experimentos de ML | Entrenamiento y evaluación de los modelos que usa el `ai-service`. No hace falta para ejecutar la aplicación. |
 
 ---
 
@@ -32,7 +50,10 @@ cd agrotrace-project
 
 Levanta PostgreSQL, los tres microservicios, el `ai-service` y el frontend, ya conectados entre sí.
 
-**Prerrequisitos:** [Docker](https://www.docker.com/) con Docker Compose, y un bucket de **AWS S3** con credenciales (lo usa el `ai-service`).
+**Prerrequisitos:**
+
+- [Docker](https://www.docker.com/) con Docker Compose.
+- Un bucket de **AWS S3** con credenciales de escritura. Las fotos se sirven por URL pública, así que el bucket debe permitir lectura pública o estar detrás de CloudFront (ver [`ai-service/README.md`](ai-service/README.md)).
 
 1. **Configurar las variables de entorno.** Copia cada `.env.example` a `.env` y completa los valores:
 
@@ -77,7 +98,7 @@ Levanta PostgreSQL, los tres microservicios, el `ai-service` y el frontend, ya c
 - [Node.js](https://nodejs.org/) 22 o superior y [pnpm](https://pnpm.io/): `npm install -g pnpm`
 - [Python](https://www.python.org/) 3.12 o superior y [uv](https://docs.astral.sh/uv/): `pip install uv`
 - [Docker](https://www.docker.com/) (solo para la base de datos) o un PostgreSQL propio
-- Un bucket de **AWS S3** con credenciales, para el `ai-service`
+- Un bucket de **AWS S3** con credenciales, para el `ai-service` (mismos requisitos que en la opción 1)
 
 **1. Base de datos.** Los tres microservicios comparten una única base de datos PostgreSQL. La forma más simple es levantar solo ese servicio del `docker-compose.yml`:
 
@@ -109,12 +130,18 @@ cp apps/catalog-service/.env.example apps/catalog-service/.env
 cp apps/orders-service/.env.example apps/orders-service/.env
 ```
 
-Completa en cada `.env` las credenciales de la base de datos (las mismas del paso 1) y un `JWT_SECRET` idéntico en los tres. Luego levanta cada microservicio en su propia terminal, en este orden:
+Completa en cada `.env`:
+
+- Las credenciales de la base de datos (las mismas del paso 1).
+- Un `JWT_SECRET` idéntico en los tres.
+- En `catalog-service`, `AI_SERVICE_URL=http://localhost:8000` (sin ella no se pueden revisar ni publicar ofertas).
+
+Luego levanta cada microservicio en su propia terminal, en este orden:
 
 ```bash
-pnpm --filter users-service run start:dev     # http://localhost:3000
-pnpm --filter catalog-service run start:dev   # http://localhost:3002
-pnpm --filter orders-service run start:dev    # http://localhost:3004
+pnpm start:users      # http://localhost:3000
+pnpm start:catalog    # http://localhost:3002
+pnpm start:orders     # http://localhost:3004
 ```
 
 **4. Frontend.** Ver [`frontend/README.md`](frontend/README.md) para el detalle.
@@ -128,4 +155,11 @@ pnpm dev
 
 Disponible en http://localhost:5173.
 
-> Si abres el frontend con el backend corriendo en local, puedes fijar `CORS_ORIGIN=http://localhost:5173` en los `.env` de los microservicios. Si lo dejas comentado, aceptan cualquier origen (solo para desarrollo).
+> Si dejas `CORS_ORIGIN` comentado en los `.env` de los microservicios, aceptan cualquier origen (solo para desarrollo). Para restringirlo, fija `CORS_ORIGIN=http://localhost:5173`.
+
+---
+
+## Autores
+
+- Valentina Cano Meneses
+- Juan Jose Lopera Londoño
