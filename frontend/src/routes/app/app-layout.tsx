@@ -150,22 +150,37 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
               Publicar cosecha
             </Link>
           )}
-          <Link
-            className={`${OPCION_MENU} text-gray-800 hover:bg-gray-50`}
-            onClick={() => setAbierto(false)}
-            to={routes.perfil}
-          >
-            <Icono className="text-lg text-[#15803d]" nombre="person" />
-            Mi perfil
-          </Link>
-          <Link
-            className={`${OPCION_MENU} text-gray-800 hover:bg-gray-50`}
-            onClick={() => setAbierto(false)}
-            to={routes.pedidos}
-          >
-            <Icono className="text-lg text-[#15803d]" nombre="inventory_2" />
-            Mis pedidos
-          </Link>
+          {usuario.role === 'Admin' && (
+            <Link
+              className={`${OPCION_MENU} text-gray-800 hover:bg-gray-50`}
+              onClick={() => setAbierto(false)}
+              to={routes.catalogoMaestro}
+            >
+              <Icono className="text-lg text-[#15803d]" nombre="inventory" />
+              Catálogo maestro
+            </Link>
+          )}
+          {/* El administrador no tiene perfil comercial ni pedidos */}
+          {usuario.role !== 'Admin' && (
+            <>
+              <Link
+                className={`${OPCION_MENU} text-gray-800 hover:bg-gray-50`}
+                onClick={() => setAbierto(false)}
+                to={routes.perfil}
+              >
+                <Icono className="text-lg text-[#15803d]" nombre="person" />
+                Mi perfil
+              </Link>
+              <Link
+                className={`${OPCION_MENU} text-gray-800 hover:bg-gray-50`}
+                onClick={() => setAbierto(false)}
+                to={routes.pedidos}
+              >
+                <Icono className="text-lg text-[#15803d]" nombre="inventory_2" />
+                Mis pedidos
+              </Link>
+            </>
+          )}
           <div className="my-1 border-t border-gray-100" />
           <button
             className={`${OPCION_MENU} text-red-700 hover:bg-red-50`}
