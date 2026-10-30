@@ -11,8 +11,8 @@ import { AiClassification } from './ai-quality';
 export interface AiPrediction {
   class: AiClassification;
   confidence: number;
-  original_key: string;
-  annotated_key: string;
+  original_url: string;
+  annotated_url: string;
 }
 
 /**
@@ -21,7 +21,7 @@ export interface AiPrediction {
 @Injectable()
 export class AiClient {
   /**
-   * Envía la imagen al ai-service y retorna su clasificación junto con las llaves de S3.
+   * Envía la imagen al ai-service y retorna su clasificación junto con las URLs públicas de S3.
    * @param image - Archivo de la foto recibido en la petición.
    * @returns La predicción del modelo.
    * @throws `BadRequestException` Si el ai-service rechaza la imagen (sin fruta, tipo o tamaño inválido).

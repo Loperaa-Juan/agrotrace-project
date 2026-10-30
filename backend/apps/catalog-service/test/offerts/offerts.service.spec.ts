@@ -55,8 +55,10 @@ describe('OffertsService', () => {
       classify: jest.fn().mockResolvedValue({
         class: 'Fresh',
         confidence: 0.98,
-        original_key: 'original/foto.jpeg',
-        annotated_key: 'annotated/foto.jpeg',
+        original_url:
+          'https://bucket.s3.us-east-2.amazonaws.com/original/foto.jpeg',
+        annotated_url:
+          'https://bucket.s3.us-east-2.amazonaws.com/annotated/foto.jpeg',
       }),
     };
 
@@ -80,7 +82,7 @@ describe('OffertsService', () => {
       expect(result).toMatchObject({ ...dto, farmerId });
     });
 
-    it('Debe guardar la calidad y la llave de la foto que devuelve la IA', async () => {
+    it('Debe guardar la calidad y la URL de la foto que devuelve la IA', async () => {
       // Arrange
       const farmerId = 'farmer-1';
 
@@ -90,7 +92,7 @@ describe('OffertsService', () => {
       // Assert
       expect(result).toMatchObject({
         aiQuality: 'Buena',
-        imageKey: 'original/foto.jpeg',
+        imageUrl: 'https://bucket.s3.us-east-2.amazonaws.com/original/foto.jpeg',
       });
     });
 
@@ -98,7 +100,8 @@ describe('OffertsService', () => {
       // Arrange
       aiClient.classify.mockResolvedValue({
         class: 'Rotten',
-        original_key: 'original/foto.jpeg',
+        original_url:
+          'https://bucket.s3.us-east-2.amazonaws.com/original/foto.jpeg',
       });
 
       // Act

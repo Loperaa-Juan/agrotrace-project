@@ -41,7 +41,7 @@ export class OffertsService {
    * Crea una nueva oferta validando la existencia del agricultor vía TCP (users-service)
    * y que el producto pertenezca al catálogo activo de este servicio.
    * @param farmerId - Identificador del agricultor que publica.
-   * Luego clasifica la foto con el ai-service y guarda la calidad y la llave de la imagen.
+   * Luego clasifica la foto con el ai-service y guarda la calidad y la URL pública de la imagen.
    * @param dto - Datos de la oferta.
    * @param image - Foto de la fruta.
    * @returns La oferta creada.
@@ -66,7 +66,7 @@ export class OffertsService {
         ...dto,
         farmerId,
         aiQuality,
-        imageKey: prediction.original_key,
+        imageUrl: prediction.original_url,
       }),
     );
   }

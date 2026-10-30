@@ -132,12 +132,13 @@ export class Offert {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  /** Llave en S3 de la fotografía original del producto ofertado. */
+  /** URL pública en S3 de la fotografía original del producto ofertado. */
   @ApiProperty({
     type: String,
     nullable: true,
-    example: 'original/6f1c2a52-3b0e-4c53-9d57-0a4f2f6d1c11.jpeg',
+    example:
+      'https://test-agrotrace.s3.us-east-2.amazonaws.com/original/6f1c2a52-3b0e-4c53-9d57-0a4f2f6d1c11.jpeg',
   })
   @Column({ type: 'varchar', nullable: true })
-  imageKey: string | null;
+  imageUrl: string | null;
 }

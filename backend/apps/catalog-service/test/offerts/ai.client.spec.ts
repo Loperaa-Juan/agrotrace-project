@@ -18,8 +18,9 @@ describe('AiClient', () => {
   const prediction = {
     class: 'Fresh',
     confidence: 0.98,
-    original_key: 'original/foto.jpeg',
-    annotated_key: 'annotated/foto.jpeg',
+    original_url: 'https://bucket.s3.us-east-2.amazonaws.com/original/foto.jpeg',
+    annotated_url:
+      'https://bucket.s3.us-east-2.amazonaws.com/annotated/foto.jpeg',
   };
 
   beforeEach(() => {

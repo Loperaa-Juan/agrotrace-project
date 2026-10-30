@@ -166,7 +166,7 @@ describe('Documentación Swagger de /offerts', () => {
         'isActive',
         'createdAt',
         'updatedAt',
-        'imageKey',
+        'imageUrl',
       ]);
     });
 
