@@ -1,6 +1,7 @@
 /**
  * @file Vista de publicación de nuevas cosechas (`PublicarPage`). Asiste al agricultor a través
- * de un flujo de dos pasos para registrar productos, definir cantidades, precios en COP y fechas de recolección.
+ * de un flujo de tres pasos para registrar productos, definir cantidades, precios en COP y fechas de recolección,
+ * y revisar la calificación de la IA antes de publicar.
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -9,16 +10,17 @@ import { ErrorApi } from '../auth-api';
 import {
   crearOferta,
   obtenerCatalogo,
+  previsualizarOferta,
   type NuevaOferta,
-  type Oferta,
   type Producto,
+  type VistaPreviaOferta,
 } from '../profile-api';
 import { formatoFecha } from '../formato';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
 import { FotoCosecha } from './explore';
 
-type Paso = 1 | 2;
+type Paso = 1 | 2 | 3;
 
 type Formulario = {
   productoId: string;
@@ -48,10 +50,14 @@ const FORMULARIO_VACIO: Formulario = {
 const PASOS: { numero: Paso; etiqueta: string }[] = [
   { numero: 1, etiqueta: 'Datos de la cosecha' },
   { numero: 2, etiqueta: 'Cuándo se recoge' },
+  { numero: 3, etiqueta: 'Revisar y publicar' },
 ];
 
 const ERROR_CARGA = 'No pudimos cargar el catálogo. Intente de nuevo.';
 const ERROR_PUBLICAR = 'No pudimos publicar su cosecha. Intente de nuevo.';
+const ERROR_REVISAR = 'No pudimos revisar su cosecha. Intente de nuevo.';
+const ERROR_PODRIDA =
+  'La fruta se clasificó en mal estado y no se puede crear la oferta.';
 const ERROR_PRODUCTO = 'Elija un producto del catálogo para continuar.';
 const ERROR_CANTIDAD = 'La cantidad debe ser un número entero mayor que cero.';
 const ERROR_PRECIO =
@@ -121,6 +127,12 @@ function mensajeErrorPublicar(err: unknown) {
   return err instanceof ErrorApi
     ? `No pudimos publicar su cosecha: ${err.message}`
     : ERROR_PUBLICAR;
+}
+
+function mensajeErrorRevisar(err: unknown) {
+  return err instanceof ErrorApi
+    ? `No pudimos revisar su cosecha: ${err.message}`
+    : ERROR_REVISAR;
 }
 
 /** Genera un mensaje de error personalizado para fallos en la publicación. */
@@ -498,25 +510,25 @@ function PasoDatos({
 }
 
 /**
- * Paso 2 del formulario: fecha de cosecha opcional y confirmación de envío al backend.
+ * Paso 2 del formulario: fecha de cosecha opcional; al continuar se pide la calificación de la IA.
  * @component
  */
 function PasoFecha({
   producto,
   formulario,
   cambiar,
-  publicando,
+  revisando,
   error,
   onVolver,
-  onPublicar,
+  onRevisar,
 }: Readonly<{
   producto: Producto | undefined;
   formulario: Formulario;
   cambiar: CambiarCampo;
-  publicando: boolean;
+  revisando: boolean;
   error: string | null;
   onVolver: () => void;
-  onPublicar: () => void;
+  onRevisar: () => void;
 }>) {
   const unidad = producto?.unitOfMeasure ?? 'unidad';
   const cantidad = Number(formulario.cantidad).toLocaleString('es-CO');
@@ -555,11 +567,11 @@ function PasoFecha({
         </button>
         <button
           className={`${BOTON_PRIMARIO} flex-1`}
-          disabled={publicando}
-          onClick={onPublicar}
+          disabled={revisando}
+          onClick={onRevisar}
           type="button"
         >
-          {publicando ? 'Publicando…' : 'Publicar cosecha'}
+          {revisando ? 'Revisando…' : 'Revisar información'}
         </button>
       </div>
     </section>
@@ -567,7 +579,7 @@ function PasoFecha({
 }
 
 /**
- * Fila del resumen de la cosecha publicada (etiqueta y valor).
+ * Fila del resumen de la cosecha en la revisión (etiqueta y valor).
  * @component
  */
 function DatoResumen({
@@ -585,43 +597,52 @@ function DatoResumen({
 }
 
 /**
- * Resumen mostrado al publicar la cosecha: los datos que ingresó el agricultor, la foto con el
- * recuadro que dibujó YOLO y la calidad que le asignó el ai-service.
+ * Paso 3 del formulario: resumen de lo que ingresó el agricultor, la foto con el recuadro que dibujó
+ * YOLO y la calidad que le asignó el ai-service. Si la fruta salió podrida no se puede publicar.
  * @component
  */
-function Publicada({
-  oferta,
+function PasoRevision({
   producto,
-}: Readonly<{ oferta: Oferta; producto: Producto | undefined }>) {
+  formulario,
+  revision,
+  publicando,
+  error,
+  onVolver,
+  onPublicar,
+}: Readonly<{
+  producto: Producto | undefined;
+  formulario: Formulario;
+  revision: VistaPreviaOferta;
+  publicando: boolean;
+  error: string | null;
+  onVolver: () => void;
+  onPublicar: () => void;
+}>) {
   const nombre = producto?.name ?? 'Producto';
   const unidad = producto?.unitOfMeasure ?? 'unidad';
+  const descripcion = formulario.descripcion.trim();
+  const podrida = revision.aiQuality === null;
+
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm space-y-6">
-      <div className="text-center space-y-4">
-        <span className="w-16 h-16 mx-auto rounded-full bg-green-100 text-[#15803d] flex items-center justify-center">
-          <Icono className="text-4xl" nombre="task_alt" />
-        </span>
-        <h2 className="text-2xl font-extrabold text-gray-900">
-          ¡Su cosecha quedó publicada!
-        </h2>
-        <p className="text-gray-600">
-          Los compradores ya pueden verla en el catálogo de cosechas de
-          AgroTrace.
-        </p>
-      </div>
+    <section className="bg-white rounded-2xl border border-gray-100 p-6 sm:p-8 shadow-sm space-y-6">
+      <h2 className="text-xl font-bold text-gray-900">
+        Paso 3: Revisar y publicar
+      </h2>
 
       <FotoCosecha
         className="w-full aspect-video rounded-xl"
         etiqueta="Foto analizada de"
         nombre={nombre}
-        url={oferta.annotatedImageUrl}
+        url={revision.annotatedImageUrl}
       />
 
-      {oferta.aiQuality && (
+      {podrida ? (
+        <Alerta>{ERROR_PODRIDA}</Alerta>
+      ) : (
         <p className="flex items-center justify-center gap-2 p-4 rounded-xl bg-green-50 font-bold text-[#15803d]">
           <Icono className="text-xl text-amber-500" nombre="verified_user" />
           <span>Certificación AgroTrace IA</span>
-          <span>{`Calidad ${oferta.aiQuality}`}</span>
+          <span>{`Calidad ${revision.aiQuality}`}</span>
         </p>
       )}
 
@@ -629,24 +650,60 @@ function Publicada({
         <DatoResumen etiqueta="Producto" valor={nombre} />
         <DatoResumen
           etiqueta="Cantidad disponible"
-          valor={`${oferta.availableQuantity.toLocaleString('es-CO')} ${unidad}`}
+          valor={`${Number(formulario.cantidad).toLocaleString('es-CO')} ${unidad}`}
         />
         <DatoResumen
           etiqueta="Precio de venta"
-          valor={`${formatoCOP(oferta.pricePerUnit)} COP / ${unidad}`}
+          valor={`${formatoCOP(Number(formulario.precio))} COP / ${unidad}`}
         />
-        {oferta.harvestDate && (
+        {formulario.fecha && (
           <DatoResumen
             etiqueta="Fecha de cosecha"
-            valor={formatoFecha(oferta.harvestDate)}
+            valor={formatoFecha(formulario.fecha)}
           />
         )}
-        {oferta.description && (
-          <DatoResumen etiqueta="Descripción" valor={oferta.description} />
+        {descripcion && (
+          <DatoResumen etiqueta="Descripción" valor={descripcion} />
         )}
       </dl>
 
-      <Link className={`${BOTON_PRIMARIO} w-full`} to={routes.perfil}>
+      {error && <Alerta>{error}</Alerta>}
+
+      <div className="flex flex-col-reverse sm:flex-row gap-3">
+        <button className={BOTON_SECUNDARIO} onClick={onVolver} type="button">
+          <Icono className="text-xl" nombre="arrow_back" />
+          Volver
+        </button>
+        <button
+          className={`${BOTON_PRIMARIO} flex-1`}
+          disabled={podrida || publicando}
+          onClick={onPublicar}
+          type="button"
+        >
+          {publicando ? 'Publicando…' : 'Publicar cosecha'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Componente de éxito mostrado al finalizar con éxito la publicación de la cosecha.
+ * @component
+ */
+function Publicada() {
+  return (
+    <section className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm text-center space-y-4">
+      <span className="w-16 h-16 mx-auto rounded-full bg-green-100 text-[#15803d] flex items-center justify-center">
+        <Icono className="text-4xl" nombre="task_alt" />
+      </span>
+      <h2 className="text-2xl font-extrabold text-gray-900">
+        ¡Su cosecha quedó publicada!
+      </h2>
+      <p className="text-gray-600">
+        Los compradores ya pueden verla en el catálogo de cosechas de AgroTrace.
+      </p>
+      <Link className={BOTON_PRIMARIO} to={routes.perfil}>
         <Icono className="text-xl" nombre="person" />
         Volver a mi perfil
       </Link>
@@ -669,9 +726,11 @@ export function PublicarPage() {
   const [paso, setPaso] = useState<Paso>(1);
   const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
   const [foto, setFoto] = useState<File | null>(null);
+  const [revision, setRevision] = useState<VistaPreviaOferta | null>(null);
+  const [revisando, setRevisando] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [errorPublicar, setErrorPublicar] = useState<string | null>(null);
-  const [publicada, setPublicada] = useState<Oferta | null>(null);
+  const [publicada, setPublicada] = useState(false);
 
   if (!usuario) return <Navigate replace to={routes.login} />;
   if (!esAgricultor) return <Navigate replace to={routes.explorar} />;
@@ -679,12 +738,34 @@ export function PublicarPage() {
   const cambiar: CambiarCampo = (campo, valor) =>
     setFormulario((previo) => ({ ...previo, [campo]: valor }));
 
+  const irAPaso = (nuevo: Paso) => {
+    setErrorPublicar(null);
+    setPaso(nuevo);
+  };
+
+  /** Pide a la IA que clasifique la foto, sin crear la oferta, y pasa a la pantalla de revisión. */
+  const revisar = async () => {
+    if (!foto) return;
+    setRevisando(true);
+    setErrorPublicar(null);
+    try {
+      setRevision(await previsualizarOferta(foto));
+      setPaso(3);
+    } catch (err) {
+      if (esSesionVencida(err)) salir();
+      else setErrorPublicar(mensajeErrorRevisar(err));
+    } finally {
+      setRevisando(false);
+    }
+  };
+
   const publicar = async () => {
     if (!foto) return;
     setPublicando(true);
     setErrorPublicar(null);
     try {
-      setPublicada(await crearOferta(aOferta(formulario), foto));
+      await crearOferta(aOferta(formulario), foto);
+      setPublicada(true);
     } catch (err) {
       if (esSesionVencida(err)) salir();
       else setErrorPublicar(mensajeErrorPublicar(err));
@@ -694,16 +775,7 @@ export function PublicarPage() {
   };
 
   const contenido = () => {
-    if (publicada) {
-      return (
-        <Publicada
-          oferta={publicada}
-          producto={productos?.find(
-            (item) => item.ProductId === publicada.productId,
-          )}
-        />
-      );
-    }
+    if (publicada) return <Publicada />;
     if (errorCarga) return <Alerta>{errorCarga}</Alerta>;
     if (!productos) {
       return (
@@ -724,17 +796,31 @@ export function PublicarPage() {
         />
       );
     }
+    const producto = productos.find(
+      (item) => item.ProductId === formulario.productoId,
+    );
+    if (paso === 3 && revision) {
+      return (
+        <PasoRevision
+          error={errorPublicar}
+          formulario={formulario}
+          onPublicar={publicar}
+          onVolver={() => irAPaso(2)}
+          producto={producto}
+          publicando={publicando}
+          revision={revision}
+        />
+      );
+    }
     return (
       <PasoFecha
         cambiar={cambiar}
         error={errorPublicar}
         formulario={formulario}
-        onPublicar={publicar}
-        onVolver={() => setPaso(1)}
-        producto={productos.find(
-          (item) => item.ProductId === formulario.productoId,
-        )}
-        publicando={publicando}
+        onRevisar={revisar}
+        onVolver={() => irAPaso(1)}
+        producto={producto}
+        revisando={revisando}
       />
     );
   };
@@ -746,8 +832,9 @@ export function PublicarPage() {
           Publicar nueva cosecha
         </h1>
         <p className="text-gray-600">
-          Son dos pasos y puede ir con calma: primero nos cuenta qué vende y a
-          qué precio, y después cuándo se recoge.
+          Son tres pasos y puede ir con calma: primero nos cuenta qué vende y a
+          qué precio, después cuándo se recoge y al final revisa la calificación
+          de su cosecha antes de publicar.
         </p>
       </div>
       {!publicada && <Progreso paso={paso} />}

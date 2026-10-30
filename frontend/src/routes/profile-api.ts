@@ -164,6 +164,26 @@ export const crearOferta = (oferta: NuevaOferta, foto: File) => {
   return pedir<Oferta>(`${CATALOG_URL}/offerts`, 'POST', datos);
 };
 
+/** Resultado de clasificar la foto de una cosecha antes de publicarla (no crea la oferta). */
+export type VistaPreviaOferta = {
+  /** Calidad asignada por la IA; `null` si la fruta está en mal estado y no se puede vender. */
+  aiQuality: string | null;
+  confidence: number;
+  /** URL pública de la foto con el recuadro que dibujó la IA sobre la fruta. */
+  annotatedImageUrl: string;
+};
+
+/**
+ * Pide al `catalog-service` la calificación de la IA para la foto, sin crear la oferta, para que el
+ * agricultor la revise antes de publicar.
+ * @param {File} foto Foto de la fruta (jpeg, png o webp, máximo 6 MB).
+ */
+export const previsualizarOferta = (foto: File) => {
+  const datos = new FormData();
+  datos.append('image', foto);
+  return pedir<VistaPreviaOferta>(`${CATALOG_URL}/offerts/preview`, 'POST', datos);
+};
+
 /**
  * Retira (elimina/desactiva) una oferta propia por su ID.
  * @param {string} id ID único de la oferta.

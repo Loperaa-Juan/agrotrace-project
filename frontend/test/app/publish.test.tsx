@@ -51,8 +51,16 @@ const OFERTA_PUBLICADA = {
   annotatedImageUrl: `${BUCKET}/annotated/a.jpeg`,
 };
 
+// Lo que responde catalog-service al revisar: la calificación de la IA sin crear la oferta
+const VISTA_PREVIA = {
+  aiQuality: 'Buena',
+  confidence: 0.97,
+  annotatedImageUrl: `${BUCKET}/annotated/a.jpeg`,
+};
+
 const API: Respuestas = {
   'GET /catalog': [200, PRODUCTOS],
+  'POST /offerts/preview': [200, VISTA_PREVIA],
   'POST /offerts': [201, OFERTA_PUBLICADA],
 };
 
@@ -122,6 +130,13 @@ async function llegarAFecha() {
   fireEvent.change(screen.getByLabelText(/fecha de cosecha/i), {
     target: { value: '2026-10-20' },
   });
+}
+
+/** Llega a la pantalla de revisión: pide la calificación de la IA y espera el resultado. */
+async function llegarARevision() {
+  await llegarAFecha();
+  fireEvent.click(screen.getByRole('button', { name: 'Revisar información' }));
+  await screen.findByRole('heading', { name: 'Paso 3: Revisar y publicar' });
 }
 
 describe('Publicar cosecha', () => {
@@ -207,7 +222,7 @@ describe('Publicar cosecha', () => {
     iniciarSesion(AGRICULTOR);
     simularApi(fetchMock, API);
     renderPublicar();
-    await llegarAFecha();
+    await llegarARevision();
 
     // Act
     fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
@@ -229,22 +244,57 @@ describe('Publicar cosecha', () => {
     expect((datos.get('image') as File).name).toBe('aguacate.jpg');
   });
 
-  describe('resumen de la cosecha publicada', () => {
-    /** Publica la cosecha y espera a que aparezca el resumen. */
-    async function publicar(respuestas: Respuestas = API) {
+  describe('revisión antes de publicar', () => {
+    /** Llega a la pantalla de revisión con la respuesta de la IA indicada. */
+    async function revisar(respuestas: Respuestas = API) {
       iniciarSesion(AGRICULTOR);
       simularApi(fetchMock, respuestas);
       renderPublicar();
-      await llegarAFecha();
-      fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
-      await screen.findByRole('heading', {
-        name: '¡Su cosecha quedó publicada!',
-      });
+      await llegarARevision();
     }
 
-    it('muestra el producto, la cantidad y el precio publicados', async () => {
+    const conCalidad = (aiQuality: string | null): Respuestas => ({
+      ...API,
+      'POST /offerts/preview': [200, { ...VISTA_PREVIA, aiQuality }],
+    });
+
+    it('el paso de la fecha ofrece «Revisar información» en vez de publicar', async () => {
+      // Arrange
+      iniciarSesion(AGRICULTOR);
+      simularApi(fetchMock, API);
+      renderPublicar();
+
       // Act
-      await publicar();
+      await llegarAFecha();
+
+      // Assert
+      expect(
+        screen.getByRole('button', { name: 'Revisar información' }),
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Publicar cosecha' })).toBeNull();
+    });
+
+    it('al revisar clasifica la foto sin crear la oferta', async () => {
+      // Act
+      await revisar();
+
+      // Assert
+      const [, opciones] = fetchMock.mock.calls.find(
+        ([url]) => new URL(url).pathname === '/offerts/preview',
+      )!;
+      expect(((opciones.body as FormData).get('image') as File).name).toBe(
+        'aguacate.jpg',
+      );
+      expect(
+        fetchMock.mock.calls.some(
+          ([url]) => new URL(url).pathname === '/offerts',
+        ),
+      ).toBe(false);
+    });
+
+    it('muestra el producto, la cantidad y el precio', async () => {
+      // Act
+      await revisar();
 
       // Assert
       expect(screen.getByText('Aguacate Hass')).toBeInTheDocument();
@@ -252,18 +302,17 @@ describe('Publicar cosecha', () => {
       expect(screen.getByText('$ 3.500 COP / lb')).toBeInTheDocument();
     });
 
-    it('muestra la descripción y la fecha de cosecha', async () => {
+    it('muestra la fecha de cosecha', async () => {
       // Act
-      await publicar();
+      await revisar();
 
       // Assert
-      expect(screen.getByText('Recogido esta semana')).toBeInTheDocument();
       expect(screen.getByText('20 de octubre de 2026')).toBeInTheDocument();
     });
 
     it('muestra la foto analizada por la IA con el recuadro de YOLO', async () => {
       // Act
-      await publicar();
+      await revisar();
 
       // Assert
       expect(
@@ -271,35 +320,96 @@ describe('Publicar cosecha', () => {
       ).toHaveAttribute('src', `${BUCKET}/annotated/a.jpeg`);
     });
 
-    it('muestra la calidad que asignó la IA', async () => {
+    it.each([
+      ['Buena', 'Calidad Buena'],
+      ['Regular', 'Calidad Regular'],
+    ])('muestra la calidad %s que asignó la IA', async (calidad, texto) => {
       // Act
-      await publicar();
+      await revisar(conCalidad(calidad));
 
       // Assert
-      expect(screen.getByText('Calidad Buena')).toBeInTheDocument();
+      expect(screen.getByText(texto)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Publicar cosecha' })).toBeEnabled();
     });
 
-    it('si la oferta no tiene foto analizada muestra un recuadro sin foto', async () => {
+    it('si la fruta está podrida avisa que no se puede crear la oferta y no deja publicar', async () => {
       // Act
-      await publicar({
-        ...API,
-        'POST /offerts': [201, { ...OFERTA_PUBLICADA, annotatedImageUrl: null }],
-      });
+      await revisar(conCalidad(null));
+
+      // Assert
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'La fruta se clasificó en mal estado y no se puede crear la oferta.',
+      );
+      expect(screen.getByRole('button', { name: 'Publicar cosecha' })).toBeDisabled();
+    });
+
+    it('«Publicar cosecha» crea la oferta y confirma la publicación', async () => {
+      // Arrange
+      await revisar();
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
 
       // Assert
       expect(
-        screen.getByRole('img', { name: 'Aguacate Hass sin foto' }),
+        await screen.findByRole('heading', {
+          name: '¡Su cosecha quedó publicada!',
+        }),
       ).toBeInTheDocument();
-    });
-
-    it('ofrece volver al perfil', async () => {
-      // Act
-      await publicar();
-
-      // Assert
       expect(
         screen.getByRole('link', { name: /volver a mi perfil/i }),
       ).toHaveAttribute('href', '/perfil');
+    });
+
+    it('«Volver» regresa al paso de la fecha conservando los datos', async () => {
+      // Arrange
+      await revisar();
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Volver' }));
+
+      // Assert
+      expect(screen.getByLabelText(/fecha de cosecha/i)).toHaveValue('2026-10-20');
+    });
+
+    it('muestra el mensaje del servidor si no puede revisar la foto', async () => {
+      // Arrange
+      iniciarSesion(AGRICULTOR);
+      simularApi(fetchMock, {
+        ...API,
+        'POST /offerts/preview': [
+          400,
+          { statusCode: 400, message: 'No se detectó ninguna fruta en la imagen' },
+        ],
+      });
+      renderPublicar();
+      await llegarAFecha();
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Revisar información' }));
+
+      // Assert
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No pudimos revisar su cosecha: No se detectó ninguna fruta en la imagen',
+      );
+    });
+
+    it('cierra la sesión si vence al revisar', async () => {
+      // Arrange
+      iniciarSesion(AGRICULTOR);
+      simularApi(fetchMock, {
+        ...API,
+        'POST /offerts/preview': [401, { message: 'Unauthorized' }],
+      });
+      renderPublicar();
+      await llegarAFecha();
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Revisar información' }));
+
+      // Assert
+      await waitFor(() => expect(window.location.pathname).toBe('/login'));
+      expect(localStorage.getItem('accessToken')).toBeNull();
     });
   });
 
@@ -314,7 +424,7 @@ describe('Publicar cosecha', () => {
       ],
     });
     renderPublicar();
-    await llegarAFecha();
+    await llegarARevision();
 
     // Act
     fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
@@ -333,7 +443,7 @@ describe('Publicar cosecha', () => {
     fireEvent.change(await screen.findByLabelText(/descripción/i), {
       target: { value: '  Recogido esta semana  ' },
     });
-    await llegarAFecha();
+    await llegarARevision();
 
     // Act
     fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
@@ -504,9 +614,12 @@ describe('Publicar cosecha', () => {
   it('muestra un error genérico si falla la red al publicar', async () => {
     // Arrange: sin respuesta para POST /offerts, el fetch se rechaza
     iniciarSesion(AGRICULTOR);
-    simularApi(fetchMock, { 'GET /catalog': [200, PRODUCTOS] });
+    simularApi(fetchMock, {
+      'GET /catalog': [200, PRODUCTOS],
+      'POST /offerts/preview': [200, VISTA_PREVIA],
+    });
     renderPublicar();
-    await llegarAFecha();
+    await llegarARevision();
 
     // Act
     fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
@@ -525,7 +638,7 @@ describe('Publicar cosecha', () => {
       'POST /offerts': [401, { message: 'Unauthorized' }],
     });
     renderPublicar();
-    await llegarAFecha();
+    await llegarARevision();
 
     // Act
     fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
