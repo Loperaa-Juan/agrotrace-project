@@ -33,11 +33,13 @@ export const detalleDe = (offertId: string) => `${routes.explorar}/${offertId}`;
 
 /**
  * Determina la página de inicio a la que llega cada rol al iniciar sesión con éxito.
- * El agricultor es redirigido a su perfil, y los compradores al catálogo general.
+ * El agricultor es redirigido a su perfil, el administrador al catálogo maestro y los compradores
+ * al catálogo general.
  * @function inicioDe
  * @param {RolUsuario} rol Rol actual del usuario autenticado.
  * @returns {string} Ruta de redirección correspondiente.
  */
 export function inicioDe(rol: RolUsuario) {
+  if (rol === 'Admin') return routes.catalogoMaestro;
   return rol === 'Agricultor' ? routes.perfil : routes.explorar;
 }
