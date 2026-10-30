@@ -14,6 +14,7 @@ const oferta = {
   harvestDate: '2026-10-10',
   aiQuality: 'A',
   isActive: true,
+  imageUrl: 'https://test-agrotrace.s3.us-east-2.amazonaws.com/original/aguacate.jpeg',
 };
 
 const producto = {
@@ -56,6 +57,41 @@ describe('Tests en el componente ProductDetail', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Cosecha de esta semana')).toBeInTheDocument();
     expect(screen.getByText(/\$ 1\.000 COP/)).toBeInTheDocument();
+  });
+
+  it('Debe mostrar la foto de la cosecha guardada en el bucket', () => {
+    // Arrange
+    render(<ProductDetail oferta={oferta} producto={producto} />);
+
+    // Assert
+    expect(
+      screen.getByRole('img', { name: 'Foto de Aguacate Hass' }),
+    ).toHaveAttribute('src', oferta.imageUrl);
+  });
+
+  it('La foto debe verse completa, sin recortarse', () => {
+    // Arrange
+    render(<ProductDetail oferta={oferta} producto={producto} />);
+
+    // Assert
+    const foto = screen.getByRole('img', { name: 'Foto de Aguacate Hass' });
+    expect(foto).toHaveClass('object-contain');
+    expect(foto).not.toHaveClass('object-cover');
+  });
+
+  it('Si la oferta no tiene foto, debe mostrar un recuadro sin foto', () => {
+    // Arrange
+    render(
+      <ProductDetail
+        oferta={{ ...oferta, imageUrl: null }}
+        producto={producto}
+      />,
+    );
+
+    // Assert
+    expect(
+      screen.getByRole('img', { name: 'Aguacate Hass sin foto' }),
+    ).toBeInTheDocument();
   });
 
   it('Se deben renderizar los botones de aumentar o disminuir cantidad', () => {

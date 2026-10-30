@@ -15,7 +15,7 @@ import {
 } from '../profile-api';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
-import { Icono } from './explore';
+import { FotoCosecha, Icono } from './explore';
 
 const ERROR_CARGA = 'No pudimos cargar la cosecha. Intenta de nuevo.';
 
@@ -128,6 +128,11 @@ function ProductDetail({
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <article className="lg:col-span-7 bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-6">
+            <FotoCosecha
+              className="w-full aspect-video rounded-xl"
+              nombre={producto?.name ?? 'Producto'}
+              url={oferta.imageUrl}
+            />
             <div className="space-y-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-50 text-[#15803d] text-xs font-bold uppercase tracking-wide">
                 <Icono className="text-sm" nombre="eco" />

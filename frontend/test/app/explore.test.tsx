@@ -19,6 +19,7 @@ const OFERTA_AGUACATE = {
   harvestDate: '2026-10-10',
   aiQuality: 'Buena',
   isActive: true,
+  imageUrl: 'https://test-agrotrace.s3.us-east-2.amazonaws.com/original/aguacate.jpeg',
 };
 
 const OFERTA_FRESA = {
@@ -28,6 +29,7 @@ const OFERTA_FRESA = {
   pricePerUnit: 8000,
   availableQuantity: 15.5,
   aiQuality: null,
+  imageUrl: null,
 };
 
 const API_CATALOGO: Respuestas = {
@@ -114,6 +116,47 @@ describe('Explorar cosechas', () => {
     expect(cosechaDe('Fresa').queryByText(/calidad/i)).toBeNull();
   });
 
+  it('muestra la foto de cada cosecha desde el bucket', async () => {
+    // Arrange
+    simularApi(fetchMock, API_CATALOGO);
+
+    // Act
+    renderExplorar();
+
+    // Assert
+    await screen.findByRole('heading', { name: 'Aguacate Hass' });
+    expect(cosechaDe('Aguacate Hass').getByRole('img', { name: 'Foto de Aguacate Hass' })).toHaveAttribute(
+      'src',
+      OFERTA_AGUACATE.imageUrl,
+    );
+  });
+
+  it('la foto de cada cosecha se ve completa, sin recortarse', async () => {
+    // Arrange
+    simularApi(fetchMock, API_CATALOGO);
+
+    // Act
+    renderExplorar();
+
+    // Assert
+    await screen.findByRole('heading', { name: 'Aguacate Hass' });
+    const foto = cosechaDe('Aguacate Hass').getByRole('img', { name: 'Foto de Aguacate Hass' });
+    expect(foto).toHaveClass('object-contain');
+    expect(foto).not.toHaveClass('object-cover');
+  });
+
+  it('muestra un recuadro sin foto si la cosecha no tiene imagen', async () => {
+    // Arrange
+    simularApi(fetchMock, API_CATALOGO);
+
+    // Act
+    renderExplorar();
+
+    // Assert
+    await screen.findByRole('heading', { name: 'Fresa' });
+    expect(cosechaDe('Fresa').getByRole('img', { name: 'Fresa sin foto' })).toBeInTheDocument();
+  });
+
   it('cada cosecha enlaza a su detalle para pedir', async () => {
     // Arrange
     simularApi(fetchMock, API_CATALOGO);
@@ -145,6 +188,10 @@ describe('Explorar cosechas', () => {
     // Assert
     expect(await screen.findByRole('heading', { level: 1, name: 'Aguacate Hass' })).toBeInTheDocument();
     expect(screen.getByText('$ 3.500 COP')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Foto de Aguacate Hass' })).toHaveAttribute(
+      'src',
+      OFERTA_AGUACATE.imageUrl,
+    );
     expect(screen.getByRole('button', { name: 'Ordenar ahora' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/explorar/o-1');
   });

@@ -43,6 +43,36 @@ export function Icono({
 }
 
 /**
+ * Foto de una cosecha guardada en S3. Si la oferta no tiene foto muestra un recuadro con un icono.
+ * @component
+ */
+export function FotoCosecha({
+  url,
+  nombre,
+  className = '',
+}: Readonly<{ url: string | null; nombre: string; className?: string }>) {
+  if (!url) {
+    return (
+      <div
+        aria-label={`${nombre} sin foto`}
+        className={`flex items-center justify-center bg-gray-100 text-gray-400 ${className}`}
+        role="img"
+      >
+        <Icono className="text-5xl" nombre="image" />
+      </div>
+    );
+  }
+  return (
+    <img
+      alt={`Foto de ${nombre}`}
+      className={`object-contain bg-gray-100 ${className}`}
+      loading="lazy"
+      src={url}
+    />
+  );
+}
+
+/**
  * Componente para mostrar mensajes de alerta destacados.
  * @component
  */
@@ -68,6 +98,11 @@ export function TarjetaCosecha({
   const unidad = producto?.unitOfMeasure ?? '';
   return (
     <li className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col gap-3">
+      <FotoCosecha
+        className="w-full aspect-4/3 rounded-xl"
+        nombre={producto?.name ?? 'Producto'}
+        url={oferta.imageUrl}
+      />
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-bold text-gray-900">
           {producto?.name ?? 'Producto'}

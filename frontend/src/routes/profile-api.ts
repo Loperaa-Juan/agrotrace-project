@@ -48,6 +48,8 @@ export type Oferta = {
   harvestDate: string;
   aiQuality: string | null;
   isActive: boolean;
+  /** URL pública de la foto en S3; `null` en las ofertas anteriores a la clasificación con IA. */
+  imageUrl: string | null;
 };
 
 /** Información de contacto visible entre el comprador y el agricultor en un pedido. */
