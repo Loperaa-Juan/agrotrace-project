@@ -10,10 +10,13 @@ import {
   crearOferta,
   obtenerCatalogo,
   type NuevaOferta,
+  type Oferta,
   type Producto,
 } from '../profile-api';
+import { formatoFecha } from '../formato';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
+import { FotoCosecha } from './explore';
 
 type Paso = 1 | 2;
 
@@ -564,22 +567,86 @@ function PasoFecha({
 }
 
 /**
- * Componente de éxito mostrado al finalizar con éxito la publicación de la cosecha.
+ * Fila del resumen de la cosecha publicada (etiqueta y valor).
  * @component
  */
-function Publicada() {
+function DatoResumen({
+  etiqueta,
+  valor,
+}: Readonly<{ etiqueta: string; valor: string }>) {
   return (
-    <section className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm text-center space-y-4">
-      <span className="w-16 h-16 mx-auto rounded-full bg-green-100 text-[#15803d] flex items-center justify-center">
-        <Icono className="text-4xl" nombre="task_alt" />
-      </span>
-      <h2 className="text-2xl font-extrabold text-gray-900">
-        ¡Su cosecha quedó publicada!
-      </h2>
-      <p className="text-gray-600">
-        Los compradores ya pueden verla en el catálogo de cosechas de AgroTrace.
-      </p>
-      <Link className={BOTON_PRIMARIO} to={routes.perfil}>
+    <div className="p-4 rounded-xl bg-gray-50">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {etiqueta}
+      </dt>
+      <dd className="text-sm font-bold text-gray-900">{valor}</dd>
+    </div>
+  );
+}
+
+/**
+ * Resumen mostrado al publicar la cosecha: los datos que ingresó el agricultor, la foto con el
+ * recuadro que dibujó YOLO y la calidad que le asignó el ai-service.
+ * @component
+ */
+function Publicada({
+  oferta,
+  producto,
+}: Readonly<{ oferta: Oferta; producto: Producto | undefined }>) {
+  const nombre = producto?.name ?? 'Producto';
+  const unidad = producto?.unitOfMeasure ?? 'unidad';
+  return (
+    <section className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm space-y-6">
+      <div className="text-center space-y-4">
+        <span className="w-16 h-16 mx-auto rounded-full bg-green-100 text-[#15803d] flex items-center justify-center">
+          <Icono className="text-4xl" nombre="task_alt" />
+        </span>
+        <h2 className="text-2xl font-extrabold text-gray-900">
+          ¡Su cosecha quedó publicada!
+        </h2>
+        <p className="text-gray-600">
+          Los compradores ya pueden verla en el catálogo de cosechas de
+          AgroTrace.
+        </p>
+      </div>
+
+      <FotoCosecha
+        className="w-full aspect-video rounded-xl"
+        etiqueta="Foto analizada de"
+        nombre={nombre}
+        url={oferta.annotatedImageUrl}
+      />
+
+      {oferta.aiQuality && (
+        <p className="flex items-center justify-center gap-2 p-4 rounded-xl bg-green-50 font-bold text-[#15803d]">
+          <Icono className="text-xl text-amber-500" nombre="verified_user" />
+          <span>Certificación AgroTrace IA</span>
+          <span>{`Calidad ${oferta.aiQuality}`}</span>
+        </p>
+      )}
+
+      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <DatoResumen etiqueta="Producto" valor={nombre} />
+        <DatoResumen
+          etiqueta="Cantidad disponible"
+          valor={`${oferta.availableQuantity.toLocaleString('es-CO')} ${unidad}`}
+        />
+        <DatoResumen
+          etiqueta="Precio de venta"
+          valor={`${formatoCOP(oferta.pricePerUnit)} COP / ${unidad}`}
+        />
+        {oferta.harvestDate && (
+          <DatoResumen
+            etiqueta="Fecha de cosecha"
+            valor={formatoFecha(oferta.harvestDate)}
+          />
+        )}
+        {oferta.description && (
+          <DatoResumen etiqueta="Descripción" valor={oferta.description} />
+        )}
+      </dl>
+
+      <Link className={`${BOTON_PRIMARIO} w-full`} to={routes.perfil}>
         <Icono className="text-xl" nombre="person" />
         Volver a mi perfil
       </Link>
@@ -604,7 +671,7 @@ export function PublicarPage() {
   const [foto, setFoto] = useState<File | null>(null);
   const [publicando, setPublicando] = useState(false);
   const [errorPublicar, setErrorPublicar] = useState<string | null>(null);
-  const [publicada, setPublicada] = useState(false);
+  const [publicada, setPublicada] = useState<Oferta | null>(null);
 
   if (!usuario) return <Navigate replace to={routes.login} />;
   if (!esAgricultor) return <Navigate replace to={routes.explorar} />;
@@ -617,8 +684,7 @@ export function PublicarPage() {
     setPublicando(true);
     setErrorPublicar(null);
     try {
-      await crearOferta(aOferta(formulario), foto);
-      setPublicada(true);
+      setPublicada(await crearOferta(aOferta(formulario), foto));
     } catch (err) {
       if (esSesionVencida(err)) salir();
       else setErrorPublicar(mensajeErrorPublicar(err));
@@ -628,7 +694,16 @@ export function PublicarPage() {
   };
 
   const contenido = () => {
-    if (publicada) return <Publicada />;
+    if (publicada) {
+      return (
+        <Publicada
+          oferta={publicada}
+          producto={productos?.find(
+            (item) => item.ProductId === publicada.productId,
+          )}
+        />
+      );
+    }
     if (errorCarga) return <Alerta>{errorCarga}</Alerta>;
     if (!productos) {
       return (

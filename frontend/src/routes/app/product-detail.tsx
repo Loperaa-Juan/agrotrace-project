@@ -13,6 +13,7 @@ import {
   type Oferta,
   type Producto,
 } from '../profile-api';
+import { formatoFecha } from '../formato';
 import { routes } from '../routes';
 import { useSesion } from '../session-context';
 import { FotoCosecha, Icono } from './explore';
@@ -24,14 +25,6 @@ const LIMITE_PERSONA = 50;
 
 /** Formatea un valor numérico al estándar colombiano. */
 const formatoNumero = (valor: number) => valor.toLocaleString('es-CO');
-
-/** Formatea una fecha local evitando desfases por zona horaria. */
-const formatoFecha = (fecha: string) =>
-  new Date(`${fecha}T00:00:00`).toLocaleDateString('es-CO', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
 
 const BOTON_CANTIDAD =
   'w-12 h-12 shrink-0 rounded-xl bg-white text-gray-900 flex items-center justify-center shadow-sm text-2xl font-bold transition-all hover:bg-gray-100 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:active:scale-100';

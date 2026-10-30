@@ -34,9 +34,26 @@ const PRODUCTOS = [
 
 type Respuestas = Record<string, [status: number, body?: unknown]>;
 
+const BUCKET = 'https://test-agrotrace.s3.us-east-2.amazonaws.com';
+
+// Lo que responde catalog-service al publicar: la oferta con lo que decidió la IA
+const OFERTA_PUBLICADA = {
+  OffertId: 'o-nueva',
+  productId: 'p-aguacate',
+  farmerId: 'c270fc1a',
+  description: 'Recogido esta semana',
+  pricePerUnit: 3500,
+  availableQuantity: 120,
+  harvestDate: '2026-10-20',
+  aiQuality: 'Buena',
+  isActive: true,
+  imageUrl: `${BUCKET}/original/a.jpeg`,
+  annotatedImageUrl: `${BUCKET}/annotated/a.jpeg`,
+};
+
 const API: Respuestas = {
   'GET /catalog': [200, PRODUCTOS],
-  'POST /offerts': [201, { OffertId: 'o-nueva' }],
+  'POST /offerts': [201, OFERTA_PUBLICADA],
 };
 
 /** Responde cada petición según su método y ruta, por ejemplo `POST /offerts`. */
@@ -210,6 +227,80 @@ describe('Publicar cosecha', () => {
     expect(datos.get('availableQuantity')).toBe('120');
     expect(datos.get('harvestDate')).toBe('2026-10-20');
     expect((datos.get('image') as File).name).toBe('aguacate.jpg');
+  });
+
+  describe('resumen de la cosecha publicada', () => {
+    /** Publica la cosecha y espera a que aparezca el resumen. */
+    async function publicar(respuestas: Respuestas = API) {
+      iniciarSesion(AGRICULTOR);
+      simularApi(fetchMock, respuestas);
+      renderPublicar();
+      await llegarAFecha();
+      fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
+      await screen.findByRole('heading', {
+        name: '¡Su cosecha quedó publicada!',
+      });
+    }
+
+    it('muestra el producto, la cantidad y el precio publicados', async () => {
+      // Act
+      await publicar();
+
+      // Assert
+      expect(screen.getByText('Aguacate Hass')).toBeInTheDocument();
+      expect(screen.getByText('120 lb')).toBeInTheDocument();
+      expect(screen.getByText('$ 3.500 COP / lb')).toBeInTheDocument();
+    });
+
+    it('muestra la descripción y la fecha de cosecha', async () => {
+      // Act
+      await publicar();
+
+      // Assert
+      expect(screen.getByText('Recogido esta semana')).toBeInTheDocument();
+      expect(screen.getByText('20 de octubre de 2026')).toBeInTheDocument();
+    });
+
+    it('muestra la foto analizada por la IA con el recuadro de YOLO', async () => {
+      // Act
+      await publicar();
+
+      // Assert
+      expect(
+        screen.getByRole('img', { name: 'Foto analizada de Aguacate Hass' }),
+      ).toHaveAttribute('src', `${BUCKET}/annotated/a.jpeg`);
+    });
+
+    it('muestra la calidad que asignó la IA', async () => {
+      // Act
+      await publicar();
+
+      // Assert
+      expect(screen.getByText('Calidad Buena')).toBeInTheDocument();
+    });
+
+    it('si la oferta no tiene foto analizada muestra un recuadro sin foto', async () => {
+      // Act
+      await publicar({
+        ...API,
+        'POST /offerts': [201, { ...OFERTA_PUBLICADA, annotatedImageUrl: null }],
+      });
+
+      // Assert
+      expect(
+        screen.getByRole('img', { name: 'Aguacate Hass sin foto' }),
+      ).toBeInTheDocument();
+    });
+
+    it('ofrece volver al perfil', async () => {
+      // Act
+      await publicar();
+
+      // Assert
+      expect(
+        screen.getByRole('link', { name: /volver a mi perfil/i }),
+      ).toHaveAttribute('href', '/perfil');
+    });
   });
 
   it('muestra el mensaje del servidor si rechaza la oferta', async () => {

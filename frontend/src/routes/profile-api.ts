@@ -50,6 +50,8 @@ export type Oferta = {
   isActive: boolean;
   /** URL pública de la foto en S3; `null` en las ofertas anteriores a la clasificación con IA. */
   imageUrl: string | null;
+  /** URL pública de la foto con el recuadro que dibujó la IA sobre la fruta. */
+  annotatedImageUrl: string | null;
 };
 
 /** Información de contacto visible entre el comprador y el agricultor en un pedido. */

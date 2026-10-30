@@ -49,8 +49,15 @@ export function Icono({
 export function FotoCosecha({
   url,
   nombre,
+  etiqueta = 'Foto de',
   className = '',
-}: Readonly<{ url: string | null; nombre: string; className?: string }>) {
+}: Readonly<{
+  url: string | null;
+  nombre: string;
+  /** Texto que antecede al nombre en el `alt` de la imagen. */
+  etiqueta?: string;
+  className?: string;
+}>) {
   if (!url) {
     return (
       <div
@@ -64,7 +71,7 @@ export function FotoCosecha({
   }
   return (
     <img
-      alt={`Foto de ${nombre}`}
+      alt={`${etiqueta} ${nombre}`}
       className={`object-contain bg-gray-100 ${className}`}
       loading="lazy"
       src={url}
