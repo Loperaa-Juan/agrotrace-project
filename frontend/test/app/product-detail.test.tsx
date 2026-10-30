@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import ProductDetail from '../../src/routes/app/product-detail';
 import App from '../../src/App';
-import { simularApi } from '../auth/utils';
+import { respuestaFetch, simularApi } from '../auth/utils';
 
 const oferta = {
   OffertId: 'o-1',
@@ -218,6 +218,35 @@ describe('Tests en el componente ProductDetail', () => {
       screen.getByRole('button', { name: 'Ordenar ahora' }),
     ).toBeDisabled();
   });
+
+  describe('cuando el producto de la oferta no está en el catálogo', () => {
+    it('muestra "Producto" como título y no inventa una unidad', () => {
+      // Arrange
+      render(<ProductDetail oferta={oferta} producto={undefined} />);
+
+      // Assert
+      expect(
+        screen.getByRole('heading', { level: 1, name: 'Producto' }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Máximo 50 por pedido.')).toBeInTheDocument();
+      expect(screen.getByText('/')).toBeInTheDocument();
+    });
+
+    it('el diálogo de confirmación habla de "este producto"', () => {
+      // Arrange
+      render(
+        <ProductDetail oferta={oferta} producto={undefined} usuario={PERSONA} />,
+      );
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Ordenar ahora' }));
+
+      // Assert
+      expect(screen.getByRole('dialog')).toHaveTextContent(
+        '¿Estás seguro de ordenar este producto?',
+      );
+    });
+  });
 });
 
 describe('Crear pedido desde ProductDetail', () => {
@@ -337,6 +366,99 @@ describe('Crear pedido desde ProductDetail', () => {
     expect(
       await screen.findByText('Esta cosecha ya no está disponible.'),
     ).toBeInTheDocument();
+  });
+
+  it('Si el producto de la oferta no está en el catálogo, muestra el detalle con "Producto"', async () => {
+    // Arrange
+    simularApi(fetchMock, {
+      'GET /offerts': [200, [{ ...oferta, OffertId: OFERTA_ID }]],
+      'GET /catalog': [200, []],
+    });
+
+    // Act
+    window.history.pushState({}, '', `/explorar/${OFERTA_ID}`);
+    render(<App />);
+
+    // Assert
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Producto' }),
+    ).toBeInTheDocument();
+  });
+
+  it('Si no se puede cargar la cosecha, se debe mostrar un mensaje de error', async () => {
+    // Arrange
+    simularApi(fetchMock, {
+      'GET /offerts': [500, { message: 'Error interno' }],
+      'GET /catalog': [200, [producto]],
+    });
+
+    // Act
+    window.history.pushState({}, '', `/explorar/${OFERTA_ID}`);
+    render(<App />);
+
+    // Assert
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos cargar la cosecha. Intenta de nuevo.',
+    );
+  });
+
+  describe('si se sale de la página antes de que respondan las peticiones', () => {
+    /** Deja las peticiones colgadas para resolverlas o rechazarlas a mano. */
+    function dejarPendientes() {
+      const pendientes: {
+        resolver: () => void;
+        rechazar: () => void;
+      }[] = [];
+      fetchMock.mockImplementation(
+        (url: string) =>
+          new Promise((resolve, reject) => {
+            pendientes.push({
+              resolver: () =>
+                resolve(
+                  respuestaFetch(
+                    200,
+                    new URL(url).pathname === '/catalog' ? [producto] : [],
+                  ),
+                ),
+              rechazar: () => reject(new Error('Sin red')),
+            });
+          }),
+      );
+      return pendientes;
+    }
+
+    const pasarUnTurno = () => new Promise((resolver) => setTimeout(resolver, 0));
+
+    it('no actualiza la pantalla cuando llegan las respuestas', async () => {
+      // Arrange
+      const pendientes = dejarPendientes();
+      window.history.pushState({}, '', `/explorar/${OFERTA_ID}`);
+      const { unmount } = render(<App />);
+      expect(pendientes).toHaveLength(2);
+
+      // Act
+      unmount();
+      pendientes.forEach((pendiente) => pendiente.resolver());
+      await pasarUnTurno();
+
+      // Assert
+      expect(screen.queryByRole('main')).not.toBeInTheDocument();
+    });
+
+    it('no muestra el error cuando las peticiones fallan', async () => {
+      // Arrange
+      const pendientes = dejarPendientes();
+      window.history.pushState({}, '', `/explorar/${OFERTA_ID}`);
+      const { unmount } = render(<App />);
+
+      // Act
+      unmount();
+      pendientes.forEach((pendiente) => pendiente.rechazar());
+      await pasarUnTurno();
+
+      // Assert
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
   });
 });
 

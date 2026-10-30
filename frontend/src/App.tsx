@@ -7,6 +7,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './routes/app/app-layout';
 import { ExplorarPage } from './routes/app/explore';
 import FilterPage from './routes/app/filter-page';
+import { CatalogoMaestroPage } from './routes/app/master-catalog';
 import { DetalleProductoPage } from './routes/app/product-detail';
 import { DetallePedidoPage } from './routes/app/order-detail';
 import { PedidosPage } from './routes/app/orders';
@@ -37,6 +38,7 @@ function App() {
             <Route path={routes.pedidos} element={<PedidosPage />} />
             <Route path={routes.detallePedido} element={<DetallePedidoPage />} />
             <Route path={routes.publicar} element={<PublicarPage />} />
+            <Route path={routes.catalogoMaestro} element={<CatalogoMaestroPage />} />
           </Route>
           <Route
             path={routes.registro}

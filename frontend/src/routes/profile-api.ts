@@ -24,7 +24,17 @@ export type Producto = {
   ProductId: string;
   name: string;
   unitOfMeasure: string;
+  category?: string;
+  description?: string | null;
   isActive: boolean;
+};
+
+/** Datos que recibe el `catalog-service` para crear un producto (solo Admin). */
+export type NuevoProducto = {
+  name: string;
+  category: string;
+  unitOfMeasure: string;
+  description: string;
 };
 
 /** Estructura de una oferta publicada por un agricultor. */
@@ -125,6 +135,10 @@ export const obtenerPerfil = () => pedir<PerfilUsuario>(`${USERS_URL}/users/me`)
 
 /** Obtiene el listado general de productos del catálogo. */
 export const obtenerCatalogo = () => pedir<Producto[]>(`${CATALOG_URL}/catalog`);
+
+/** Crea un producto en el catálogo maestro (solo Admin). */
+export const crearProducto = (producto: NuevoProducto) =>
+  pedir<Producto>(`${CATALOG_URL}/catalog`, 'POST', producto);
 
 /** Obtiene las ofertas activas de todos los agricultores (ordenadas de la más reciente a la más antigua). Es un endpoint público. */
 export const obtenerOfertas = () => pedir<Oferta[]>(`${CATALOG_URL}/offerts`);

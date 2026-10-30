@@ -18,6 +18,7 @@ export const routes = {
   detalle: '/explorar/:offertId',
   filtros: '/filtros',
   publicar: '/publicar',
+  catalogoMaestro: '/catalogo-maestro',
   pedidos: '/pedidos',
   detallePedido: '/pedidos/:orderId',
 };

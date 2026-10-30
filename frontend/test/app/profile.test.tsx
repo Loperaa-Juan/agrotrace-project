@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { PerfilPage } from '../../src/routes/app/profile';
 import { SesionProvider } from '../../src/routes/session-context';
-import { simularApi, type Respuestas } from '../auth/utils';
+import { respuestaFetch, simularApi, type Respuestas } from '../auth/utils';
 import { ORDERS_API_URL } from '../../src/config/env';
 
 const AGRICULTOR = {
@@ -418,6 +418,80 @@ describe('Perfil', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent(
         'No pudimos cargar tu perfil. Intenta de nuevo.',
       );
+    });
+  });
+
+  describe('casos límite', () => {
+    /** Deja las peticiones colgadas para resolverlas o rechazarlas a mano. */
+    function dejarPendientes() {
+      const pendientes: { resolver: () => void; rechazar: () => void }[] = [];
+      fetchMock.mockImplementation(
+        () =>
+          new Promise((resolve, reject) => {
+            pendientes.push({
+              resolver: () => resolve(respuestaFetch(200, [])),
+              rechazar: () => reject(new Error('Sin red')),
+            });
+          }),
+      );
+      return pendientes;
+    }
+
+    const pasarUnTurno = () => new Promise((resolver) => setTimeout(resolver, 0));
+
+    it('una oferta cuyo producto no está en el catálogo se muestra como "Producto"', async () => {
+      // Arrange
+      iniciarSesion();
+      simularApi(fetchMock, { ...API_AGRICULTOR, 'GET /catalog': [200, []] });
+
+      // Act
+      renderPerfil();
+
+      // Assert
+      await screen.findByRole('heading', { level: 1 });
+      expect(screen.getAllByRole('heading', { level: 3, name: 'Producto' })).toHaveLength(2);
+    });
+
+    it('no actualiza la pantalla si se sale antes de que respondan las peticiones', async () => {
+      // Arrange
+      iniciarSesion();
+      const pendientes = dejarPendientes();
+      const { unmount } = render(
+        <SesionProvider>
+          <MemoryRouter initialEntries={['/perfil']}>
+            <PerfilPage />
+          </MemoryRouter>
+        </SesionProvider>,
+      );
+
+      // Act
+      unmount();
+      pendientes.forEach((pendiente) => pendiente.resolver());
+      await pasarUnTurno();
+
+      // Assert
+      expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    });
+
+    it('no muestra el error si se sale antes de que fallen las peticiones', async () => {
+      // Arrange
+      iniciarSesion();
+      const pendientes = dejarPendientes();
+      const { unmount } = render(
+        <SesionProvider>
+          <MemoryRouter initialEntries={['/perfil']}>
+            <PerfilPage />
+          </MemoryRouter>
+        </SesionProvider>,
+      );
+
+      // Act
+      unmount();
+      pendientes.forEach((pendiente) => pendiente.rechazar());
+      await pasarUnTurno();
+
+      // Assert
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
   });
 });

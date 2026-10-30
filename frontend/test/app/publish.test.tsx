@@ -374,4 +374,154 @@ describe('Publicar cosecha', () => {
     await waitFor(() => expect(window.location.pathname).toBe('/login'));
     expect(localStorage.getItem('accessToken')).toBeNull();
   });
+
+  it('no avanza sin elegir un producto', async () => {
+    // Arrange
+    iniciarSesion(AGRICULTOR);
+    simularApi(fetchMock, API);
+    renderPublicar();
+    await screen.findByLabelText(/producto que vende/i);
+
+    // Act
+    fireEvent.click(
+      screen.getByRole('button', { name: /siguiente: cuándo se recoge/i }),
+    );
+
+    // Assert
+    expect(
+      screen.getByText('Elija un producto del catálogo para continuar.'),
+    ).toBeInTheDocument();
+  });
+
+  it('el botón Volver regresa al paso 1 conservando los datos', async () => {
+    // Arrange
+    iniciarSesion(AGRICULTOR);
+    simularApi(fetchMock, API);
+    renderPublicar();
+    await llegarAFecha();
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Volver' }));
+
+    // Assert
+    expect(
+      screen.getByRole('heading', { name: 'Paso 1: Qué vende y a qué precio' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/cantidad disponible/i)).toHaveValue(120);
+  });
+
+  it('muestra un error genérico si falla la red al publicar', async () => {
+    // Arrange: sin respuesta para POST /offerts, el fetch se rechaza
+    iniciarSesion(AGRICULTOR);
+    simularApi(fetchMock, { 'GET /catalog': [200, PRODUCTOS] });
+    renderPublicar();
+    await llegarAFecha();
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
+
+    // Assert
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos publicar su cosecha. Intente de nuevo.',
+    );
+  });
+
+  it('cierra la sesión si vence al publicar', async () => {
+    // Arrange
+    iniciarSesion(AGRICULTOR);
+    simularApi(fetchMock, {
+      ...API,
+      'POST /offerts': [401, { message: 'Unauthorized' }],
+    });
+    renderPublicar();
+    await llegarAFecha();
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar cosecha' }));
+
+    // Assert
+    await waitFor(() => expect(window.location.pathname).toBe('/login'));
+    expect(localStorage.getItem('accessToken')).toBeNull();
+  });
+
+  describe('si se sale de la página antes de que responda el catálogo', () => {
+    it('no actualiza la pantalla cuando la petición responde', async () => {
+      // Arrange
+      iniciarSesion(AGRICULTOR);
+      let responder: () => void = () => {};
+      fetchMock.mockImplementation(
+        () =>
+          new Promise((resolver) => {
+            responder = () => resolver(respuestaFetch(200, PRODUCTOS));
+          }),
+      );
+      window.history.pushState({}, '', '/publicar');
+      const { unmount } = render(<App />);
+
+      // Act
+      unmount();
+      responder();
+      await new Promise((resolver) => setTimeout(resolver, 0));
+
+      // Assert
+      expect(screen.queryByLabelText(/producto que vende/i)).not.toBeInTheDocument();
+    });
+
+    it('no muestra el error cuando la petición falla', async () => {
+      // Arrange
+      iniciarSesion(AGRICULTOR);
+      let rechazar: () => void = () => {};
+      fetchMock.mockImplementation(
+        () =>
+          new Promise((_resolver, reject) => {
+            rechazar = () => reject(new Error('Sin red'));
+          }),
+      );
+      window.history.pushState({}, '', '/publicar');
+      const { unmount } = render(<App />);
+
+      // Act
+      unmount();
+      rechazar();
+      await new Promise((resolver) => setTimeout(resolver, 0));
+
+      // Assert
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('zona para soltar la foto', () => {
+    beforeEach(() => {
+      iniciarSesion(AGRICULTOR);
+      simularApi(fetchMock, API);
+    });
+
+    it('se resalta al arrastrar encima y se normaliza al salir', async () => {
+      // Arrange
+      renderPublicar();
+      const zona = await screen.findByTestId('zona-foto');
+
+      // Act
+      fireEvent.dragOver(zona);
+      const resaltada = zona.className.includes('bg-green-50');
+      fireEvent.dragLeave(zona);
+
+      // Assert
+      expect(resaltada).toBe(true);
+      expect(zona.className).not.toContain('bg-green-50');
+    });
+
+    it('ignora un soltado sin archivos', async () => {
+      // Arrange
+      renderPublicar();
+      const zona = await screen.findByTestId('zona-foto');
+
+      // Act
+      fireEvent.drop(zona, { dataTransfer: { files: [] } });
+
+      // Assert
+      expect(screen.queryByAltText('Vista previa de la foto')).toBeNull();
+      expect(screen.queryByText(/la foto debe ser/i)).toBeNull();
+    });
+  });
 });
