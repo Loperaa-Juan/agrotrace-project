@@ -41,6 +41,7 @@ describe('Documentación Swagger de /offerts', () => {
   describe('rutas', () => {
     it.each([
       ['/offerts', 'post'],
+      ['/offerts/preview', 'post'],
       ['/offerts', 'get'],
       ['/offerts/me', 'get'],
       ['/offerts/{id}', 'patch'],
@@ -53,6 +54,7 @@ describe('Documentación Swagger de /offerts', () => {
 
     it.each([
       ['/offerts', 'post'],
+      ['/offerts/preview', 'post'],
       ['/offerts/me', 'get'],
       ['/offerts/{id}', 'patch'],
       ['/offerts/{id}', 'delete'],
@@ -95,6 +97,7 @@ describe('Documentación Swagger de /offerts', () => {
 
     it.each([
       ['/offerts', 'post', ['201', '400', '401', '403', '404', '503']],
+      ['/offerts/preview', 'post', ['200', '400', '401', '403', '503']],
       ['/offerts', 'get', ['200', '400']],
       ['/offerts/me', 'get', ['200', '401', '403']],
       ['/offerts/{id}', 'patch', ['200', '400', '401', '403', '404']],
@@ -130,6 +133,25 @@ describe('Documentación Swagger de /offerts', () => {
       expect(respuesta.content['application/json'].schema).toEqual({
         $ref: '#/components/schemas/Offert',
       });
+    });
+
+    it('/offerts/preview post responde la vista previa de la foto', async () => {
+      const documento = await obtenerDocumento();
+      const respuesta = documento.paths['/offerts/preview'].post.responses['200'];
+
+      expect(respuesta.content['application/json'].schema).toEqual({
+        $ref: '#/components/schemas/OffertPreview',
+      });
+    });
+
+    it('/offerts/preview post recibe la foto como archivo obligatorio en un multipart', async () => {
+      const documento = await obtenerDocumento();
+
+      const cuerpo = documento.paths['/offerts/preview'].post.requestBody.content;
+
+      expect(JSON.stringify(cuerpo['multipart/form-data'].schema)).toContain(
+        '"image":{"type":"string","format":"binary"',
+      );
     });
 
     it('todas las respuestas tienen una descripción', async () => {

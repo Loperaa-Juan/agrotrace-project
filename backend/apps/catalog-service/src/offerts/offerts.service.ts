@@ -11,7 +11,8 @@ import { CatalogService } from '../catalog/catalog.service';
 import { CreateOffertDto } from './dto/create-offert.dto';
 import { UpdateOffertDto } from './dto/update-offert.dto';
 import { AiClient } from './ai.client';
-import { qualityToStore } from './ai-quality';
+import { AiClassification, qualityToStore } from './ai-quality';
+import { OffertPreview } from './dto/offert-preview.dto';
 
 /**
  * Interfaz que define los datos esenciales de una oferta requeridos por orders-service para procesar un pedido.
@@ -70,6 +71,27 @@ export class OffertsService {
         annotatedImageUrl: prediction.annotated_url,
       }),
     );
+  }
+
+  /**
+   * Clasifica la foto de la cosecha con el ai-service sin crear ninguna oferta, para que el agricultor
+   * revise la calificación antes de publicar. A diferencia de `create`, una fruta podrida no lanza error:
+   * retorna la calidad en `null`.
+   * @param image - Foto de la fruta.
+   * @returns La calidad asignada, la confianza y la foto con el recuadro de la fruta.
+   * @throws `BadRequestException` Si la imagen no es válida o no se detecta fruta.
+   * @throws `ServiceUnavailableException` Si el ai-service no responde.
+   */
+  async preview(image: Express.Multer.File): Promise<OffertPreview> {
+    const prediction = await this.aiClient.classify(image);
+    return {
+      aiQuality:
+        prediction.class === AiClassification.MALA
+          ? null
+          : qualityToStore(prediction.class),
+      confidence: prediction.confidence,
+      annotatedImageUrl: prediction.annotated_url,
+    };
   }
 
   /**

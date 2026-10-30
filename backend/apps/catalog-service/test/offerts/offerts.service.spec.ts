@@ -149,6 +149,84 @@ describe('OffertsService', () => {
     });
   });
 
+  describe('preview', () => {
+    const annotatedUrl =
+      'https://bucket.s3.us-east-2.amazonaws.com/annotated/foto.jpeg';
+
+    it('Debe retornar la calidad Buena y la foto analizada si la fruta está fresca', async () => {
+      // Arrange: el ai-service clasifica la fruta como fresca
+      aiClient.classify.mockResolvedValue({
+        class: 'Fresh',
+        confidence: 0.98,
+        original_url: 'https://bucket.s3.us-east-2.amazonaws.com/o/foto.jpeg',
+        annotated_url: annotatedUrl,
+      });
+
+      // Act
+      const result = await service.preview(image);
+
+      // Assert
+      expect(result).toEqual({
+        aiQuality: 'Buena',
+        confidence: 0.98,
+        annotatedImageUrl: annotatedUrl,
+      });
+    });
+
+    it('Debe retornar la calidad Regular si la fruta está a medio madurar', async () => {
+      // Arrange
+      aiClient.classify.mockResolvedValue({
+        class: 'Mild',
+        confidence: 0.8,
+        annotated_url: annotatedUrl,
+      });
+
+      // Act
+      const result = await service.preview(image);
+
+      // Assert
+      expect(result.aiQuality).toBe('Regular');
+    });
+
+    it('Debe retornar la calidad en null, sin lanzar error, si la fruta está podrida', async () => {
+      // Arrange
+      aiClient.classify.mockResolvedValue({
+        class: 'Rotten',
+        confidence: 0.9,
+        annotated_url: annotatedUrl,
+      });
+
+      // Act
+      const result = await service.preview(image);
+
+      // Assert
+      expect(result).toEqual({
+        aiQuality: null,
+        confidence: 0.9,
+        annotatedImageUrl: annotatedUrl,
+      });
+    });
+
+    it('No debe guardar ninguna oferta', async () => {
+      // Act
+      await service.preview(image);
+
+      // Assert
+      expect(offertRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('Debe propagar el error si el ai-service no responde', async () => {
+      // Arrange
+      aiClient.classify.mockRejectedValue(new Error('ai-service no responde'));
+
+      // Act
+      const action = service.preview(image);
+
+      // Assert
+      await expect(action).rejects.toThrow('ai-service no responde');
+    });
+  });
+
   describe('findAll', () => {
     it('Debe consultar solo las ofertas activas', async () => {
       // Arrange

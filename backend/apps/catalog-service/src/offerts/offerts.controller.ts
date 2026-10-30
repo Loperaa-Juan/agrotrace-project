@@ -5,6 +5,8 @@ import {
   Delete,
   FileTypeValidator,
   Get,
+  HttpCode,
+  HttpStatus,
   MaxFileSizeValidator,
   Param,
   ParseFilePipe,
@@ -40,6 +42,7 @@ import { JwtAuthGuard, Role, Roles, RolesGuard } from '@app/shared';
 import { OffertsService, OffertSummary } from './offerts.service';
 import { CreateOffertDto } from './dto/create-offert.dto';
 import { UpdateOffertDto } from './dto/update-offert.dto';
+import { OffertPreview } from './dto/offert-preview.dto';
 import { Offert } from '../entities/offert.entity';
 
 /** Documentación del parámetro :id que comparten las rutas de una oferta. */
@@ -62,6 +65,19 @@ const farmerOnlyDocs = (forbidden = 'El usuario no tiene el rol Agricultor') =>
 
 /** Tamaño máximo de la foto de la fruta (el mismo límite que valida el ai-service). */
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024;
+
+/** Valida la foto de la fruta que llega en el campo `image` (tamaño y tipo declarado). */
+const imagePipe = () =>
+  new ParseFilePipe({
+    validators: [
+      new MaxFileSizeValidator({ maxSize: MAX_IMAGE_BYTES }),
+      // Solo el mimetype declarado: el ai-service valida el contenido real del archivo
+      new FileTypeValidator({
+        fileType: /image\/(jpeg|png|webp)/,
+        skipMagicNumbersValidation: true,
+      }),
+    ],
+  });
 
 /** Respuesta 403 de las rutas que modifican una oferta ya publicada. */
 const notOwnerForbidden =
@@ -124,21 +140,56 @@ export class OffertsController {
   async create(
     @Req() request,
     @Body() dto: CreateOffertDto,
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: MAX_IMAGE_BYTES }),
-          // Solo el mimetype declarado: el ai-service valida el contenido real del archivo
-          new FileTypeValidator({
-            fileType: /image\/(jpeg|png|webp)/,
-            skipMagicNumbersValidation: true,
-          }),
-        ],
-      }),
-    )
+    @UploadedFile(imagePipe())
     image: Express.Multer.File,
   ): Promise<Offert> {
     return await this.offertsService.create(request.user.sub, dto, image);
+  }
+
+  /**
+   * Endpoint protegido (solo rol AGRICULTOR) para revisar la calificación de la IA antes de publicar.
+   * Clasifica la foto sin crear la oferta.
+   * @param image - Foto de la fruta (campo `image` del multipart).
+   * @returns La calidad asignada (null si está en mal estado) y la foto analizada.
+   */
+  @Post('preview')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.AGRICULTOR)
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiOperation({
+    summary: 'Ver la calificación de la IA antes de publicar (solo Agricultor)',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['image'],
+      properties: {
+        image: {
+          type: 'string',
+          format: 'binary',
+          description: 'Foto de la fruta (jpeg, png o webp, máximo 6 MB)',
+        },
+      },
+    },
+  })
+  @farmerOnlyDocs()
+  @ApiOkResponse({
+    description:
+      'Calificación de la IA. aiQuality es null si la fruta está en mal estado',
+    type: OffertPreview,
+  })
+  @ApiBadRequestResponse({
+    description: 'Falta la imagen o no es válida, o no se detectó fruta',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'ai-service (clasifica la foto) no responde',
+  })
+  @HttpCode(HttpStatus.OK)
+  async preview(
+    @UploadedFile(imagePipe()) image: Express.Multer.File,
+  ): Promise<OffertPreview> {
+    return await this.offertsService.preview(image);
   }
 
   /**

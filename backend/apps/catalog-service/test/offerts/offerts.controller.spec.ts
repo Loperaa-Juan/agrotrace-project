@@ -25,6 +25,9 @@ describe('OffertsController', () => {
       create: jest.fn((farmerId, data, file) =>
         Promise.resolve({ ...data, farmerId, imageName: file.originalname }),
       ),
+      preview: jest.fn((file) =>
+        Promise.resolve({ aiQuality: 'Buena', imageName: file.originalname }),
+      ),
       findAll: jest.fn((productId) => Promise.resolve([{ productId }])),
       findMine: jest.fn((farmerId) => Promise.resolve([{ farmerId }])),
       update: jest.fn((offertId, farmerId, data) =>
@@ -58,6 +61,16 @@ describe('OffertsController', () => {
         farmerId: 'farmer-1',
         imageName: 'tomate.jpg',
       });
+    });
+  });
+
+  describe('preview', () => {
+    it('Debe retornar la vista previa de la foto recibida', async () => {
+      // Act
+      const result = await controller.preview(image);
+
+      // Assert
+      expect(result).toEqual({ aiQuality: 'Buena', imageName: 'tomate.jpg' });
     });
   });
 
@@ -135,7 +148,13 @@ describe('OffertsController', () => {
 
     it('Las rutas del agricultor deben estar protegidas con JwtAuthGuard', () => {
       // Arrange
-      const rutasDelAgricultor = ['create', 'findMine', 'update', 'remove'];
+      const rutasDelAgricultor = [
+        'create',
+        'preview',
+        'findMine',
+        'update',
+        'remove',
+      ];
 
       // Act
       const protegidas = metodosConGuard(rutasDelAgricultor);
@@ -157,7 +176,13 @@ describe('OffertsController', () => {
 
     it('Las rutas del agricultor deben exigir el rol Agricultor', () => {
       // Arrange
-      const rutasDelAgricultor = ['create', 'findMine', 'update', 'remove'];
+      const rutasDelAgricultor = [
+        'create',
+        'preview',
+        'findMine',
+        'update',
+        'remove',
+      ];
 
       // Act
       const conRolAgricultor = rutasDelAgricultor.filter((metodo) => {
