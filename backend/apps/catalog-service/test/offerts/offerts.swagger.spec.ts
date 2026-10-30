@@ -167,6 +167,7 @@ describe('Documentación Swagger de /offerts', () => {
         'createdAt',
         'updatedAt',
         'imageUrl',
+        'annotatedImageUrl',
       ]);
     });
 

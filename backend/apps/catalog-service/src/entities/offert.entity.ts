@@ -141,4 +141,14 @@ export class Offert {
   })
   @Column({ type: 'varchar', nullable: true })
   imageUrl: string | null;
+
+  /** URL pública en S3 de la foto con el recuadro que dibujó el modelo de IA sobre la fruta. */
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example:
+      'https://test-agrotrace.s3.us-east-2.amazonaws.com/annotated/6f1c2a52-3b0e-4c53-9d57-0a4f2f6d1c11.jpeg',
+  })
+  @Column({ type: 'varchar', nullable: true })
+  annotatedImageUrl: string | null;
 }

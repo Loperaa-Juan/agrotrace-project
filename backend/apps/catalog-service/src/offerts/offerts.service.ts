@@ -67,6 +67,7 @@ export class OffertsService {
         farmerId,
         aiQuality,
         imageUrl: prediction.original_url,
+        annotatedImageUrl: prediction.annotated_url,
       }),
     );
   }

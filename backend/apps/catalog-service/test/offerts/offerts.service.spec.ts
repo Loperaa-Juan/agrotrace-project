@@ -93,6 +93,8 @@ describe('OffertsService', () => {
       expect(result).toMatchObject({
         aiQuality: 'Buena',
         imageUrl: 'https://bucket.s3.us-east-2.amazonaws.com/original/foto.jpeg',
+        annotatedImageUrl:
+          'https://bucket.s3.us-east-2.amazonaws.com/annotated/foto.jpeg',
       });
     });
 
