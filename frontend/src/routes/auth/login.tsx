@@ -3,7 +3,12 @@
  * (Agricultor, Persona, Negocio), formularios dinámicos, validaciones de alta y control de sesiones.
  */
 
-import { useState, type ChangeEvent, type ReactNode, type SubmitEvent } from 'react';
+import {
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+  type SubmitEvent,
+} from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
@@ -43,6 +48,8 @@ type Perfil = {
   etiquetaRegistro: string;
   /** RF-02: Agricultor y Persona se registran con CC o CE; Negocio, con NIT. */
   documentos: TipoDocumento[];
+  // Este campo no se envía al backend; solo sirve para pruebas de UI con `?idtest=agricultor`. Es agregado para prácticas de BDD
+  idtest?: string;
 };
 
 /**
@@ -57,11 +64,13 @@ const PERFILES: Perfil[] = [
     colorIcono: 'bg-green-100 text-[#15803d]',
     titulo: 'Soy Agricultor / Productor',
     subtitulo: 'Perico · Las Palmas · El Escobero',
-    descripcion: 'Vende cosechas a precio justo con clasificación de calidad automática por IA.',
+    descripcion:
+      'Vende cosechas a precio justo con clasificación de calidad automática por IA.',
     pistaTitulo: 'Perfil de Productor:',
     pistaTexto:
       'Tendrás acceso a la herramienta de inspección fotográfica para clasificar Aguacate, Plátano y Fresas en Grados A, B y C.',
     etiquetaRegistro: 'Crear Perfil de Productor Local',
+    idtest: 'agricultor',
   },
   {
     rol: 'Persona',
@@ -70,11 +79,13 @@ const PERFILES: Perfil[] = [
     colorIcono: 'bg-amber-100 text-amber-700',
     titulo: 'Persona / Hogar',
     subtitulo: 'Consumo Consciente',
-    descripcion: 'Frutas y hortalizas cosechadas hoy en Envigado, directo de la finca.',
+    descripcion:
+      'Frutas y hortalizas cosechadas hoy en Envigado, directo de la finca.',
     pistaTitulo: 'Perfil de Consumidor Familiar:',
     pistaTexto:
       'Explora cosechas recogidas esta mañana en Las Palmas, Pantanillo y El Vallano y recógelas en la finca del productor.',
     etiquetaRegistro: 'Crear Cuenta para Mi Hogar',
+    idtest: 'persona',
   },
   {
     rol: 'Negocio',
@@ -88,6 +99,7 @@ const PERFILES: Perfil[] = [
     pistaTexto:
       'Consigue listas de precios por volumen y trazabilidad por georreferenciación de cada lote.',
     etiquetaRegistro: 'Registrar Mi Restaurante / Negocio',
+    idtest: 'negocio',
   },
 ];
 
@@ -125,7 +137,8 @@ const ID_CAMPO: Record<keyof DatosRegistro, string> = {
 const ERROR_CAMPOS = 'Revisa los campos marcados para crear tu cuenta.';
 const ERROR_CREDENCIALES =
   'No encontramos una cuenta con esos datos. Revisa el correo y la contraseña.';
-const ERROR_SERVIDOR = 'Algo salió mal en el servidor. Intenta de nuevo más tarde.';
+const ERROR_SERVIDOR =
+  'Algo salió mal en el servidor. Intenta de nuevo más tarde.';
 const ERROR_CONEXION = 'No pudimos conectar con el servidor. Intenta de nuevo.';
 /** Mensaje del `users-service` cuando el documento (ej. el NIT) ya tiene una cuenta. */
 const DOCUMENTO_REGISTRADO = 'A user with this document already exists.';
@@ -152,9 +165,15 @@ const conError = (id: string, error?: string) => ({
  * Componente reutilizable para renderizar iconos de Google Material Symbols.
  * @component
  */
-function Icono({ nombre, className = '' }: Readonly<{ nombre: string; className?: string }>) {
+function Icono({
+  nombre,
+  className = '',
+}: Readonly<{ nombre: string; className?: string }>) {
   return (
-    <span aria-hidden="true" className={`material-symbols-outlined ${className}`}>
+    <span
+      aria-hidden="true"
+      className={`material-symbols-outlined ${className}`}
+    >
       {nombre}
     </span>
   );
@@ -167,7 +186,10 @@ function Icono({ nombre, className = '' }: Readonly<{ nombre: string; className?
 function MensajeError({ id, error }: Readonly<{ id: string; error?: string }>) {
   if (!error) return null;
   return (
-    <p className="flex items-center gap-1 text-xs font-medium text-red-600" id={`${id}-error`}>
+    <p
+      className="flex items-center gap-1 text-xs font-medium text-red-600"
+      id={`${id}-error`}
+    >
       <Icono className="text-base" nombre="error" />
       {error}
     </p>
@@ -197,7 +219,10 @@ function Campo({
         {etiqueta}
       </label>
       <div className="relative flex items-center">
-        <Icono className="absolute left-3.5 text-lg text-gray-400 pointer-events-none" nombre={icono} />
+        <Icono
+          className="absolute left-3.5 text-lg text-gray-400 pointer-events-none"
+          nombre={icono}
+        />
         {children}
       </div>
       <MensajeError error={error} id={id} />
@@ -234,19 +259,24 @@ export function LoginPage() {
   const cambiarModo = (nuevo: AuthMode) => {
     setMode(nuevo);
     setError(null);
-    setParametros(nuevo === 'register' ? { modo: 'registro' } : {}, { replace: true });
+    setParametros(nuevo === 'register' ? { modo: 'registro' } : {}, {
+      replace: true,
+    });
   };
 
   /** Al corregir un campo su error desaparece; el resto se revisa al enviar de nuevo. */
   const limpiarError = (campo: keyof DatosRegistro) =>
-    setErrores((previos) => (previos[campo] ? { ...previos, [campo]: undefined } : previos));
+    setErrores((previos) =>
+      previos[campo] ? { ...previos, [campo]: undefined } : previos,
+    );
 
   /**
    * Genera un manejador de eventos para actualizar el estado del formulario de registro
    * y limpiar automáticamente el error del campo modificado.
    */
   const cambiarRegistro =
-    (campo: keyof CamposRegistro) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    (campo: keyof CamposRegistro) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setRegistro((previo) => ({ ...previo, [campo]: event.target.value }));
       limpiarError(campo);
     };
@@ -259,7 +289,10 @@ export function LoginPage() {
     setRol(nuevo.rol);
     // Un NIT elegido como Negocio no vale al pasar a Persona o Agricultor.
     if (!nuevo.documentos.includes(registro.tipoDocumento)) {
-      setRegistro((previo) => ({ ...previo, tipoDocumento: nuevo.documentos[0] }));
+      setRegistro((previo) => ({
+        ...previo,
+        tipoDocumento: nuevo.documentos[0],
+      }));
       limpiarError('tipoDocumento');
       limpiarError('numeroDocumento');
     }
@@ -290,7 +323,12 @@ export function LoginPage() {
    * Valida el formulario de registro y procesa la creación de una nueva cuenta enviando los datos al backend.
    */
   const crearCuenta = async () => {
-    if (marcarErrores(validarRegistro({ ...registro, correo, clave }, perfil.documentos))) return;
+    if (
+      marcarErrores(
+        validarRegistro({ ...registro, correo, clave }, perfil.documentos),
+      )
+    )
+      return;
     try {
       abrirSesion(
         await registrarUsuario({
@@ -310,7 +348,10 @@ export function LoginPage() {
       if (err instanceof ErrorApi && err.status === 409) {
         marcarErrores(
           err.message === DOCUMENTO_REGISTRADO
-            ? { numeroDocumento: 'Ya existe una cuenta con este número de documento.' }
+            ? {
+                numeroDocumento:
+                  'Ya existe una cuenta con este número de documento.',
+              }
             : { correo: 'Ya existe una cuenta con este correo.' },
         );
         return;
@@ -327,7 +368,12 @@ export function LoginPage() {
       abrirSesion(await iniciarSesion(normalizarCorreo(correo), clave));
     } catch (err) {
       if (!(err instanceof ErrorApi)) setError(ERROR_CONEXION);
-      else setError(err.status === 400 || err.status === 401 ? ERROR_CREDENCIALES : ERROR_SERVIDOR);
+      else
+        setError(
+          err.status === 400 || err.status === 401
+            ? ERROR_CREDENCIALES
+            : ERROR_SERVIDOR,
+        );
     }
   };
 
@@ -350,7 +396,11 @@ export function LoginPage() {
             className="rounded-lg p-1 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
             to={routes.inicio}
           >
-            <img alt="AgroTrace" className="h-10 sm:h-11 w-auto object-contain" src="/img/agrotrace-logo.webp" />
+            <img
+              alt="AgroTrace"
+              className="h-10 sm:h-11 w-auto object-contain"
+              src="/img/agrotrace-logo.webp"
+            />
           </Link>
           <Link
             className="inline-flex items-center gap-1.5 py-2 px-3 rounded-lg text-sm font-semibold text-gray-600 hover:text-[#15803d] hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-green-600"
@@ -373,7 +423,8 @@ export function LoginPage() {
                 </span>
               </h1>
               <p className="text-base sm:text-lg text-gray-600 leading-relaxed max-w-md">
-                Conectando el campo con tu mesa sin intermediarios y con clasificación de calidad.
+                Conectando el campo con tu mesa sin intermediarios y con
+                clasificación de calidad.
               </p>
             </div>
             <img
@@ -406,9 +457,12 @@ export function LoginPage() {
             {mode === 'register' && (
               <>
                 <div className="space-y-1">
-                  <p className="text-base font-bold text-gray-900">1. Selecciona tu perfil en AgroTrace:</p>
+                  <p className="text-base font-bold text-gray-900">
+                    1. Selecciona tu perfil en AgroTrace:
+                  </p>
                   <p className="text-sm text-gray-600">
-                    Personalizamos la plataforma según vendas cosechas o compres producto fresco.
+                    Personalizamos la plataforma según vendas cosechas o compres
+                    producto fresco.
                   </p>
                 </div>
                 <div
@@ -421,6 +475,7 @@ export function LoginPage() {
                     return (
                       <button
                         aria-checked={activo}
+                        data-testid={item.idtest}
                         className={`text-left p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col gap-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 ${
                           activo
                             ? 'border-[#15803d] bg-green-50 shadow-sm'
@@ -432,12 +487,16 @@ export function LoginPage() {
                         type="button"
                       >
                         <span className="w-full flex items-start justify-between">
-                          <span className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.colorIcono}`}>
+                          <span
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center ${item.colorIcono}`}
+                          >
                             <Icono className="text-xl" nombre={item.icono} />
                           </span>
                           <Icono
                             className={`text-xl ${activo ? 'text-[#15803d]' : 'text-gray-300'}`}
-                            nombre={activo ? 'check_circle' : 'radio_button_unchecked'}
+                            nombre={
+                              activo ? 'check_circle' : 'radio_button_unchecked'
+                            }
                           />
                         </span>
                         <span>
@@ -447,14 +506,19 @@ export function LoginPage() {
                           <span className="block mt-0.5 text-xs font-semibold text-[#15803d]">
                             {item.subtitulo}
                           </span>{' '}
-                          <span className="block mt-1 text-xs text-gray-600 line-clamp-2">{item.descripcion}</span>
+                          <span className="block mt-1 text-xs text-gray-600 line-clamp-2">
+                            {item.descripcion}
+                          </span>
                         </span>
                       </button>
                     );
                   })}
                 </div>
                 <p className="flex items-center gap-3 p-3 rounded-xl bg-green-50 text-sm text-gray-800">
-                  <Icono className="text-xl text-[#15803d]" nombre="smart_toy" />
+                  <Icono
+                    className="text-xl text-[#15803d]"
+                    nombre="smart_toy"
+                  />
                   <span>
                     <strong>{perfil.pistaTitulo}</strong> {perfil.pistaTexto}
                   </span>
@@ -465,9 +529,13 @@ export function LoginPage() {
             <form className="space-y-4" noValidate={true} onSubmit={enviar}>
               {mode === 'register' && (
                 <>
-                  <p className="text-base font-bold text-gray-900">2. Completa tus datos:</p>
+                  <p className="text-base font-bold text-gray-900">
+                    2. Completa tus datos:
+                  </p>
                   <Campo
-                    etiqueta={rol === 'Negocio' ? 'Razón social:' : 'Nombre completo:'}
+                    etiqueta={
+                      rol === 'Negocio' ? 'Razón social:' : 'Nombre completo:'
+                    }
                     error={e.nombre}
                     icono="person"
                     id="nombre-input"
@@ -478,7 +546,11 @@ export function LoginPage() {
                       id="nombre-input"
                       {...conError('nombre-input', e.nombre)}
                       onChange={cambiarRegistro('nombre')}
-                      placeholder={rol === 'Negocio' ? 'Restaurante La Buena Mesa S.A.S.' : 'Nombre y apellidos'}
+                      placeholder={
+                        rol === 'Negocio'
+                          ? 'Restaurante La Buena Mesa S.A.S.'
+                          : 'Nombre y apellidos'
+                      }
                       required={true}
                       type="text"
                       value={registro.nombre}
@@ -499,13 +571,13 @@ export function LoginPage() {
                         required={true}
                         value={registro.tipoDocumento}
                       >
-                        {TIPOS_DOCUMENTO.filter((tipo) => perfil.documentos.includes(tipo.valor)).map(
-                          (tipo) => (
-                            <option key={tipo.valor} value={tipo.valor}>
-                              {tipo.etiqueta}
-                            </option>
-                          ),
-                        )}
+                        {TIPOS_DOCUMENTO.filter((tipo) =>
+                          perfil.documentos.includes(tipo.valor),
+                        ).map((tipo) => (
+                          <option key={tipo.valor} value={tipo.valor}>
+                            {tipo.etiqueta}
+                          </option>
+                        ))}
                       </select>
                       <Icono
                         className="absolute right-3 text-xl text-gray-400 pointer-events-none"
@@ -522,10 +594,17 @@ export function LoginPage() {
                         autoComplete="off"
                         className={claseInput(e.numeroDocumento)}
                         id="numero-documento-input"
-                        {...conError('numero-documento-input', e.numeroDocumento)}
+                        {...conError(
+                          'numero-documento-input',
+                          e.numeroDocumento,
+                        )}
                         inputMode="numeric"
                         onChange={cambiarRegistro('numeroDocumento')}
-                        placeholder={registro.tipoDocumento === 'NIT' ? '900123456-7' : '1036123456'}
+                        placeholder={
+                          registro.tipoDocumento === 'NIT'
+                            ? '900123456-7'
+                            : '1036123456'
+                        }
                         required={true}
                         type="text"
                         value={registro.numeroDocumento}
@@ -534,7 +613,12 @@ export function LoginPage() {
                   </div>
                 </>
               )}
-              <Campo etiqueta="Correo electrónico:" error={e.correo} icono="mail" id="identifier-input">
+              <Campo
+                etiqueta="Correo electrónico:"
+                error={e.correo}
+                icono="mail"
+                id="identifier-input"
+              >
                 <input
                   autoComplete="email"
                   className={claseInput(e.correo)}
@@ -551,7 +635,12 @@ export function LoginPage() {
                 />
               </Campo>
               {mode === 'register' && (
-                <Campo etiqueta="Teléfono celular:" error={e.telefono} icono="smartphone" id="telefono-input">
+                <Campo
+                  etiqueta="Teléfono celular:"
+                  error={e.telefono}
+                  icono="smartphone"
+                  id="telefono-input"
+                >
                   <input
                     autoComplete="tel-national"
                     className={claseInput(e.telefono)}
@@ -566,9 +655,16 @@ export function LoginPage() {
                   />
                 </Campo>
               )}
-              <Campo etiqueta="Contraseña de acceso:" error={e.clave} icono="key" id="password-input">
+              <Campo
+                etiqueta="Contraseña de acceso:"
+                error={e.clave}
+                icono="key"
+                id="password-input"
+              >
                 <input
-                  autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                  autoComplete={
+                    mode === 'register' ? 'new-password' : 'current-password'
+                  }
                   className={claseInput(e.clave, 'pr-12')}
                   id="password-input"
                   {...conError('password-input', e.clave)}
@@ -588,12 +684,20 @@ export function LoginPage() {
                   onClick={() => setVerClave((visible) => !visible)}
                   type="button"
                 >
-                  <Icono className="text-xl" nombre={verClave ? 'visibility_off' : 'visibility'} />
+                  <Icono
+                    className="text-xl"
+                    nombre={verClave ? 'visibility_off' : 'visibility'}
+                  />
                 </button>
               </Campo>
               {mode === 'register' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Campo etiqueta="Dirección:" error={e.direccion} icono="home_pin" id="direccion-input">
+                  <Campo
+                    etiqueta="Dirección:"
+                    error={e.direccion}
+                    icono="home_pin"
+                    id="direccion-input"
+                  >
                     <input
                       autoComplete="street-address"
                       className={claseInput(e.direccion)}
@@ -606,7 +710,12 @@ export function LoginPage() {
                       value={registro.direccion}
                     />
                   </Campo>
-                  <Campo etiqueta="Municipio:" error={e.municipio} icono="location_city" id="municipio-input">
+                  <Campo
+                    etiqueta="Municipio:"
+                    error={e.municipio}
+                    icono="location_city"
+                    id="municipio-input"
+                  >
                     <input
                       autoComplete="address-level2"
                       className={claseInput(e.municipio)}
@@ -635,16 +744,24 @@ export function LoginPage() {
                 disabled={enviando}
                 type="submit"
               >
-                <span>{mode === 'login' ? 'Ingresar a AgroTrace' : perfil.etiquetaRegistro}</span>
+                <span>
+                  {mode === 'login'
+                    ? 'Ingresar a AgroTrace'
+                    : perfil.etiquetaRegistro}
+                </span>
                 <Icono className="text-xl" nombre="arrow_forward" />
               </button>
             </form>
 
             <p className="text-center text-sm text-gray-600">
-              {mode === 'login' ? '¿No tienes cuenta aún?' : '¿Ya tienes cuenta?'}{' '}
+              {mode === 'login'
+                ? '¿No tienes cuenta aún?'
+                : '¿Ya tienes cuenta?'}{' '}
               <button
                 className="ml-1 inline-flex items-center gap-0.5 font-bold text-[#15803d] hover:underline cursor-pointer rounded focus:outline-none focus:ring-2 focus:ring-green-600"
-                onClick={() => cambiarModo(mode === 'login' ? 'register' : 'login')}
+                onClick={() =>
+                  cambiarModo(mode === 'login' ? 'register' : 'login')
+                }
                 type="button"
               >
                 {mode === 'login' ? 'Regístrate en 2 minutos' : 'Inicia sesión'}
