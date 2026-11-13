@@ -742,6 +742,9 @@ export function LoginPage() {
               <button
                 className="w-full h-13 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#15803d] hover:bg-[#166534] text-white text-base font-semibold shadow-md hover:shadow-lg transition-all cursor-pointer active:scale-[0.99] focus:outline-none focus:ring-4 focus:ring-green-600/30 disabled:opacity-60 disabled:cursor-wait"
                 disabled={enviando}
+                data-testid={
+                  mode === 'login' ? 'login-button' : 'register-button'
+                }
                 type="submit"
               >
                 <span>
