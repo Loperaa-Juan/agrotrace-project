@@ -43,7 +43,9 @@ export class AuthController {
     type: AuthResponseDto,
   })
   @invalidBody
-  @ApiConflictResponse({ description: 'Ya existe un usuario con ese correo' })
+  @ApiConflictResponse({
+    description: 'Ya existe un usuario con ese correo o documento',
+  })
   @Post('register')
   async register(@Body() registerDto: RegisterDTO) {
     return await this.authService.registerUser(registerDto);

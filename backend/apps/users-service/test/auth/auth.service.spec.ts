@@ -125,6 +125,18 @@ describe('AuthService', () => {
         ConflictException,
       );
     });
+
+    it('Debe lanzar ConflictException si el documento ya existe', async () => {
+      // El correo es nuevo, pero el documento ya está registrado
+      userRepository.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(user);
+
+      await expect(service.registerUser(registerData)).rejects.toThrow(
+        'A user with this document already exists.',
+      );
+      expect(userRepository.save).not.toHaveBeenCalled();
+    });
   });
 
   describe('loginUser', () => {

@@ -39,7 +39,7 @@ export class AuthService {
   ) {}
 
   /**
-   * Registra un nuevo usuario en la plataforma, validando que el correo no esté previamente registrado,
+   * Registra un nuevo usuario en la plataforma, validando que el correo y el documento no estén previamente registrados,
    * aplicando cifrado a la contraseña y generando su sesión inicial.
    * @param registerDto - Objeto con los datos obligatorios y opcionales del nuevo usuario.
    * @returns Retorna los tokens de acceso y los datos públicos del usuario registrado.
@@ -66,6 +66,18 @@ export class AuthService {
 
     if (user) {
       throw new ConflictException('A user with this email already exists.');
+    }
+
+    // Validamos que el documento (ej. el NIT de un negocio) no esté registrado
+    const userWithDocument = await this.userRepository.findOne({
+      where: {
+        documentType,
+        documentNumber,
+      },
+    });
+
+    if (userWithDocument) {
+      throw new ConflictException('A user with this document already exists.');
     }
 
     const hashedPassword = await this.hashPassword(password);
