@@ -107,6 +107,28 @@ describe('Registro en la página de login', () => {
     );
   });
 
+  it('avisa si el documento ya está registrado', async () => {
+    // Arrange
+    fetchMock.mockReturnValue(
+      respuestaFetch(409, {
+        message: 'A user with this document already exists.',
+        error: 'Conflict',
+        statusCode: 409,
+      }),
+    );
+    renderPagina('/login?modo=registro');
+    llenarRegistroValido();
+
+    // Act
+    enviarRegistro();
+
+    // Assert
+    expect(
+      await screen.findByText('Ya existe una cuenta con este número de documento.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Ya existe una cuenta con este correo.')).not.toBeInTheDocument();
+  });
+
   it('avisa si el servidor falla al crear la cuenta', async () => {
     // Arrange
     fetchMock.mockReturnValue(

@@ -127,6 +127,8 @@ const ERROR_CREDENCIALES =
   'No encontramos una cuenta con esos datos. Revisa el correo y la contraseña.';
 const ERROR_SERVIDOR = 'Algo salió mal en el servidor. Intenta de nuevo más tarde.';
 const ERROR_CONEXION = 'No pudimos conectar con el servidor. Intenta de nuevo.';
+/** Mensaje del `users-service` cuando el documento (ej. el NIT) ya tiene una cuenta. */
+const DOCUMENTO_REGISTRADO = 'A user with this document already exists.';
 
 const PESTANA =
   'flex-1 py-2 rounded-lg text-sm font-semibold text-center transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600';
@@ -304,8 +306,13 @@ export function LoginPage() {
         }),
       );
     } catch (err) {
+      // El 409 llega por el correo o por el documento; el mensaje dice cuál de los dos
       if (err instanceof ErrorApi && err.status === 409) {
-        marcarErrores({ correo: 'Ya existe una cuenta con este correo.' });
+        marcarErrores(
+          err.message === DOCUMENTO_REGISTRADO
+            ? { numeroDocumento: 'Ya existe una cuenta con este número de documento.' }
+            : { correo: 'Ya existe una cuenta con este correo.' },
+        );
         return;
       }
       setError(err instanceof ErrorApi ? ERROR_SERVIDOR : ERROR_CONEXION);
