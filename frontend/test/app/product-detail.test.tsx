@@ -383,8 +383,72 @@ describe('Crear pedido desde ProductDetail', () => {
     );
 
     // Assert: se queda en el detalle de la oferta con el error
-    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No pudimos crear el pedido. Intenta de nuevo.',
+    );
     expect(window.location.pathname).toBe(`/explorar/${OFERTA_ID}`);
+  });
+
+  /** Abre el detalle de la oferta como comprador y confirma el pedido con la respuesta indicada. */
+  async function ordenarConRespuesta(
+    usuario: typeof PERSONA | typeof NEGOCIO,
+    respuesta: [number, unknown],
+  ) {
+    localStorage.setItem('accessToken', 'access-token-123');
+    localStorage.setItem('refreshToken', 'refresh-token-456');
+    localStorage.setItem('usuario', JSON.stringify(usuario));
+    simularApi(fetchMock, {
+      'GET /offerts': [200, [{ ...oferta, OffertId: OFERTA_ID }]],
+      'GET /catalog': [200, [producto]],
+      'POST /orders': respuesta,
+    });
+    window.history.pushState({}, '', `/explorar/${OFERTA_ID}`);
+    render(<App />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Ordenar ahora' }),
+    );
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: 'Aceptar',
+      }),
+    );
+  }
+
+  it('Si se pide más de lo disponible, se debe avisar cuánto queda sin ocultar la cosecha', async () => {
+    // Arrange + Act: el orders-service rechaza el pedido por falta de cantidad
+    await ordenarConRespuesta(NEGOCIO, [
+      400,
+      { message: 'Only 120 available for this offert' },
+    ]);
+
+    // Assert: el aviso dice cuánto hay y el detalle de la cosecha sigue en pantalla
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Solo hay 120 lb disponibles de esta cosecha.',
+    );
+    expect(
+      screen.queryByText('No pudimos cargar la cosecha. Intenta de nuevo.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Aguacate Hass' }),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe(`/explorar/${OFERTA_ID}`);
+  });
+
+  it('Si el rol no puede hacer el pedido, se debe avisar que su cuenta no puede', async () => {
+    // Arrange + Act
+    await ordenarConRespuesta(PERSONA, [
+      403,
+      { message: 'Only businesses can order more than 50 lb' },
+    ]);
+
+    // Assert
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Tu tipo de cuenta no puede hacer este pedido.',
+    );
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Aguacate Hass' }),
+    ).toBeInTheDocument();
   });
 
   it('Si la oferta no existe, se debe avisar que ya no está disponible', async () => {
