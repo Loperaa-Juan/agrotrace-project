@@ -48,8 +48,8 @@ type Perfil = {
   etiquetaRegistro: string;
   /** RF-02: Agricultor y Persona se registran con CC o CE; Negocio, con NIT. */
   documentos: TipoDocumento[];
-  // Este campo no se envía al backend; solo sirve para pruebas de UI con `?idtest=agricultor`. Es agregado para prácticas de BDD
-  idtest?: string;
+  // Este campo no se envía al backend; solo sirve para pruebas de UI con `?id=agricultor`. Es agregado para prácticas de BDD
+  id?: string;
 };
 
 /**
@@ -70,7 +70,7 @@ const PERFILES: Perfil[] = [
     pistaTexto:
       'Tendrás acceso a la herramienta de inspección fotográfica para clasificar Aguacate, Plátano y Fresas en Grados A, B y C.',
     etiquetaRegistro: 'Crear Perfil de Productor Local',
-    idtest: 'agricultor',
+    id: 'agricultor',
   },
   {
     rol: 'Persona',
@@ -85,7 +85,7 @@ const PERFILES: Perfil[] = [
     pistaTexto:
       'Explora cosechas recogidas esta mañana en Las Palmas, Pantanillo y El Vallano y recógelas en la finca del productor.',
     etiquetaRegistro: 'Crear Cuenta para Mi Hogar',
-    idtest: 'persona',
+    id: 'persona',
   },
   {
     rol: 'Negocio',
@@ -99,7 +99,7 @@ const PERFILES: Perfil[] = [
     pistaTexto:
       'Consigue listas de precios por volumen y trazabilidad por georreferenciación de cada lote.',
     etiquetaRegistro: 'Registrar Mi Restaurante / Negocio',
-    idtest: 'negocio',
+    id: 'negocio',
   },
 ];
 
@@ -437,6 +437,7 @@ export function LoginPage() {
           <section className="lg:col-span-7 bg-white rounded-3xl p-5 sm:p-8 shadow-xl border border-gray-100 flex flex-col gap-6">
             <div className="flex p-1 bg-gray-100 rounded-xl w-full max-w-xs">
               <button
+                id="btn-ingresar"
                 aria-pressed={mode === 'login'}
                 className={`${PESTANA} ${mode === 'login' ? PESTANA_ACTIVA : PESTANA_INACTIVA}`}
                 onClick={() => cambiarModo('login')}
@@ -445,6 +446,7 @@ export function LoginPage() {
                 Ingresar
               </button>
               <button
+                id="btn-registrarme"
                 aria-pressed={mode === 'register'}
                 className={`${PESTANA} ${mode === 'register' ? PESTANA_ACTIVA : PESTANA_INACTIVA}`}
                 onClick={() => cambiarModo('register')}
@@ -475,7 +477,7 @@ export function LoginPage() {
                     return (
                       <button
                         aria-checked={activo}
-                        data-testid={item.idtest}
+                        id={item.id}
                         className={`text-left p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col gap-3 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 ${
                           activo
                             ? 'border-[#15803d] bg-green-50 shadow-sm'

@@ -192,6 +192,7 @@ function Alerta({ children }: Readonly<{ children: ReactNode }>) {
     <p
       className="flex items-center gap-2 p-4 rounded-xl bg-red-50 text-sm font-medium text-red-700"
       role="alert"
+      id="alerta-error"
     >
       {children}
     </p>
@@ -501,7 +502,11 @@ function PasoDatos({
         </p>
       )}
 
-      <button className={`${BOTON_PRIMARIO} w-full`} type="submit">
+      <button
+        className={`${BOTON_PRIMARIO} w-full`}
+        type="submit"
+        id="btn-siguiente"
+      >
         Siguiente: cuándo se recoge
         <Icono className="text-xl" nombre="arrow_forward" />
       </button>
@@ -561,7 +566,12 @@ function PasoFecha({
       {error && <Alerta>{error}</Alerta>}
 
       <div className="flex flex-col-reverse sm:flex-row gap-3">
-        <button className={BOTON_SECUNDARIO} onClick={onVolver} type="button">
+        <button
+          className={BOTON_SECUNDARIO}
+          onClick={onVolver}
+          type="button"
+          id="btn-volver-datos"
+        >
           <Icono className="text-xl" nombre="arrow_back" />
           Volver
         </button>
@@ -569,6 +579,7 @@ function PasoFecha({
           className={`${BOTON_PRIMARIO} flex-1`}
           disabled={revisando}
           onClick={onRevisar}
+          id="btn-revisar-info"
           type="button"
         >
           {revisando ? 'Revisando…' : 'Revisar información'}
@@ -642,7 +653,7 @@ function PasoRevision({
         <p className="flex items-center justify-center gap-2 p-4 rounded-xl bg-green-50 font-bold text-[#15803d]">
           <Icono className="text-xl text-amber-500" nombre="verified_user" />
           <span>Certificación AgroTrace IA</span>
-          <span>{`Calidad ${revision.aiQuality}`}</span>
+          <span id="calidad-ia">{`Calidad ${revision.aiQuality}`}</span>
         </p>
       )}
 
@@ -678,6 +689,7 @@ function PasoRevision({
           className={`${BOTON_PRIMARIO} flex-1`}
           disabled={podrida || publicando}
           onClick={onPublicar}
+          id="btn-publicar-cosecha"
           type="button"
         >
           {publicando ? 'Publicando…' : 'Publicar cosecha'}
@@ -697,13 +709,20 @@ function Publicada() {
       <span className="w-16 h-16 mx-auto rounded-full bg-green-100 text-[#15803d] flex items-center justify-center">
         <Icono className="text-4xl" nombre="task_alt" />
       </span>
-      <h2 className="text-2xl font-extrabold text-gray-900">
+      <h2
+        className="text-2xl font-extrabold text-gray-900"
+        id="mensaje-publicada"
+      >
         ¡Su cosecha quedó publicada!
       </h2>
       <p className="text-gray-600">
         Los compradores ya pueden verla en el catálogo de cosechas de AgroTrace.
       </p>
-      <Link className={BOTON_PRIMARIO} to={routes.perfil}>
+      <Link
+        className={BOTON_PRIMARIO}
+        to={routes.perfil}
+        id="btn-volver-perfil"
+      >
         <Icono className="text-xl" nombre="person" />
         Volver a mi perfil
       </Link>

@@ -18,7 +18,7 @@ const OFERTA_AGUACATE = {
   pricePerUnit: 1000,
   availableQuantity: 120,
   harvestDate: '2026-10-10',
-  aiQuality: 'A',
+  aiQuality: 'Buena',
   isActive: true,
 };
 
@@ -27,7 +27,7 @@ const OFERTA_FRESA = {
   OffertId: 'o-2',
   productId: 'p-fresa',
   pricePerUnit: 800,
-  aiQuality: 'B',
+  aiQuality: 'Regular',
 };
 
 const OFERTA_MANGO = {
@@ -35,7 +35,7 @@ const OFERTA_MANGO = {
   OffertId: 'o-3',
   productId: 'p-mango',
   pricePerUnit: 3500,
-  aiQuality: 'A',
+  aiQuality: 'Buena',
 };
 
 const API_CATALOGO: Respuestas = {
@@ -201,6 +201,19 @@ describe('Tests en FilterPage', () => {
       expect(screen.getByRole('heading', { name: 'Aguacate Hass' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { name: 'Mango' })).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: 'Fresa' })).toBeNull();
+    });
+
+    it('Al desmarcar la calidad A, solo se deben mostrar las cosechas de calidad B', async () => {
+      // Arrange: renderizamos la página
+      await renderConCosechas();
+
+      // Act: el usuario desmarca la calidad A
+      fireEvent.click(screen.getByRole('checkbox', { name: /Grado A/ }));
+
+      // Assert
+      expect(screen.getByRole('heading', { name: 'Fresa' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Aguacate Hass' })).toBeNull();
+      expect(screen.queryByRole('heading', { name: 'Mango' })).toBeNull();
     });
 
     it('Al volver a marcar la calidad B, se deben mostrar de nuevo sus cosechas', async () => {

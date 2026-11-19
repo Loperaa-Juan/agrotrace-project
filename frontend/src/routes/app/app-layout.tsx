@@ -71,7 +71,8 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
       if (evento.key === 'Escape') setAbierto(false);
     };
     const alHacerClic = (evento: MouseEvent) => {
-      if (!contenedor.current?.contains(evento.target as Node)) setAbierto(false);
+      if (!contenedor.current?.contains(evento.target as Node))
+        setAbierto(false);
     };
     document.addEventListener('keydown', alPresionar);
     document.addEventListener('mousedown', alHacerClic);
@@ -91,6 +92,7 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
     <div className="relative" ref={contenedor}>
       <button
         aria-controls="menu-usuario"
+        id="menu-usuario"
         aria-expanded={abierto}
         aria-label={`${usuario.name}, ${ROLES[usuario.role]}`}
         className="flex items-center gap-3 rounded-xl py-1 pl-3 pr-1 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-green-600"
@@ -145,6 +147,7 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
               className={`${OPCION_MENU} bg-[#15803d] text-white font-semibold hover:bg-[#166534] focus:bg-[#166534]`}
               onClick={() => setAbierto(false)}
               to={routes.publicar}
+              id="btn-publicar-cosecha"
             >
               <Icono className="text-lg" nombre="add_circle" />
               Publicar cosecha
@@ -176,13 +179,17 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
                 onClick={() => setAbierto(false)}
                 to={routes.pedidos}
               >
-                <Icono className="text-lg text-[#15803d]" nombre="inventory_2" />
+                <Icono
+                  className="text-lg text-[#15803d]"
+                  nombre="inventory_2"
+                />
                 Mis pedidos
               </Link>
             </>
           )}
           <div className="my-1 border-t border-gray-100" />
           <button
+            id="btn-cerrar-sesion"
             className={`${OPCION_MENU} text-red-700 hover:bg-red-50`}
             onClick={salirAlLogin}
             type="button"

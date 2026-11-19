@@ -415,7 +415,7 @@ function ContenidoPerfil({
             <div className="min-w-0">
               <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-100 text-[#15803d] text-xs font-semibold mb-1">
                 <Icono className="text-sm" nombre={rol.icono} />
-                <span>{rol.etiqueta}</span>
+                <span id="role-label">{rol.etiqueta}</span>
               </span>
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">
                 {perfil.name}
@@ -443,7 +443,7 @@ function ContenidoPerfil({
           </div>
           <div className="flex flex-col gap-2 shrink-0">
             {esAgricultor && (
-              <Link className={BOTON_PRIMARIO} to={routes.publicar}>
+              <Link className={BOTON_PRIMARIO} to={routes.publicar} id='btn-publicar-cosecha'>
                 <Icono className="text-xl" nombre="add_circle" />
                 Publicar una cosecha
               </Link>

@@ -12,10 +12,14 @@ import {
 } from '../profile-api';
 import { Icono, TarjetaCosecha } from './explore';
 
-/** Configuración de los grados de calidad evaluados por IA disponibles para filtrado (solo se publican A y B). */
+/**
+ * Configuración de los grados de calidad evaluados por IA disponibles para filtrado (solo se publican A y B).
+ * `valor` es el `aiQuality` que guarda el `catalog-service` para cada grado.
+ */
 const CALIDADES = [
   {
     grado: 'A',
+    valor: 'Buena',
     titulo: 'Calidad buena',
     descripcion:
       'Calibre uniforme y sin golpes. Para restaurantes y mesas exigentes.',
@@ -23,6 +27,7 @@ const CALIDADES = [
   },
   {
     grado: 'B',
+    valor: 'Regular',
     titulo: 'Calidad regular',
     descripcion:
       'Leves asimetrías o roces en la piel. Para el consumo diario en casa.',
@@ -67,7 +72,11 @@ function FilterPage() {
         .includes(busqueda.toLowerCase()) &&
       // Con todas las calidades marcadas no se filtra, así se ven también las cosechas sin clasificar
       (grados.length === CALIDADES.length ||
-        (oferta.aiQuality !== null && grados.includes(oferta.aiQuality))) &&
+        CALIDADES.some(
+          (calidad) =>
+            grados.includes(calidad.grado) &&
+            calidad.valor === oferta.aiQuality,
+        )) &&
       oferta.pricePerUnit <= precioMaximo,
   );
 
