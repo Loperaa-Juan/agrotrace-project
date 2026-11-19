@@ -5,7 +5,7 @@
 
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { Usuario } from '../auth-api';
+import { ErrorApi, type Usuario } from '../auth-api';
 import {
   crearPedido,
   obtenerCatalogo,
@@ -19,6 +19,25 @@ import { useSesion } from '../session-context';
 import { FotoCosecha, Icono } from './explore';
 
 const ERROR_CARGA = 'No pudimos cargar la cosecha. Intenta de nuevo.';
+const ERROR_PEDIDO = 'No pudimos crear el pedido. Intenta de nuevo.';
+const ERROR_PEDIDO_NO_PERMITIDO =
+  'Tu tipo de cuenta no puede hacer este pedido.';
+
+/**
+ * Traduce el error al crear un pedido en un mensaje para el comprador.
+ * El `orders-service` responde 400 cuando se pide más de lo disponible y 403 cuando el rol no puede ordenar.
+ */
+function mensajeErrorPedido(
+  err: unknown,
+  disponibles: number,
+  unidad: string,
+): string {
+  if (!(err instanceof ErrorApi)) return ERROR_PEDIDO;
+  if (err.status === 400)
+    return `Solo hay ${formatoNumero(disponibles)} ${unidad} disponibles de esta cosecha.`;
+  if (err.status === 403) return ERROR_PEDIDO_NO_PERMITIDO;
+  return ERROR_PEDIDO;
+}
 
 /** Cantidad máxima permitida por pedido para usuarios que no compran como negocio (límite para hogares). */
 const LIMITE_PERSONA = 50;
@@ -62,12 +81,15 @@ function ProductDetail({
   producto,
   usuario = null,
   alConfirmar,
+  errorPedido = null,
 }: Readonly<{
   oferta: Oferta;
   producto: Producto | undefined;
   usuario?: Usuario | null;
   /** Se llama con la cantidad elegida al aceptar el diálogo de confirmación. */
   alConfirmar?: (cantidad: number) => void;
+  /** Motivo por el que no se pudo crear el pedido; se muestra junto al botón de ordenar. */
+  errorPedido?: string | null;
 }>) {
   const idCantidad = useId();
   const idConfirmacion = useId();
@@ -228,6 +250,16 @@ function ProductDetail({
               </p>
             )}
 
+            {errorPedido && (
+              <p
+                role="alert"
+                className="flex items-start gap-2 p-3 rounded-xl bg-red-50 text-sm font-medium text-red-700"
+              >
+                <Icono className="text-lg shrink-0" nombre="error" />
+                {errorPedido}
+              </p>
+            )}
+
             <button
               type="button"
               disabled={sinCantidad || esPropia}
@@ -312,6 +344,7 @@ export function DetalleProductoPage() {
   const { usuario } = useSesion();
   const [datos, setDatos] = useState<DatosDetalle | null>(null);
   const [error, setError] = useState(false);
+  const [errorPedido, setErrorPedido] = useState<string | null>(null);
 
   useEffect(() => {
     let vigente = true;
@@ -373,18 +406,26 @@ export function DetalleProductoPage() {
     );
   }
 
-  const { OffertId } = datos.oferta;
+  const { OffertId, availableQuantity } = datos.oferta;
+  const unidad = datos.producto?.unitOfMeasure ?? '';
 
-  /** Envía la orden de compra al backend y redirige al detalle del nuevo pedido. */
+  /**
+   * Envía la orden de compra al backend y redirige al detalle del nuevo pedido.
+   * Si falla, el comprador sigue en el detalle de la cosecha y ve el motivo.
+   */
   const ordenar = (cantidad: number) => {
+    setErrorPedido(null);
     crearPedido(OffertId, cantidad)
       .then((pedido) => navigate(`${routes.pedidos}/${pedido.OrderId}`))
-      .catch(() => setError(true));
+      .catch((err) =>
+        setErrorPedido(mensajeErrorPedido(err, availableQuantity, unidad)),
+      );
   };
 
   return (
     <ProductDetail
       alConfirmar={ordenar}
+      errorPedido={errorPedido}
       oferta={datos.oferta}
       producto={datos.producto}
       usuario={usuario}
