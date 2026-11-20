@@ -152,10 +152,10 @@ describe('Documentación Swagger de /auth', () => {
       expect(esquema.properties.email.format).toBe('email');
     });
 
-    it('exige entre 8 y 72 caracteres en la contraseña', async () => {
+    it('exige entre 15 y 72 caracteres en la contraseña', async () => {
       const esquema = await obtenerEsquema();
 
-      expect(esquema.properties.password.minLength).toBe(8);
+      expect(esquema.properties.password.minLength).toBe(15);
       expect(esquema.properties.password.maxLength).toBe(72);
     });
 

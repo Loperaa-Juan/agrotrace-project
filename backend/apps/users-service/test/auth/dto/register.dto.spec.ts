@@ -11,7 +11,7 @@ describe('RegisterDTO', () => {
     documentNumber: '1020304050',
     email: 'juan@agrotrace.com',
     phone: '3001234567',
-    password: 'Segura123',
+    password: 'SeguraAgrotrace1',
     address: 'Calle 10 # 20-30',
     municipality: 'Envigado',
     role: UserRole.AGRICULTOR,
@@ -63,10 +63,16 @@ describe('RegisterDTO', () => {
     );
   });
 
-  it('rechaza una contraseña de menos de 8 caracteres', async () => {
+  it('rechaza una contraseña de menos de 15 caracteres', async () => {
     expect(
-      await camposConError({ ...datosValidos, password: 'Abc123' }),
+      await camposConError({ ...datosValidos, password: 'a'.repeat(14) }),
     ).toContain('password');
+  });
+
+  it('acepta una contraseña de exactamente 15 caracteres', async () => {
+    expect(
+      await camposConError({ ...datosValidos, password: 'a'.repeat(15) }),
+    ).toEqual([]);
   });
 
   it('rechaza una dirección vacía', async () => {

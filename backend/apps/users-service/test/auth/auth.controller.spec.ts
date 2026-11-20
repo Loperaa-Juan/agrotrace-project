@@ -43,7 +43,7 @@ describe('Tests en las rutas /users', () => {
     documentNumber: '1020304050',
     email: 'juan@agrotrace.com',
     phone: '3001234567',
-    password: 'Segura123',
+    password: 'SeguraAgrotrace1',
     address: 'Calle 10 # 20-30',
     municipality: 'Envigado',
     role: UserRole.AGRICULTOR,

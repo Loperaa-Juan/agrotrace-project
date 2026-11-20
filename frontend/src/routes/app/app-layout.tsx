@@ -137,6 +137,7 @@ function MenuUsuario({ usuario }: Readonly<{ usuario: Usuario }>) {
             className={`${OPCION_MENU} text-gray-800 hover:bg-gray-50`}
             onClick={() => setAbierto(false)}
             to={routes.filtros}
+            id="btn-filtros-busqueda"
           >
             <Icono className="text-lg text-[#15803d]" nombre="filter_alt" />
             Filtros y búsqueda

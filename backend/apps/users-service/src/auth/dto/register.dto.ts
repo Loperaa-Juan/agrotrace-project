@@ -65,10 +65,10 @@ export class RegisterDTO {
   })
   phone: string;
 
-  /** Contraseña (entre 8 y 72 caracteres). */
-  @ApiProperty({ minLength: 8, maxLength: 72, example: 'Secreta123' })
+  /** Contraseña (entre 15 y 72 caracteres). */
+  @ApiProperty({ minLength: 15, maxLength: 72, example: 'SeguraAgrotrace1' })
   @IsString()
-  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+  @MinLength(15, { message: 'La contraseña debe tener al menos 15 caracteres' })
   @MaxLength(72) // bcrypt ignora lo que pase de 72 bytes
   password: string;
 

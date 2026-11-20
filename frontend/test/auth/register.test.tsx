@@ -11,7 +11,7 @@ function llenarRegistroValido() {
   escribir(/número de documento/i, '1020304050');
   escribir(/correo electrónico/i, 'juan@agrotrace.com');
   escribir(/teléfono celular/i, '3001234567');
-  escribir(/contraseña de acceso/i, 'Segura123');
+  escribir(/contraseña de acceso/i, 'SeguraAgrotrace1');
   escribir(/dirección/i, 'Calle 10 # 20-30');
   escribir(/municipio/i, 'Envigado');
 }
@@ -79,7 +79,7 @@ describe('Registro en la página de login', () => {
       documentNumber: '1020304050',
       email: 'juan@agrotrace.com',
       phone: '3001234567',
-      password: 'Segura123',
+      password: 'SeguraAgrotrace1',
       address: 'Calle 10 # 20-30',
       municipality: 'Envigado',
       role: 'Agricultor',

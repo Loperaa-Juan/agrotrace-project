@@ -138,6 +138,7 @@ function FilterPage() {
           </div>
           <button
             type="button"
+            id="btn-search"
             className="h-14 px-8 rounded-xl bg-[#15803d] text-white font-bold shadow-md hover:bg-[#166534] transition-colors inline-flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={nombre === ''}
             onClick={() => setBusqueda(nombre)}
@@ -166,6 +167,7 @@ function FilterPage() {
                     <input
                       type="checkbox"
                       className="sr-only"
+                      id={`filtro-calidad-${calidad.grado}`}
                       checked={marcada}
                       onChange={() => alternarGrado(calidad.grado)}
                     />
@@ -229,7 +231,11 @@ function FilterPage() {
           </aside>
 
           <section className="lg:col-span-8 space-y-4">
-            <p aria-live="polite" className="text-sm text-gray-600">
+            <p
+              aria-live="polite"
+              className="text-sm text-gray-600"
+              id="resultado-filtro"
+            >
               {`${ofertasFiltradas.length} ${ofertasFiltradas.length === 1 ? 'oferta' : 'ofertas'}`}
             </p>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">

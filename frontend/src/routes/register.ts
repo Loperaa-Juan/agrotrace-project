@@ -113,8 +113,8 @@ export function validarRegistro(
   if (!/^3\d{9}$/.test(normalizarTelefono(datos.telefono))) {
     errores.telefono = 'Ingresa un celular de 10 dígitos que empiece por 3';
   }
-  if (datos.clave.length < 8 || datos.clave.length > 72) {
-    errores.clave = 'La contraseña debe tener entre 8 y 72 caracteres';
+  if (datos.clave.length < 15 || datos.clave.length > 72) {
+    errores.clave = 'La contraseña debe tener entre 15 y 72 caracteres';
   }
   if (!normalizarTexto(datos.direccion)) errores.direccion = 'Ingresa tu dirección';
   if (sinTildes(normalizarTexto(datos.municipio)) !== 'envigado') {
